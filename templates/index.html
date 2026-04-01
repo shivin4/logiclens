@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Luminal Architect - Graph View</title>
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface-container-low": "#131b2e",
+                        "surface": "#0b1326",
+                        "on-primary-fixed-variant": "#004c69",
+                        "surface-tint": "#7bd0ff",
+                        "secondary-fixed": "#62fae3",
+                        "on-surface": "#dae2fd",
+                        "on-secondary-container": "#004d44",
+                        "on-surface-variant": "#bdc8d1",
+                        "on-tertiary-fixed-variant": "#653e00",
+                        "error": "#ffb4ab",
+                        "surface-container": "#171f33",
+                        "tertiary-container": "#f1a02b",
+                        "on-secondary-fixed-variant": "#005047",
+                        "on-primary-container": "#004965",
+                        "inverse-on-surface": "#283044",
+                        "surface-bright": "#31394d",
+                        "background": "#0b1326",
+                        "on-error-container": "#ffdad6",
+                        "surface-dim": "#0b1326",
+                        "error-container": "#93000a",
+                        "on-tertiary-container": "#613b00",
+                        "tertiary-fixed": "#ffddb8",
+                        "surface-container-high": "#222a3d",
+                        "inverse-surface": "#dae2fd",
+                        "surface-container-lowest": "#060e20",
+                        "on-error": "#690005",
+                        "tertiary": "#ffc176",
+                        "on-secondary": "#003731",
+                        "on-primary-fixed": "#001e2c",
+                        "on-tertiary-fixed": "#2a1700",
+                        "on-tertiary": "#472a00",
+                        "secondary-container": "#03c6b2",
+                        "primary-fixed": "#c4e7ff",
+                        "on-secondary-fixed": "#00201c",
+                        "primary": "#8ed5ff",
+                        "surface-variant": "#2d3449",
+                        "on-background": "#dae2fd",
+                        "inverse-primary": "#00668a",
+                        "primary-container": "#38bdf8",
+                        "secondary-fixed-dim": "#3cddc7",
+                        "tertiary-fixed-dim": "#ffb960",
+                        "outline": "#87929a",
+                        "secondary": "#44e2cd",
+                        "primary-fixed-dim": "#7bd0ff",
+                        "outline-variant": "#3e484f",
+                        "surface-container-highest": "#2d3449",
+                        "on-primary": "#00354a"
+                    },
+                    fontFamily: {
+                        "headline": ["Plus Jakarta Sans"],
+                        "body": ["Inter"],
+                        "label": ["Inter"],
+                        "mono": ["JetBrains Mono"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+    
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    
+    <!-- Vis-Network -->
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    
+    <style>
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .glass-panel {
+            background: rgba(45, 52, 73, 0.7);
+            backdrop-filter: blur(16px);
+        }
+        /* Overrides for vis-network */
+        #mynetwork canvas { outline: none; }
+        .vis-tooltip { display: none !important; } /* We use our own UI side panel instead of tooltips */
+        
+        .spinner {
+            display: none; width: 14px; height: 14px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+        }
+        #analyze-btn.loading .spinner { display: block; }
+        #analyze-btn.loading .btn-text-icon { display: none; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
+        ::-webkit-scrollbar-thumb { background: #3e484f; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #87929a; }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body selection:bg-primary/30 overflow-hidden h-screen w-screen flex flex-col">
+    <!-- TopNavBar -->
+    <header class="bg-[#0b1326] w-full top-0 sticky flex justify-between items-center px-6 h-16 z-50">
+        <div class="flex items-center gap-8">
+            <span class="text-xl font-bold text-sky-400 tracking-tighter font-headline">Luminal Architect</span>
+            <nav class="hidden md:flex items-center gap-6">
+                <a class="text-slate-400 hover:text-slate-200 transition-colors text-sm tracking-tight" href="#">Dashboard</a>
+                <a class="text-sky-400 border-b-2 border-sky-400 pb-1 text-sm font-semibold tracking-tight" href="#">Graph View</a>
+                <a class="text-slate-400 hover:text-slate-200 transition-colors text-sm tracking-tight" href="#">Semantic Search</a>
+                <a class="text-slate-400 hover:text-slate-200 transition-colors text-sm tracking-tight" href="#">Analyze Code</a>
+            </nav>
+        </div>
+        <div class="flex items-center gap-4">
+            <!-- Analyze Form -->
+            <div class="flex items-center gap-2 mr-6 bg-surface-container-lowest border border-outline-variant/30 rounded-lg pr-1 transition-all focus-within:border-primary/60 focus-within:shadow-[0_0_15px_rgba(56,189,248,0.15)]">
+                <input id="path-input" type="text" placeholder="D:\LogicLens-Prj3" class="bg-transparent border-none text-on-surface text-sm font-mono focus:ring-0 w-64 md:w-80 px-4 py-2 placeholder-on-surface-variant/50 outline-none" />
+                <button id="analyze-btn" class="bg-gradient-to-r from-primary to-primary-container text-on-primary font-bold text-sm rounded-md px-3 py-1.5 shadow-lg shadow-primary/20 hover:opacity-90 flex gap-1 items-center transition-all scale-100 active:scale-95">
+                    <div class="spinner"></div>
+                    <span class="btn-text-icon flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[16px] leading-none" data-icon="electric_bolt">electric_bolt</span>
+                        Analyze
+                    </span>
+                </button>
+            </div>
+
+            <button class="p-2 text-on-surface-variant hover:bg-[#2d3449]/50 transition-all rounded-lg scale-95 active:scale-90 duration-200">
+                <span class="material-symbols-outlined" data-icon="search">search</span>
+            </button>
+            <button class="p-2 text-on-surface-variant hover:bg-[#2d3449]/50 transition-all rounded-lg scale-95 active:scale-90 duration-200">
+                <span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+            </button>
+            <button class="p-2 text-on-surface-variant hover:bg-[#2d3449]/50 transition-all rounded-lg scale-95 active:scale-90 duration-200">
+                <span class="material-symbols-outlined" data-icon="settings">settings</span>
+            </button>
+            <div class="h-8 w-8 rounded-full overflow-hidden border border-outline-variant/30 ml-2 bg-surface-container-highest flex items-center justify-center">
+                <span class="material-symbols-outlined text-sm text-primary">person</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden relative">
+        <!-- SideNavBar -->
+        <aside class="bg-[#171f33] h-full w-64 left-0 border-r border-[#3e484f]/15 hidden lg:flex flex-col py-4 z-40">
+            <div class="px-6 mb-8 flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-primary text-sm" data-icon="account_tree">account_tree</span>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-sky-400 font-headline leading-tight">Core Engine</h3>
+                    <p class="text-[10px] text-on-surface-variant font-mono uppercase tracking-widest">v2.4.0-stable</p>
+                </div>
+            </div>
+            
+            <nav class="flex-1 px-3 space-y-1">
+                <!-- Accordion Wrapper for Explorer -->
+                <div>
+                    <button id="nav-explorer" class="w-full flex items-center justify-between px-3 py-2 text-slate-500 hover:text-slate-200 transition-all duration-150 ease-in-out font-inter text-xs font-medium rounded-lg hover:bg-[#2d3449]">
+                        <div class="flex items-center gap-3">
+                            <span class="material-symbols-outlined text-lg" data-icon="folder_open">folder_open</span>
+                            <span>Explorer</span>
+                        </div>
+                        <span class="material-symbols-outlined text-sm transition-transform duration-200" id="explorer-chevron">expand_more</span>
+                    </button>
+                    <!-- Explorer Tree Container -->
+                    <div id="explorer-content" class="hidden flex-col pl-1 py-1 pr-1 max-h-[50vh] overflow-y-auto mb-2">
+                        <div id="explorer-tree" class="text-on-surface-variant font-mono text-[11px] leading-relaxed select-none">
+                            <p class="text-center text-outline-variant italic py-4">Analyze a project</p>
+                        </div>
+                    </div>
+                </div>
+
+                <a class="flex items-center gap-3 px-3 py-2 bg-sky-500/10 text-sky-400 border-l-2 border-sky-400 transition-all duration-150 ease-in-out font-inter text-xs font-medium" href="#">
+                    <span class="material-symbols-outlined text-lg" data-icon="search">search</span>
+                    <span>Graph View</span>
+                </a>
+                <a class="flex items-center gap-3 px-3 py-2 text-slate-500 hover:text-slate-300 transition-all duration-150 ease-in-out font-inter text-xs font-medium rounded-lg hover:bg-[#2d3449]" href="#">
+                    <span class="material-symbols-outlined text-lg" data-icon="account_tree">account_tree</span>
+                    <span>Source Control</span>
+                </a>
+            </nav>
+            
+            <div class="px-3 pt-4 border-t border-outline-variant/10 space-y-1">
+                <a class="flex items-center gap-3 px-3 py-2 text-slate-500 hover:text-slate-300 transition-all duration-150 ease-in-out font-inter text-xs font-medium rounded-lg hover:bg-[#2d3449]" href="#">
+                    <span class="material-symbols-outlined text-lg" data-icon="settings">settings</span>
+                    <span>Settings</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content Area: Graph Canvas -->
+        <main class="flex-1 relative bg-surface-dim overflow-hidden flex flex-col">
+            <!-- SVG Grid Background -->
+            <div class="absolute inset-0 z-0 pointer-events-none opacity-[0.15]">
+                <svg height="100%" width="100%" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <pattern height="80" id="grid" patternunits="userSpaceOnUse" width="80">
+                            <path d="M 80 0 L 0 0 0 80" fill="none" stroke="#38bdf8" stroke-width="0.5"></path>
+                        </pattern>
+                    </defs>
+                    <rect fill="url(#grid)" height="100%" width="100%"></rect>
+                </svg>
+            </div>
+            
+            <!-- Vis-Network Container -->
+            <div id="mynetwork" class="absolute inset-0 z-10"></div>
+            
+            <!-- Empty State Overlay -->
+            <div id="empty-state" class="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 pointer-events-none">
+                <span class="material-symbols-outlined text-6xl text-outline-variant opacity-30" data-icon="hub">hub</span>
+                <p class="text-on-surface-variant font-medium text-lg">No graph loaded yet</p>
+                <p class="text-outline text-sm">Enter a path above and click Analyze to visualize.</p>
+            </div>
+
+            <!-- Breadcrumb Lens (Status / Stats) -->
+            <div class="absolute top-6 left-6 z-30 flex items-center gap-2 glass-panel py-2 px-4 rounded-full border border-outline-variant/15 font-mono shadow-lg transition-all duration-300 min-w-[200px]" id="status-lens">
+                <span class="material-symbols-outlined text-primary text-[14px]" data-icon="info">info</span>
+                <span class="text-on-surface-variant text-xs" id="status-text">Ready to analyze</span>
+            </div>
+
+            <!-- Graph Controls -->
+            <div class="absolute bottom-6 left-6 z-30 flex gap-4">
+                <!-- Layout Toggles -->
+                <div class="flex glass-panel rounded-xl overflow-hidden border border-outline-variant/15 shadow-xl">
+                    <button id="btn-hierarchy" class="px-4 py-2 hover:bg-surface-variant text-on-surface bg-surface-variant font-semibold text-xs border-r border-outline-variant/10 flex items-center gap-2 transition-colors active">
+                        <span class="material-symbols-outlined text-[16px]" data-icon="align_vertical_top">align_vertical_top</span>
+                        Hierarchy
+                    </button>
+                    <button id="btn-physics" class="px-4 py-2 hover:bg-surface-variant text-on-surface-variant font-semibold text-xs flex items-center gap-2 transition-colors">
+                        <span class="material-symbols-outlined text-[16px]" data-icon="animation">animation</span>
+                        Physics
+                    </button>
+                </div>
+
+                <!-- Zoom Controls -->
+                <div class="flex glass-panel rounded-xl overflow-hidden border border-outline-variant/15 shadow-xl h-max items-center">
+                    <button id="btn-zoom-in" class="px-3 py-2 hover:bg-surface-variant text-on-surface-variant transition-colors border-r border-outline-variant/10 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-[18px]" data-icon="add">add</span>
+                    </button>
+                    <button id="btn-zoom-out" class="px-3 py-2 hover:bg-surface-variant text-on-surface-variant transition-colors flex items-center justify-center">
+                        <span class="material-symbols-outlined text-[18px]" data-icon="remove">remove</span>
+                    </button>
+                </div>
+                
+                <button id="btn-fit" class="glass-panel px-3 py-2 h-max rounded-xl border border-outline-variant/15 text-on-surface-variant hover:text-primary transition-colors shadow-xl flex items-center justify-center" title="Fit to Screen">
+                    <span class="material-symbols-outlined text-[18px]" data-icon="filter_center_focus">filter_center_focus</span>
+                </button>
+            </div>
+
+            <!-- Right-Side Details Drawer -->
+            <aside id="side-panel" class="absolute top-0 right-0 h-full w-[400px] glass-panel border-l border-outline-variant/15 z-40 transform translate-x-full transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] shadow-2xl overflow-y-auto flex flex-col">
+                <div class="p-5 space-y-5 flex-1 flex flex-col">
+                    <!-- Drawer Header -->
+                    <div class="flex justify-between items-start">
+                        <div class="pr-6">
+                            <span id="d-insight-type" class="text-[10px] font-mono text-primary uppercase tracking-[0.2em]">Function Insight</span>
+                            <h2 id="d-name" class="text-xl font-bold font-headline text-on-surface mt-1 break-words">—</h2>
+                            <p id="d-file" class="text-on-surface-variant text-sm mt-1 font-mono break-all">—</p>
+                        </div>
+                        <button id="close-panel" class="p-1 px-[0.3rem] text-on-surface-variant hover:text-on-surface bg-surface-container-highest rounded-lg transition-colors">
+                            <span class="material-symbols-outlined text-[18px]" data-icon="close">close</span>
+                        </button>
+                    </div>
+
+                    <!-- Origin Stats (Bento-style Cards) -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-surface-container-lowest p-4 rounded-xl border-l-[3px] border-primary">
+                            <p class="text-[10px] text-on-surface-variant uppercase font-label tracking-wider">Line Number</p>
+                            <div class="flex items-end gap-2 mt-2">
+                                <span class="text-2xl font-bold font-mono text-primary" id="d-line">—</span>
+                            </div>
+                        </div>
+                        <div class="bg-surface-container-lowest p-4 rounded-xl border-l-[3px] border-secondary overflow-hidden">
+                            <p class="text-[10px] text-on-surface-variant uppercase font-label tracking-wider">Author</p>
+                            <div class="flex items-center gap-2 mt-2">
+                                <span class="material-symbols-outlined text-secondary text-lg flex-shrink-0" data-icon="person_edit">person_edit</span>
+                                <span class="text-sm font-bold font-headline text-secondary tracking-tight break-all leading-tight" id="d-author">—</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- File Module Group -->
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <h4 class="text-[11px] uppercase font-bold text-on-surface-variant tracking-wider">Module Group</h4>
+                        </div>
+                        <div class="bg-surface-container-lowest rounded-lg p-3 font-mono text-xs overflow-hidden border border-outline-variant/20 flex gap-3 items-center">
+                            <div id="d-group-swatch" class="w-3 h-3 rounded-full bg-primary shadow flex-shrink-0"></div>
+                            <span id="d-group" class="text-on-surface-variant truncate">—</span>
+                        </div>
+                    </div>
+
+                    <!-- Explanation Section -->
+                    <div class="space-y-2 pt-3 border-t border-outline-variant/15">
+                        <div class="flex items-center gap-2">
+                            <span class="material-symbols-outlined text-primary text-[18px]" data-icon="auto_awesome">auto_awesome</span>
+                            <h4 class="text-sm font-bold font-headline text-on-surface">AI Explanation</h4>
+                        </div>
+                        <div class="bg-surface-container-lowest rounded-lg p-3 border border-outline-variant/20 flex-1 overflow-y-auto max-h-[140px]">
+                            <p id="d-explanation" class="text-[12px] text-on-surface-variant leading-relaxed font-inter">Select a function node to view its explanation.</p>
+                        </div>
+                    </div>
+
+                    <!-- Trace Dependencies Structure -->
+                    <div class="space-y-2 pt-3 border-t border-outline-variant/15">
+                        <div class="flex items-center justify-between">
+                            <h4 class="text-[11px] uppercase font-bold text-on-surface-variant tracking-wider">Dependencies</h4>
+                        </div>
+                        <div class="space-y-2 flex-1 overflow-y-auto">
+                            <!-- Outgoing (Calls) -->
+                            <div class="border-b border-outline-variant/10 pb-2">
+                                <button id="i-calls-btn" class="w-full flex justify-between items-center text-[10px] font-bold text-on-surface tracking-wider uppercase group">
+                                    <span>Calls <span id="i-calls-count" class="text-primary ml-1">(0)</span></span>
+                                    <span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-all duration-200 text-[18px]" id="i-calls-chevron">chevron_right</span>
+                                </button>
+                                <div id="i-calls-list" class="mt-3 space-y-1 hidden pb-2"></div>
+                            </div>
+
+                            <!-- Incoming (Called By) -->
+                            <div class="border-b border-outline-variant/10 pb-2">
+                                <button id="i-calledby-btn" class="w-full flex justify-between items-center text-[10px] font-bold text-on-surface tracking-wider uppercase group">
+                                    <span>Called By <span id="i-calledby-count" class="text-secondary ml-1">(0)</span></span>
+                                    <span class="material-symbols-outlined text-on-surface-variant group-hover:text-secondary transition-all duration-200 text-[18px]" id="i-calledby-chevron">chevron_right</span>
+                                </button>
+                                <div id="i-calledby-list" class="mt-3 space-y-1 hidden pb-2"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="pt-3 mt-auto">
+                        <button id="btn-view-source" class="w-full py-2.5 bg-surface-container-highest border border-outline-variant/20 text-on-surface font-semibold rounded-lg flex items-center justify-center gap-2 hover:bg-surface-variant transition-colors text-sm">
+                            <span class="material-symbols-outlined text-sm" data-icon="code">code</span>
+                            View Source
+                        </button>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- View Source Overlay Drawer -->
+            <aside id="source-panel" class="absolute top-0 right-0 h-full w-[400px] glass-panel border-l border-outline-variant/15 z-50 transform translate-x-full transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] shadow-2xl overflow-hidden flex flex-col hidden">
+                <div class="p-6 border-b border-outline-variant/15 flex justify-between items-center bg-surface-container-low shrink-0">
+                    <div class="flex items-center gap-2 text-primary">
+                        <span class="material-symbols-outlined text-lg" data-icon="code_blocks">code_blocks</span>
+                        <span class="text-xs font-bold font-headline uppercase tracking-wider text-on-surface">Source Code Viewer</span>
+                    </div>
+                    <button id="close-source-panel" class="p-1 px-[0.3rem] text-on-surface-variant hover:text-error bg-surface-container-highest rounded-lg transition-colors">
+                        <span class="material-symbols-outlined text-[18px]" data-icon="close">close</span>
+                    </button>
+                </div>
+
+                <div class="p-4 bg-surface-container-lowest border-b border-outline-variant/10 flex items-center gap-3 shrink-0">
+                    <span class="material-symbols-outlined text-outline-variant" data-icon="description">description</span>
+                    <div class="flex flex-col">
+                        <span id="s-name" class="font-mono text-sm tracking-tight font-bold text-on-surface">—</span>
+                        <span id="s-file" class="font-mono text-[11px] text-on-surface-variant">—</span>
+                    </div>
+                </div>
+
+                <div class="flex-1 p-6 overflow-auto bg-[#0d1424] relative">
+                    <p id="s-loading" class="absolute inset-0 flex items-center justify-center text-outline-variant text-[12px] italic hidden">Loading source code...</p>
+                    <pre><code id="s-code" class="text-[13px] font-mono whitespace-pre text-on-surface leading-relaxed w-full"></code></pre>
+                </div>
+            </aside>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        // ── Luminal Architect Palette ──────────────────────────────────────────
+        const PALETTE = [
+            '#38bdf8', '#44e2cd', '#ffc176', '#fbbf24', 
+            '#f87171', '#a78bfa', '#34d399', '#8ed5ff', 
+            '#c4e7ff', '#03c6b2', '#ffb960', '#7bd0ff'
+        ];
+
+        // ── State ─────────────────────────────────────────────────────────────────
+        let network      = null;
+        let traceNetwork = null;
+        let layoutMode   = 'hierarchy'; // 'hierarchy' | 'physics'
+        let fileColorMap = {};
+        let currentPanelRaw = null;
+        let globalRawNodes = null;
+        let globalRawEdges = null;
+
+        // ── DOM refs ─────────────────────────────────────────────────────────────
+        const btn          = document.getElementById('analyze-btn');
+        const pathInput    = document.getElementById('path-input');
+        const statusText   = document.getElementById('status-text');
+        const emptyState   = document.getElementById('empty-state');
+        const sidePanel    = document.getElementById('side-panel');
+        const btnHierarchy = document.getElementById('btn-hierarchy');
+        const btnPhysics   = document.getElementById('btn-physics');
+        const btnFit       = document.getElementById('btn-fit');
+        const btnZoomIn    = document.getElementById('btn-zoom-in');
+        const btnZoomOut   = document.getElementById('btn-zoom-out');
+        const closeBtn     = document.getElementById('close-panel');
+
+        // ── Helpers ───────────────────────────────────────────────────────────────
+        function setStatus(msg) {
+            statusText.textContent = msg;
+        }
+        function setLoading(on) {
+            btn.disabled = on;
+            btn.classList.toggle('loading', on);
+        }
+        function basename(p) { return p.replace(/\\/g, '/').split('/').pop(); }
+
+        // ── Analyze Action ────────────────────────────────────────────────────────
+        btn.addEventListener('click', async () => {
+            const path = pathInput.value.trim();
+            if (!path) { setStatus('⚠ Please enter a folder path.'); return; }
+
+            setLoading(true);
+            setStatus('⚡ Digging through logic layers...');
+            emptyState.style.display = 'none';
+
+            try {
+                const res  = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path }),
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Extraction failed');
+
+                setStatus(`Loading logic graph for ${data.files} files...`);
+                await loadGraph();
+                
+                // Fetch and render the explorer tree quietly
+                loadExplorerTree(path);
+                
+            } catch (e) {
+                setStatus(`❌ ${e.message}`);
+                emptyState.style.display = 'flex';
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        // ── Load Graph ───────────────────────────────────────────────────────
+        async function loadGraph() {
+            const res  = await fetch('/api/graph');
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed to load graph');
+
+            if (!data.nodes.length) {
+                setStatus('No python logic blocks found.');
+                emptyState.style.display = 'flex';
+                return;
+            }
+
+            // Build file→color mapping
+            fileColorMap = {};
+            let colorIdx = 0;
+            data.nodes.forEach(n => {
+                const f = basename(n.file || '');
+                if (f && !(f in fileColorMap)) {
+                    fileColorMap[f] = colorIdx++ % PALETTE.length;
+                }
+            });
+
+            globalRawNodes = data.nodes;
+            globalRawEdges = data.edges;
+            renderGraph(data.nodes, data.edges);
+
+            setStatus(
+                `🔭 ${data.nodes.length} Functions · ${data.edges.length} Dependencies · ${Object.keys(fileColorMap).length} Files`
+            );
+        }
+
+        // ── vis.js render ─────────────────────────────────────────────────────────
+        function renderGraph(nodes, edges) {
+            if (network) { network.destroy(); network = null; }
+
+            const visNodes = new vis.DataSet(nodes.map(n => {
+                const fname = basename(n.file || '');
+                const idx   = fileColorMap[fname] ?? 0;
+                let baseColor = PALETTE[idx];
+                
+                let shape = 'box';
+                let size = 14;
+                let fontSize = 14;
+                
+                if (n.type === 'File') {
+                    shape = 'hexagon';
+                    size = 35;
+                    fontSize = 18;
+                    baseColor = '#475569'; // slate-600 outline
+                } else if (n.type === 'Class') {
+                    shape = 'diamond';
+                    size = 25;
+                    baseColor = '#a855f7'; // purple-500
+                }
+                
+                return {
+                    id:    n.id,
+                    label: n.label,
+                    shape: shape,
+                    size: size,
+                    color: {
+                        background: '#131b2e', // surface-container-low
+                        border:     baseColor,
+                        highlight:  { background: baseColor, border: '#ffffff' },
+                        hover:      { background: '#171f33', border: baseColor },
+                    },
+                    font: {
+                        color: '#dae2fd', // on-surface
+                        size: fontSize,
+                        face: 'JetBrains Mono, monospace',
+                        bold: { color: '#ffffff', size: fontSize },
+                    },
+                    borderWidth: 2,
+                    borderWidthSelected: 3,
+                    shadow: { enabled: true, color: 'rgba(0,0,0,0.6)', size: 12, x: 0, y: 4 },
+                    margin: { top: 12, bottom: 12, left: 16, right: 16 },
+                    _raw: n,
+                };
+            }));
+
+            const visEdges = new vis.DataSet(edges.map((e, i) => ({
+                id:     i,
+                from:   e.from,
+                to:     e.to,
+                arrows: { to: { enabled: true, scaleFactor: 0.7, type: 'arrow' } },
+                color:  { color: '#3e484f', highlight: '#38bdf8', hover: '#38bdf8', opacity: 0.7 },
+                width:  1.5,
+                selectionWidth: 3,
+                smooth: layoutMode === 'hierarchy'
+                    ? { enabled: false }
+                    : { type: 'dynamic' },
+            })));
+
+            const opts = buildOptions();
+            const container = document.getElementById('mynetwork');
+            network = new vis.Network(container, { nodes: visNodes, edges: visEdges }, opts);
+
+            network.on('click', params => {
+                if (params.nodes.length) {
+                    const n = visNodes.get(params.nodes[0]);
+                    openPanel(n._raw);
+                } else {
+                    closePanel();
+                }
+            });
+
+            network.on('stabilized', () => {
+                network.fit({ animation: { duration: 600, easingFunction: 'easeInOutQuad' } });
+            });
+        }
+
+        // ── Vis Options ─────────────────────────────────────────────────
+        function buildOptions() {
+            const base = {
+                interaction: {
+                    hover: true, tooltipDelay: 300,
+                    zoomView: true, dragView: true, dragNodes: true,
+                    navigationButtons: false,
+                    keyboard: false
+                },
+                nodes: { chosen: true },
+            };
+
+            if (layoutMode === 'hierarchy') {
+                return {
+                    ...base,
+                    layout: {
+                        hierarchical: {
+                            enabled: true, direction: 'UD', sortMethod: 'directed',
+                            nodeSpacing: 180, levelSeparation: 120, treeSpacing: 250,
+                            blockShifting: true, edgeMinimization: true, parentCentralization: true,
+                        },
+                    },
+                    physics: { enabled: false },
+                };
+            }
+
+            return {
+                ...base,
+                layout: { hierarchical: { enabled: false }, improvedLayout: true },
+                physics: {
+                    enabled: true, solver: 'forceAtlas2Based',
+                    forceAtlas2Based: {
+                        gravitationalConstant: -70, centralGravity: 0.005,
+                        springLength: 200, springConstant: 0.04, damping: 0.6, avoidOverlap: 0.9,
+                    },
+                    stabilization: { iterations: 200 },
+                },
+            };
+        }
+
+        // ── Nav Controls ─────────────────────────────────────────────────────────
+        function applyBtnStyles(activeBtn, inactiveBtn) {
+            activeBtn.classList.add('text-on-surface', 'bg-surface-variant');
+            activeBtn.classList.remove('text-on-surface-variant');
+            inactiveBtn.classList.remove('text-on-surface', 'bg-surface-variant');
+            inactiveBtn.classList.add('text-on-surface-variant');
+        }
+
+        btnHierarchy.addEventListener('click', () => {
+            if (layoutMode === 'hierarchy') return;
+            layoutMode = 'hierarchy';
+            applyBtnStyles(btnHierarchy, btnPhysics);
+            if (globalRawNodes) {
+                closePanel();
+                renderGraph(globalRawNodes, globalRawEdges);
+            }
+        });
+
+        btnPhysics.addEventListener('click', () => {
+            if (layoutMode === 'physics') return;
+            layoutMode = 'physics';
+            applyBtnStyles(btnPhysics, btnHierarchy);
+            if (globalRawNodes) {
+                closePanel();
+                renderGraph(globalRawNodes, globalRawEdges);
+            }
+        });
+
+        btnFit.addEventListener('click', () => network && network.fit({ animation: true }));
+        btnZoomIn.addEventListener('click', () => network && network.moveTo({ scale: network.getScale() * 1.3, animation: true }));
+        btnZoomOut.addEventListener('click', () => network && network.moveTo({ scale: network.getScale() * 0.75, animation: true }));
+
+        // ── Side Panel Logic ─────────────────────────────────────────────────────
+        function openPanel(raw) {
+            currentPanelRaw = raw;
+            const fname = basename(raw.file || 'Unknown');
+            const idx   = fileColorMap[fname] ?? 0;
+            const themeColor = PALETTE[idx];
+
+            const nodeType = raw.type || 'Function';
+            document.getElementById('d-insight-type').textContent = `${nodeType} Insight`;
+            document.getElementById('d-name').textContent   = raw.label  || '—';
+            document.getElementById('d-file').textContent   = fname      || '—';
+            document.getElementById('d-line').textContent   = raw.line   || '—';
+            document.getElementById('d-author').textContent = raw.author || '—';
+            
+            document.getElementById('d-group').textContent  = fname;
+            document.getElementById('d-group-swatch').style.backgroundColor = themeColor;
+
+            // Handle AI Explanation
+            const explanationEl = document.getElementById('d-explanation');
+            explanationEl.textContent = 'Generating brief explanation...';
+            explanationEl.classList.add('opacity-70', 'italic');
+            explanationEl.classList.remove('text-error');
+
+            fetch(`/api/explain?file=${encodeURIComponent(fname)}&name=${encodeURIComponent(raw.label || '')}&type=${encodeURIComponent(nodeType)}`)
+                .then(res => res.json())
+                .then(data => {
+                    explanationEl.classList.remove('opacity-70', 'italic');
+                    if (data.error) {
+                        explanationEl.textContent = data.error;
+                        explanationEl.classList.add('text-error');
+                    } else if (data.status === 'success') {
+                        explanationEl.textContent = data.explanation;
+                    }
+                })
+                .catch(err => {
+                    explanationEl.classList.remove('opacity-70', 'italic');
+                    explanationEl.textContent = "Failed to connect to backend.";
+                    explanationEl.classList.add('text-error');
+                });
+
+            // Handle Internal Logic Trace Fetching
+            document.getElementById('i-calls-list').innerHTML = '';
+            document.getElementById('i-calledby-list').innerHTML = '';
+            document.getElementById('i-calls-count').textContent = `(0)`;
+            document.getElementById('i-calledby-count').textContent = `(0)`;
+
+            fetch(`/api/trace?node_id=${encodeURIComponent(raw.id)}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        populateTraceLists(data.incoming, data.outgoing);
+                        highlightGraphTrace(raw.id, data.incoming, data.outgoing);
+                    }
+                })
+                .catch(err => console.error("Trace error:", err));
+
+            sidePanel.classList.remove('translate-x-full');
+            sidePanel.classList.add('translate-x-0');
+        }
+        
+        function populateTraceLists(incoming, outgoing) {
+            document.getElementById('i-calls-count').textContent = `(${outgoing.length})`;
+            const callsList = document.getElementById('i-calls-list');
+            outgoing.forEach(o => {
+                const d = document.createElement('div');
+                d.className = "flex items-center gap-2 text-[11px] font-mono text-on-surface-variant hover:text-primary cursor-pointer p-1.5 hover:bg-surface-variant/30 rounded transition-colors";
+                d.innerHTML = `<span class="text-primary text-[14px]">→</span> <span class="truncate">${o.name}</span>`;
+                d.onclick = () => { closePanel(); setTimeout(() => { openPanel(o); focusNode(o.id); }, 100); };
+                callsList.appendChild(d);
+            });
+            
+            document.getElementById('i-calledby-count').textContent = `(${incoming.length})`;
+            const calledByList = document.getElementById('i-calledby-list');
+            incoming.forEach(inc => {
+                const d = document.createElement('div');
+                d.className = "flex items-center gap-2 text-[11px] font-mono text-on-surface-variant hover:text-secondary cursor-pointer p-1.5 hover:bg-surface-variant/30 rounded transition-colors";
+                d.innerHTML = `<span class="text-secondary text-[14px]">←</span> <span class="truncate">${inc.name}</span>`;
+                d.onclick = () => { closePanel(); setTimeout(() => { openPanel(inc); focusNode(inc.id); }, 100); };
+                calledByList.appendChild(d);
+            });
+        }
+        
+        function focusNode(nid) {
+            network.selectNodes([nid]);
+            network.focus(nid, { scale: 1.2, animation: true });
+        }
+        
+        function highlightGraphTrace(centerId, incoming, outgoing) {
+            if (!network) return;
+            const incIds = new Set(incoming.map(n => n.id));
+            const outIds = new Set(outgoing.map(n => n.id));
+            
+            const allNodes = network.body.data.nodes;
+            const allEdges = network.body.data.edges;
+            
+            const updateNodes = [];
+            allNodes.forEach(n => {
+                if (n.id === centerId) {
+                    updateNodes.push({ id: n.id, opacity: 1, borderWidth: 4 });
+                } else if (incIds.has(n.id)) {
+                    updateNodes.push({ id: n.id, opacity: 1, borderWidth: 3 });
+                } else if (outIds.has(n.id)) {
+                    updateNodes.push({ id: n.id, opacity: 1, borderWidth: 3 });
+                } else {
+                    updateNodes.push({ id: n.id, opacity: 0.15, borderWidth: 1 });
+                }
+            });
+            
+            const updateEdges = [];
+            allEdges.forEach(e => {
+                if (e.from === centerId) {
+                    // Outgoing (Calls) -> Glowing Cyan
+                    updateEdges.push({ 
+                        id: e.id, 
+                        color: { opacity: 1, color: '#38bdf8' },
+                        arrows: { to: { scaleFactor: 1.5 } },
+                        width: 3
+                    });
+                } else if (e.to === centerId) {
+                    // Incoming (Called By) -> Glowing Orange
+                    updateEdges.push({ 
+                        id: e.id, 
+                        color: { opacity: 1, color: '#fb923c' },
+                        arrows: { to: { scaleFactor: 1.5 } },
+                        width: 3
+                    });
+                } else {
+                    updateEdges.push({ 
+                        id: e.id, 
+                        color: { opacity: 0.05 },
+                        arrows: { to: { scaleFactor: 0.7 } },
+                        width: 1.5
+                    });
+                }
+            });
+            
+            allNodes.update(updateNodes);
+            allEdges.update(updateEdges);
+        }
+        
+        function unhighlightGraph() {
+            if (!network) return;
+            const allNodes = network.body.data.nodes;
+            const allEdges = network.body.data.edges;
+            const updateNodes = [];
+            allNodes.forEach(n => updateNodes.push({ id: n.id, opacity: 1, borderWidth: 2 }));
+            const updateEdges = [];
+            allEdges.forEach(e => updateEdges.push({ 
+                id: e.id, 
+                color: { opacity: 0.7, color: '#3e484f' },
+                arrows: { to: { scaleFactor: 0.7 } },
+                width: 1.5
+            }));
+            allNodes.update(updateNodes);
+            allEdges.update(updateEdges);
+        }
+
+        function closePanel() { 
+            sidePanel.classList.remove('translate-x-0');
+            sidePanel.classList.add('translate-x-full'); 
+            currentPanelRaw = null;
+            unhighlightGraph();
+            network.unselectAll();
+        }
+        closeBtn.addEventListener('click', closePanel);
+
+        // ── View Source Drawer Logic ───────────────────────────────────────────────────
+        const sourcePanel = document.getElementById('source-panel');
+        const closeSourceBtn = document.getElementById('close-source-panel');
+        const btnViewSource = document.getElementById('btn-view-source');
+        
+        btnViewSource.addEventListener('click', () => {
+             if (currentPanelRaw) openSourceOverlay(currentPanelRaw);
+        });
+        
+        closeSourceBtn.addEventListener('click', () => {
+            sourcePanel.classList.add('translate-x-full');
+            setTimeout(() => {
+                sourcePanel.classList.add('hidden');
+            }, 300);
+        });
+
+        // Setup the new trace accordions inside the main side drawer
+        const setupAccordion = (btnId, listId, chevronId) => {
+            const btn = document.getElementById(btnId);
+            const list = document.getElementById(listId);
+            const chevron = document.getElementById(chevronId);
+            if (!btn || !list || !chevron) return;
+            
+            btn.addEventListener('click', () => {
+                list.classList.toggle('hidden');
+                if(list.classList.contains('hidden')) {
+                    chevron.style.transform = 'rotate(0deg)';
+                } else {
+                    chevron.style.transform = 'rotate(90deg)';
+                }
+            });
+        };
+        
+        setupAccordion('i-calls-btn', 'i-calls-list', 'i-calls-chevron');
+        setupAccordion('i-calledby-btn', 'i-calledby-list', 'i-calledby-chevron');
+        
+        async function openSourceOverlay(raw) {
+            sourcePanel.classList.remove('hidden');
+            setTimeout(() => { sourcePanel.classList.remove('translate-x-full'); }, 20);
+            
+            document.getElementById('s-name').textContent = raw.label || raw.name || "—";
+            document.getElementById('s-file').textContent = raw.file || "—";
+            
+            const codeBlock = document.getElementById('s-code');
+            const loadingMsg = document.getElementById('s-loading');
+            
+            codeBlock.textContent = '';
+            loadingMsg.classList.remove('hidden');
+            
+            const fname = basename(raw.file || '');
+            const nodeType = raw.type || 'Function';
+            
+            try {
+                const res = await fetch(`/api/source?file=${encodeURIComponent(fname)}&name=${encodeURIComponent(raw.label || '')}&type=${encodeURIComponent(nodeType)}`);
+                const data = await res.json();
+                
+                loadingMsg.classList.add('hidden');
+                
+                if(!res.ok) {
+                    codeBlock.classList.add('text-error');
+                    codeBlock.textContent = data.error || 'Failed to extract source code.';
+                } else {
+                    codeBlock.classList.remove('text-error');
+                    codeBlock.textContent = data.code;
+                }
+            } catch(e) {
+                loadingMsg.classList.add('hidden');
+                codeBlock.classList.add('text-error');
+                codeBlock.textContent = "Failed to load source.";
+            }
+        }
+
+        // ── Explorer Sidebar Logic ───────────────────────────────────────────────
+        const navExplorer = document.getElementById('nav-explorer');
+        const explorerContent = document.getElementById('explorer-content');
+        const explorerChevron = document.getElementById('explorer-chevron');
+
+        navExplorer.addEventListener('click', () => {
+            const isHidden = explorerContent.classList.contains('hidden');
+            if (isHidden) {
+                explorerContent.classList.remove('hidden');
+                explorerContent.classList.add('flex');
+                explorerChevron.style.transform = 'rotate(180deg)';
+                navExplorer.classList.add('bg-[#2d3449]/50', 'text-slate-200');
+            } else {
+                explorerContent.classList.add('hidden');
+                explorerContent.classList.remove('flex');
+                explorerChevron.style.transform = 'rotate(0deg)';
+                navExplorer.classList.remove('bg-[#2d3449]/50', 'text-slate-200');
+            }
+        });
+
+        async function loadExplorerTree(path) {
+            const container = document.getElementById('explorer-tree');
+            container.innerHTML = '<div class="flex justify-center p-4"><div class="spinner !border-primary/30 !border-t-primary !block"></div></div>';
+            
+            // Auto open accordion
+            if (explorerContent.classList.contains('hidden')) {
+                navExplorer.click();
+            }
+
+            try {
+                const res = await fetch('/api/explorer?path=' + encodeURIComponent(path));
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error);
+                if (data.tree) {
+                    container.innerHTML = '';
+                    renderTree(data.tree, container, 0);
+                }
+            } catch (e) {
+                container.innerHTML = `<p class="text-error px-2 py-1 italic text-center">Failed to load tree.</p>`;
+            }
+        }
+
+        function renderTree(node, parentEl, level) {
+            const el = document.createElement('div');
+            el.className = 'flex flex-col';
+            
+            const header = document.createElement('div');
+            header.className = `flex items-center gap-1.5 py-1.5 px-2 hover:bg-surface-variant/50 rounded cursor-pointer transition-colors ${node.type === 'directory' ? 'text-on-surface' : 'text-on-surface-variant hover:text-primary/80'}`;
+            header.style.paddingLeft = (level * 14 + 8) + 'px';
+            
+            const icon = document.createElement('span');
+            icon.className = 'material-symbols-outlined flex-shrink-0';
+            icon.style.fontVariationSettings = "'FILL' 0";
+            
+            if (node.type === 'directory') {
+                icon.textContent = 'folder';
+                icon.classList.add('text-primary', 'text-[14px]');
+            } else {
+                icon.textContent = 'description';
+                icon.classList.add('text-[14px]', 'opacity-60');
+            }
+            
+            const name = document.createElement('span');
+            name.textContent = node.name;
+            name.className = 'truncate tracking-tight flex-1';
+
+            header.appendChild(icon);
+            header.appendChild(name);
+            el.appendChild(header);
+
+            if (node.type === 'directory' && node.children) {
+                const childrenContainer = document.createElement('div');
+                
+                // Keep root open, close children by default
+                if (level === 0) {
+                    childrenContainer.className = 'flex flex-col';
+                    icon.style.fontVariationSettings = "'FILL' 1";
+                    icon.textContent = 'folder_open';
+                    icon.classList.add('text-primary-container');
+                } else {
+                    childrenContainer.className = 'hidden flex-col';
+                }
+
+                header.addEventListener('click', () => {
+                    const isHidden = childrenContainer.classList.contains('hidden');
+                    if (isHidden) {
+                        childrenContainer.classList.remove('hidden');
+                        childrenContainer.classList.add('flex');
+                        icon.style.fontVariationSettings = "'FILL' 1";
+                        icon.textContent = 'folder_open';
+                        icon.classList.add('text-primary-container');
+                        icon.classList.remove('text-primary');
+                    } else {
+                        childrenContainer.classList.add('hidden');
+                        childrenContainer.classList.remove('flex');
+                        icon.style.fontVariationSettings = "'FILL' 0";
+                        icon.textContent = 'folder';
+                        icon.classList.remove('text-primary-container');
+                        icon.classList.add('text-primary');
+                    }
+                });
+
+                node.children.forEach(child => renderTree(child, childrenContainer, level + 1));
+                el.appendChild(childrenContainer);
+            }
+
+            parentEl.appendChild(el);
+        }
+
+    </script>
+</body>
+</html>
