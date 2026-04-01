@@ -13,7 +13,7 @@ import google.generativeai as genai
 from neo4j import GraphDatabase
 from extractor import analyze_project
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='logo', static_url_path='/logo')
 
 # Neo4j connection details (shared with extractor.py)
 URI = "neo4j://127.0.0.1:7687"
@@ -243,11 +243,17 @@ def api_explain():
         
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-2.5-flash")
+        model = genai.GenerativeModel("gemini-2.0-flash-lite")
         
-        prompt = f"Explain exactly what this Python {node_type} does. Be concise, use a maximum of 3 sentences. Write it in plain English suitable for a developer overview:\n\n```python\n{code_segment[:8000]}\n```"
+        prompt = f"Explain exactly what this Python {node_type} does. Be concise, use a maximum of 3 sentences. Write it in plain English suitable for a developer overview. At the very end of your response, add a new line with exactly 'CONFIDENCE: X' where X is a score from 1-100 indicating how certain you are of this explanation.\n\n```python\n{code_segment[:8000]}\n```"
         response = model.generate_content(prompt)
-        return jsonify({"status": "success", "explanation": response.text})
+        text = response.text
+        
+        parts = text.split("CONFIDENCE:")
+        explanation = parts[0].strip()
+        confidence = parts[1].strip() if len(parts) > 1 else "N/A"
+        
+        return jsonify({"status": "success", "explanation": explanation, "confidence": confidence})
     except Exception as e:
         return jsonify({"error": f"AI Generation Failed: {e}"}), 500
 
