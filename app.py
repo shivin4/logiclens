@@ -6,7 +6,7 @@ load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
 print(api_key)  # test once
 
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, Response
 import os
 import ast
 import google.generativeai as genai
@@ -17,7 +17,7 @@ app = Flask(__name__, static_folder='logo', static_url_path='/logo')
 
 # Neo4j connection details (shared with extractor.py)
 URI = "neo4j://127.0.0.1:7687"
-AUTH = ("neo4j", "Password123")
+AUTH = ("neo4j", "password123")
 
 
 @app.route("/")
@@ -31,7 +31,7 @@ def api_analyze():
     if not data or "path" not in data:
         return jsonify({"error": "Missing 'path' in request body."}), 400
 
-    directory_path = data["path"].strip()
+    directory_path = data["path"].strip().strip('"').strip("'")
 
     try:
         result = analyze_project(directory_path)
@@ -138,7 +138,7 @@ def get_dir_tree(path):
 
 @app.route("/api/explorer", methods=["GET"])
 def api_explorer():
-    path = request.args.get("path")
+    path = request.args.get("path", "").strip().strip('"').strip("'")
     if not path:
         return jsonify({"error": "Missing 'path' parameter."}), 400
     
@@ -256,6 +256,42 @@ def api_explain():
         return jsonify({"status": "success", "explanation": explanation, "confidence": confidence})
     except Exception as e:
         return jsonify({"error": f"AI Generation Failed: {e}"}), 500
+
+@app.route("/api/check_env", methods=["GET"])
+def api_check_env():
+    has_key = bool(os.environ.get("GROQ_API_KEY"))
+    return jsonify({"groq_api_key_present": has_key})
+
+@app.route("/api/functions", methods=["GET"])
+def api_functions():
+    try:
+        with GraphDatabase.driver(URI, auth=AUTH) as driver:
+            with driver.session() as session:
+                records = session.run("MATCH (f:Function) RETURN f.name AS name ORDER BY f.name")
+                names = [r["name"] for r in records if r["name"]]
+        return jsonify({"functions": names})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/whatif", methods=["POST"])
+def api_whatif():
+    data = request.get_json()
+    if not data or "function" not in data:
+        return jsonify({"error": "Missing 'function' in request body."}), 400
+
+    target = data["function"].strip()
+    from whatif_engine import run_whatif_engine
+    
+    # Return streaming response
+    return Response(
+        run_whatif_engine(target),
+        mimetype='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'X-Accel-Buffering': 'no',
+        },
+    )
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)

@@ -8,7 +8,7 @@ import chromadb
 
 # Neo4j connection details
 URI = "neo4j://127.0.0.1:7687"
-AUTH = ("neo4j", "Password123")
+AUTH = ("neo4j", "password123")
 
 # Initialize Tree-sitter for Python
 PY_LANGUAGE = Language(tspython.language())
@@ -246,7 +246,7 @@ def analyze_project(directory_path):
     """
     print(f"\n=== Analyzing project: {directory_path} ===\n")
 
-    # ── Wipe Neo4j ─────────────────────────────────────────────────────────
+    # -- Wipe Neo4j ---------------------------------------------------------
     print("[Neo4j] Clearing existing graph data...")
     try:
         with GraphDatabase.driver(URI, auth=AUTH) as driver:
@@ -257,7 +257,7 @@ def analyze_project(directory_path):
         print(f"[Neo4j] Error clearing graph: {e}")
         raise
 
-    # ── Wipe & recreate ChromaDB collection ────────────────────────────────
+    # -- Wipe & recreate ChromaDB collection --------------------------------
     print("[Chroma] Resetting 'codebase_nodes' collection...")
     chroma_client = chromadb.PersistentClient(path="./chroma_data")
     try:
@@ -268,7 +268,7 @@ def analyze_project(directory_path):
     collection = chroma_client.create_collection(name="codebase_nodes")
     print("[Chroma] Created fresh 'codebase_nodes' collection.")
 
-    # ── Walk directory and process every .py file ──────────────────────────
+    # -- Walk directory and process every .py file --------------------------
     # Directories to never recurse into
     SKIP_DIRS = {'.venv', 'venv', 'env', '__pycache__', '.git',
                  'node_modules', '.tox', 'dist', 'build', '.eggs',
@@ -296,11 +296,11 @@ def analyze_project(directory_path):
         entities = extract_entities_from_file(fp, collection)
         funcs_len = len(entities['functions'])
         cls_len = len(entities['classes'])
-        print(f"    → {funcs_len} function(s), {cls_len} class(es) found")
+        print(f"    -> {funcs_len} function(s), {cls_len} class(es) found")
         total_functions += funcs_len
         all_neo4j_ops.extend(get_neo4j_ops(entities, fp))
 
-    # ── Push all parameterized queries to Neo4j ────────────────────────────
+    # -- Push all parameterized queries to Neo4j ----------------------------
     print(f"\n[Neo4j] Executing {len(all_neo4j_ops)} parameterized queries...")
     try:
         with GraphDatabase.driver(URI, auth=AUTH) as driver:
@@ -316,7 +316,7 @@ def analyze_project(directory_path):
     return {"files": len(py_files), "functions": total_functions}
 
 
-# ── Allow direct CLI usage ─────────────────────────────────────────────────
+# -- Allow direct CLI usage -------------------------------------------------
 if __name__ == "__main__":
     import sys
     target = sys.argv[1] if len(sys.argv) > 1 else "."

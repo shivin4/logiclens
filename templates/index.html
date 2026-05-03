@@ -7,6 +7,7 @@
     <title>LogicLens - Graph View</title>
     <!-- Tailwind -->
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script id="tailwind-config">
         tailwind.config = {
             darkMode: "class",
@@ -163,7 +164,7 @@
         <div class="flex justify-center flex-1 max-w-3xl mx-8">
             <div
                 class="flex items-center gap-2 bg-[#1a2333] border border-slate-600/50 shadow-inner rounded-xl pr-1 transition-all focus-within:bg-[#1f2a40] focus-within:border-sky-500/50 focus-within:shadow-[0_0_15px_rgba(56,189,248,0.15)] w-full">
-                <input id="path-input" type="text" placeholder="D:\Your-Project-Path"
+                <input id="path-input" type="text" placeholder="Enter your folder path"
                     class="bg-transparent border-none text-slate-200 text-sm font-mono focus:ring-0 flex-1 px-4 py-2.5 placeholder-slate-500 outline-none w-full" />
                 <button id="analyze-btn"
                     class="bg-gradient-to-r from-primary to-primary-container text-on-primary font-bold text-sm rounded-md px-3 py-1.5 shadow-lg shadow-primary/20 hover:opacity-90 flex gap-1 items-center transition-all scale-100 active:scale-95">
@@ -253,6 +254,12 @@
                     onclick="setActiveNav('nav-source')">
                     <span class="material-symbols-outlined text-[22px]" data-icon="account_tree">account_tree</span>
                     <span class="sidebar-text hidden whitespace-nowrap text-sm">Source Control</span>
+                </a>
+                <a id="nav-impact"
+                    class="nav-item flex items-center gap-4 px-3 py-3 text-slate-500 hover:text-slate-300 border-l-[3px] border-transparent transition-all duration-150 ease-in-out font-inter text-xs font-medium cursor-pointer rounded-lg"
+                    onclick="setActiveNav('nav-impact')">
+                    <span class="material-symbols-outlined text-[22px]" data-icon="crisis_alert">crisis_alert</span>
+                    <span class="sidebar-text hidden whitespace-nowrap text-sm">Impact Analysis</span>
                 </a>
             </nav>
         </aside>
@@ -392,7 +399,8 @@
                                     data-icon="auto_awesome">auto_awesome</span>
                                 <h4 class="text-sm font-bold font-headline text-on-surface">AI Explanation</h4>
                             </div>
-                            <span id="d-confidence" class="hidden text-[10px] font-mono px-1.5 py-0.5 rounded font-medium tracking-wide border"></span>
+                            <span id="d-confidence"
+                                class="hidden text-[10px] font-mono px-1.5 py-0.5 rounded font-medium tracking-wide border"></span>
                         </div>
                         <div
                             class="bg-surface-container-lowest rounded-lg p-3 border border-outline-variant/20 flex-1 overflow-y-auto max-h-[140px]">
@@ -485,6 +493,54 @@
                     <pre><code id="s-code" class="text-[13px] font-mono whitespace-pre text-on-surface leading-relaxed w-full"></code></pre>
                 </div>
             </aside>
+
+            <!-- Impact Analysis Drawer -->
+            <aside id="impact-panel"
+                class="absolute top-0 right-0 h-full w-[450px] glass-panel border-l border-outline-variant/15 z-50 transform translate-x-full transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] shadow-2xl flex flex-col hidden bg-[#0b1326]/95">
+                <div class="p-5 border-b border-outline-variant/15 flex justify-between items-center bg-surface-container-low shrink-0">
+                    <div class="flex items-center gap-2 text-[#a855f7]">
+                        <span class="material-symbols-outlined text-lg" data-icon="crisis_alert">crisis_alert</span>
+                        <span class="text-xs font-bold font-headline uppercase tracking-wider text-on-surface">What-If / Impact Analysis</span>
+                    </div>
+                    <button id="close-impact-panel" class="p-1 px-[0.3rem] text-on-surface-variant hover:text-error bg-surface-container-highest rounded-lg transition-colors">
+                        <span class="material-symbols-outlined text-[18px]" data-icon="close">close</span>
+                    </button>
+                </div>
+
+                <div class="p-4 bg-surface-container-lowest border-b border-outline-variant/10 flex flex-col gap-3 shrink-0">
+                    <div class="flex items-center gap-2 w-full">
+                        <select id="wi-func-select" class="flex-1 bg-[#1a2333] border border-slate-600/50 rounded-lg text-slate-200 text-sm font-mono focus:ring-0 px-3 py-2 outline-none">
+                            <option value="">— pick a function —</option>
+                        </select>
+                        <button id="wi-run-btn" class="bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white font-bold text-sm rounded-md px-4 py-2 shadow-lg hover:opacity-90 flex gap-2 items-center transition-all">
+                            <div class="spinner border-t-white hidden" id="wi-spinner" style="width:14px;height:14px;"></div>
+                            <span id="wi-btn-text">Analyze Impact</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tabs -->
+                <div class="flex gap-1 border-b border-outline-variant/15 px-4 pt-2 bg-surface-container-lowest shrink-0">
+                    <button class="wi-tab text-xs font-bold px-4 py-2 border-b-2 border-transparent text-on-surface-variant transition-colors" data-pane="steps">Agent Steps</button>
+                    <button class="wi-tab text-xs font-bold px-4 py-2 border-b-2 border-[#a855f7] text-[#a855f7] active transition-colors" data-pane="report">Blast Report</button>
+                </div>
+
+                <div class="flex-1 overflow-hidden flex flex-col relative">
+                    <!-- Agent Steps Pane -->
+                    <div class="wi-pane flex-1 overflow-y-auto p-4 hidden flex-col gap-3" id="wi-steps-pane">
+                        <div id="wi-thinking" class="flex items-center gap-2 text-on-surface-variant text-xs italic hidden">
+                            <div class="w-2 h-2 rounded-full bg-[#a855f7] animate-pulse"></div>
+                            Agents are analysing...
+                        </div>
+                    </div>
+                    <!-- Report Pane -->
+                    <div class="wi-pane flex-1 overflow-y-auto p-4 active flex flex-col" id="wi-report-pane">
+                        <div id="wi-report-content" class="text-sm text-on-surface-variant leading-relaxed">
+                            The report will appear here.
+                        </div>
+                    </div>
+                </div>
+            </aside>
         </main>
     </div>
 
@@ -552,6 +608,11 @@
 
                 // Fetch and render the explorer tree quietly
                 loadExplorerTree(path);
+
+                // Reload the function dropdown for Impact Analysis
+                if (typeof loadFunctionsForWhatIf === 'function') {
+                    loadFunctionsForWhatIf();
+                }
 
             } catch (e) {
                 setStatus(` ${e.message}`);
@@ -809,12 +870,12 @@
                         confidenceEl.classList.add('hidden');
                     } else if (data.status === 'success') {
                         explanationEl.textContent = data.explanation;
-                        
+
                         // Handle Confidence Status
                         if (data.confidence && data.confidence !== "N/A") {
                             confidenceEl.textContent = `${data.confidence}% confident`;
                             confidenceEl.classList.remove('hidden', 'bg-[#166534]', 'text-[#4ade80]', 'border-[#22c55e]/30', 'bg-[#713f12]', 'text-[#facc15]', 'border-[#eab308]/30', 'bg-[#7f1d1d]', 'text-[#f87171]', 'border-[#ef4444]/30', 'bg-surface-variant', 'text-on-surface-variant', 'border-outline-variant/20');
-                            
+
                             const score = parseInt(data.confidence, 10);
                             if (!isNaN(score)) {
                                 if (score >= 80) confidenceEl.classList.add('bg-[#166534]', 'text-[#4ade80]', 'border-[#22c55e]/30');
@@ -1184,6 +1245,160 @@
             parentEl.appendChild(el);
         }
 
+        // ── Impact Analysis (What-If) Logic ──
+        const impactPanel = document.getElementById('impact-panel');
+        const closeImpactBtn = document.getElementById('close-impact-panel');
+        const wiFuncSelect = document.getElementById('wi-func-select');
+        const wiRunBtn = document.getElementById('wi-run-btn');
+        const wiSpinner = document.getElementById('wi-spinner');
+        const wiBtnText = document.getElementById('wi-btn-text');
+        const wiStepsPane = document.getElementById('wi-steps-pane');
+        const wiReportPane = document.getElementById('wi-report-pane');
+        const wiThinking = document.getElementById('wi-thinking');
+        const wiReportContent = document.getElementById('wi-report-content');
+
+        // Tab switching
+        document.querySelectorAll('.wi-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.wi-tab').forEach(t => {
+                    t.classList.remove('border-[#a855f7]', 'text-[#a855f7]');
+                    t.classList.add('border-transparent', 'text-on-surface-variant');
+                });
+                tab.classList.add('border-[#a855f7]', 'text-[#a855f7]');
+                tab.classList.remove('border-transparent', 'text-on-surface-variant');
+                
+                document.querySelectorAll('.wi-pane').forEach(p => p.classList.add('hidden'));
+                document.getElementById(`wi-${tab.dataset.pane}-pane`).classList.remove('hidden');
+            });
+        });
+
+        // Open/Close
+        document.getElementById('nav-impact').addEventListener('click', () => {
+            impactPanel.classList.remove('hidden');
+            setTimeout(() => impactPanel.classList.remove('translate-x-full'), 20);
+        });
+
+        closeImpactBtn.addEventListener('click', () => {
+            impactPanel.classList.add('translate-x-full');
+            setTimeout(() => impactPanel.classList.add('hidden'), 300);
+        });
+
+        // Load functions for dropdown
+        async function loadFunctionsForWhatIf() {
+            try {
+                const res = await fetch('/api/functions');
+                const data = await res.json();
+                if (data.functions) {
+                    wiFuncSelect.innerHTML = '<option value="">— pick a function —</option>';
+                    data.functions.forEach(fn => {
+                        const opt = document.createElement('option');
+                        opt.value = fn; opt.textContent = fn;
+                        wiFuncSelect.appendChild(opt);
+                    });
+                }
+            } catch(e) {}
+        }
+        loadFunctionsForWhatIf();
+
+        const AGENT_MAP = {
+          'Senior Codebase Graph Analyst': {cls:'text-primary', label:'🔍 Investigator — Graph Analyst'},
+          'Source Code Logic Reviewer':    {cls:'text-[#4ade80]', label:'🧬 Semantic Architect — Logic Reviewer'},
+          'Principal Software Architect':  {cls:'text-[#facc15]', label:'📝 Explainer — Principal Architect'},
+        };
+
+        function escHtml(s) {
+          return String(s)
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+            .replace(/`([^`]+)`/g,'<code>$1</code>')
+            .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>')
+            .replace(/\n/g,'<br>');
+        }
+
+        function addStepCard(html, agentLabel, cls) {
+            const card = document.createElement('div');
+            card.className = `bg-surface-container-low border border-outline-variant/15 rounded-lg p-3 text-xs leading-relaxed ${cls}`;
+            if (agentLabel) {
+                card.innerHTML = `<div class="font-bold uppercase tracking-wider mb-1 ${cls}">${agentLabel}</div>${escHtml(html)}`;
+            } else {
+                card.innerHTML = escHtml(html);
+            }
+            wiStepsPane.insertBefore(card, wiThinking);
+            card.scrollIntoView({behavior:'smooth', block:'nearest'});
+        }
+
+        wiRunBtn.addEventListener('click', async () => {
+            const fn = wiFuncSelect.value;
+            if (!fn) { alert('Please select a function.'); return; }
+
+            wiRunBtn.disabled = true;
+            wiSpinner.classList.remove('hidden');
+            wiBtnText.textContent = 'Running...';
+            
+            // Clear previous
+            document.querySelectorAll('#wi-steps-pane > div:not(#wi-thinking)').forEach(e => e.remove());
+            wiThinking.classList.remove('hidden');
+            wiReportContent.innerHTML = '<span class="text-on-surface-variant italic">Waiting for engine to finish...</span>';
+            
+            // Switch to steps tab
+            document.querySelector('.wi-tab[data-pane="steps"]').click();
+
+            try {
+                const response = await fetch('/api/whatif', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ function: fn })
+                });
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder("utf-8");
+                let buffer = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true });
+                    
+                    const lines = buffer.split('\n\n');
+                    buffer = lines.pop(); // keep remainder
+                    
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const msg = JSON.parse(line.substring(6));
+                                if (msg.type === 'start') {
+                                    addStepCard(`🚀 Starting What-If analysis for: <code>${fn}</code>`, null, 'text-on-surface-variant');
+                                } else if (msg.type === 'step') {
+                                    const text = msg.text || '';
+                                    let agentKey = Object.keys(AGENT_MAP).find(k => text.includes(k));
+                                    const info = agentKey ? AGENT_MAP[agentKey] : null;
+                                    addStepCard(text, info ? info.label : null, info ? info.cls : 'text-on-surface-variant');
+                                } else if (msg.type === 'log') {
+                                    addStepCard(msg.text, null, 'text-on-surface-variant');
+                                } else if (msg.type === 'done') {
+                                    wiThinking.classList.add('hidden');
+                                    addStepCard('✅ Analysis complete — switch to the Blast Report tab.', null, 'text-[#4ade80]');
+                                    wiReportContent.innerHTML = marked.parse(msg.report || '');
+                                    // Switch to report tab
+                                    document.querySelector('.wi-tab[data-pane="report"]').click();
+                                } else if (msg.type === 'error') {
+                                    wiThinking.classList.add('hidden');
+                                    addStepCard('❌ ' + (msg.text || 'Unknown error'), null, 'text-error');
+                                }
+                            } catch(err) {
+                                console.error('JSON parse error on chunk:', err);
+                            }
+                        }
+                    }
+                }
+            } catch (err) {
+                wiThinking.classList.add('hidden');
+                addStepCard('❌ Connection failed.', null, 'text-error');
+            } finally {
+                wiRunBtn.disabled = false;
+                wiSpinner.classList.add('hidden');
+                wiBtnText.textContent = 'Analyze Impact';
+            }
+        });
     </script>
 </body>
 
