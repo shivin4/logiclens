@@ -50,7 +50,7 @@ except ImportError as e:
 GROQ_API_KEY: str = os.environ.get("GROQ_API_KEY", "")
 NEO4J_URI: str = os.environ.get("NEO4J_URI", "neo4j://127.0.0.1:7687")
 NEO4J_USERNAME: str = os.environ.get("NEO4J_USERNAME", "neo4j")
-NEO4J_PASSWORD: str = os.environ.get("NEO4J_PASSWORD", "")
+NEO4J_PASSWORD: str = os.environ.get("NEO4J_PASSWORD", "password123")
 CHROMA_PERSIST_PATH: str = os.environ.get("CHROMA_PERSIST_PATH", "./chroma_data")
 CHROMA_COLLECTION_NAME: str = os.environ.get("CHROMA_COLLECTION_NAME", "codebase_nodes")
 
@@ -358,22 +358,23 @@ def build_tasks(
             f"Synthesise the outputs of Task 1 and Task 2 into a comprehensive "
             f"**Blast Radius Report** for the function `{target_function}`.\n\n"
             "The report MUST be valid Markdown and contain these exact sections:\n\n"
-            "## 🎯 Target Function\n"
+            "## Target Function\n"
             "Name, and a one-line description of its likely purpose "
             "(infer from the callers if source is unavailable).\n\n"
-            "## 📊 Blast Radius Summary\n"
+            "## Blast Radius Summary\n"
             "Total number of callers, risk level (Low / Medium / High / Critical), "
             "and a two-sentence executive summary.\n\n"
-            "## 📁 Affected Files & Functions\n"
+            "## Affected Files & Functions\n"
             "A table: | Function | File | Risk Level | Reason |\n\n"
-            "## 🔬 Detailed Logic Risk Analysis\n"
+            "## Detailed Logic Risk Analysis\n"
             "For each affected function: what specifically would break and why.\n\n"
-            "## ✅ Testing Recommendations\n"
+            "## Testing Recommendations\n"
             "A prioritised checklist of unit/integration tests that must be written "
             "or updated before changing the target function.\n\n"
-            "## 🏗 Refactoring Suggestions (Optional)\n"
+            "## Refactoring Suggestions (Optional)\n"
             "Any architectural improvements that could reduce future blast radius.\n\n"
-            "Ensure the report is professional, precise, and directly actionable."
+            "Ensure the report is professional, precise, and directly actionable.\n"
+            "CRITICAL INSTRUCTION: DO NOT use any emojis whatsoever in the report. Keep the formatting completely professional, clean, and strictly structured."
         ),
         expected_output=(
             "A complete, properly formatted Markdown Blast Radius Report with all "

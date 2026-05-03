@@ -10,3 +10,10 @@ python-dotenv~=1.1.1
 crewai==1.14.1
 langchain-openai
 google-generativeai
+
+# Additional parsers
+tree-sitter-javascript
+tree-sitter-typescript
+tree-sitter-java
+tree-sitter-go
+tree-sitter-cpp

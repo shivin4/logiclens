@@ -1,5 +1,7 @@
 from dotenv import load_dotenv
 import os
+import git
+import traceback
 
 load_dotenv()
 
@@ -7,17 +9,20 @@ api_key = os.getenv("GEMINI_API_KEY")
 print(api_key)  # test once
 
 from flask import Flask, request, jsonify, render_template, Response
-import os
 import ast
 import google.generativeai as genai
 from neo4j import GraphDatabase
-from extractor import analyze_project
+from extractor import analyze_project, LANGUAGES, CONFIGS
+import tree_sitter
+from tree_sitter import Parser, Query
 
 app = Flask(__name__, static_folder='logo', static_url_path='/logo')
 
 # Neo4j connection details (shared with extractor.py)
 URI = "neo4j://127.0.0.1:7687"
-AUTH = ("neo4j", "password123")
+AUTH = (os.getenv("NEO4J_USERNAME", "neo4j"), os.getenv("NEO4J_PASSWORD", "password123"))
+
+current_repo_path = None
 
 
 @app.route("/")
@@ -27,11 +32,16 @@ def index():
 
 @app.route("/api/analyze", methods=["POST"])
 def api_analyze():
+    global current_repo_path
     data = request.get_json()
     if not data or "path" not in data:
         return jsonify({"error": "Missing 'path' in request body."}), 400
 
     directory_path = data["path"].strip().strip('"').strip("'")
+    if not os.path.isdir(directory_path):
+        return jsonify({"error": "Invalid directory path."}), 400
+        
+    current_repo_path = directory_path
 
     try:
         result = analyze_project(directory_path)
@@ -150,20 +160,44 @@ def api_explorer():
 
 def extract_code(filepath, node_name, node_type):
     try:
-        with open(filepath, 'r', encoding='utf-8') as f:
+        with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
             code = f.read()
             
         if node_type == "File":
             return code
             
-        tree = ast.parse(code)
-        for node in ast.walk(tree):
-            if node_type == "Class" and isinstance(node, ast.ClassDef):
-                if node.name == node_name:
-                    return ast.get_source_segment(code, node)
-            elif node_type == "Function" and isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                if node.name == node_name:
-                    return ast.get_source_segment(code, node)
+        ext = os.path.splitext(filepath)[1].lower()
+        print(f"[DEBUG] extract_code: path={filepath}, ext={ext}, name={node_name}, type={node_type}")
+        if ext not in LANGUAGES or ext not in CONFIGS:
+            print(f"[DEBUG] ext {ext} not supported")
+            return None
+            
+        lang = LANGUAGES[ext]
+        conf = CONFIGS[ext]
+        parser = Parser(lang)
+        tree = parser.parse(bytes(code, "utf8"))
+        
+        query_str = conf['cls'] if node_type == "Class" else conf['func']
+        query = Query(lang, query_str)
+        cursor = tree_sitter.QueryCursor(query)
+        matches = cursor.matches(tree.root_node)
+        
+        for _pattern_index, match_dict in matches:
+            name_node = match_dict.get('class.name') if node_type == "Class" else match_dict.get('function.name')
+            def_node = match_dict.get('class.def') if node_type == "Class" else match_dict.get('function.def')
+            
+            if not name_node or not def_node:
+                continue
+                
+            name_node = name_node[0] if isinstance(name_node, list) else name_node
+            def_node = def_node[0] if isinstance(def_node, list) else def_node
+            
+            extracted_name = name_node.text.decode('utf8')
+            print(f"[DEBUG] Found extracted_name: {extracted_name}")
+            if extracted_name == node_name:
+                return def_node.text.decode('utf8')
+                
+        print(f"[DEBUG] node_name '{node_name}' not found in file")
     except Exception as e:
         print(f"Error extracting code: {e}")
     return None
@@ -180,7 +214,7 @@ def api_trace():
     try:
         with GraphDatabase.driver(URI, auth=AUTH) as driver:
             with driver.session() as session:
-                out_res = session.run("MATCH (n)-[r]->(m) WHERE elementId(n) = $id RETURN m", {"id": node_id})
+                out_res = session.run("MATCH (n)-[r:CALLS]->(m) WHERE elementId(n) = $id RETURN m", {"id": node_id})
                 for record in out_res:
                     m = record["m"]
                     outgoing.append({
@@ -191,7 +225,7 @@ def api_trace():
                         "author": m.get("author", "")
                     })
                     
-                in_res = session.run("MATCH (m)-[r]->(n) WHERE elementId(n) = $id RETURN m", {"id": node_id})
+                in_res = session.run("MATCH (m)-[r:CALLS]->(n) WHERE elementId(n) = $id RETURN m", {"id": node_id})
                 for record in in_res:
                     m = record["m"]
                     incoming.append({
@@ -234,20 +268,37 @@ def api_explain():
     if not code_segment:
         return jsonify({"error": f"{node_type} source not found in the file."}), 404
         
-    api_key = os.environ.get("GEMINI_API_KEY")
+    api_key = os.environ.get("GROQ_API_KEY")
     if not api_key:
         return jsonify({
             "status": "success", 
-            "explanation": "Google Gemini API Key is missing. Please set the GEMINI_API_KEY environment variable in your terminal to enable AI explanations."
+            "explanation": "Groq API Key is missing. Please set the GROQ_API_KEY environment variable in your terminal to enable AI explanations."
         })
         
     try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-2.0-flash-lite")
+        import urllib.request
+        import urllib.error
+        import json
         
-        prompt = f"Explain exactly what this Python {node_type} does. Be concise, use a maximum of 3 sentences. Write it in plain English suitable for a developer overview. At the very end of your response, add a new line with exactly 'CONFIDENCE: X' where X is a score from 1-100 indicating how certain you are of this explanation.\n\n```python\n{code_segment[:8000]}\n```"
-        response = model.generate_content(prompt)
-        text = response.text
+        prompt = f"Explain exactly what this Python {node_type} does. Be concise, use a maximum of 2 sentences. Write it in plain English suitable for a developer overview. At the very end of your response, add a new line with exactly 'CONFIDENCE: X' where X is a score from 1-100 indicating how certain you are of this explanation.\n\n```python\n{code_segment[:8000]}\n```"
+        
+        url = "https://api.groq.com/openai/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+        }
+        data = {
+            "model": "llama-3.3-70b-versatile",
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": 100,
+            "temperature": 0.2
+        }
+        
+        req = urllib.request.Request(url, data=json.dumps(data).encode('utf-8'), headers=headers, method="POST")
+        with urllib.request.urlopen(req) as response:
+            res_body = response.read()
+            text = json.loads(res_body)["choices"][0]["message"]["content"]
         
         parts = text.split("CONFIDENCE:")
         explanation = parts[0].strip()
@@ -292,6 +343,49 @@ def api_whatif():
             'X-Accel-Buffering': 'no',
         },
     )
+
+@app.route("/api/git/summary", methods=["GET"])
+def api_git_summary():
+    global current_repo_path
+    if not current_repo_path:
+        return jsonify({"error": "Please analyze a project folder first."}), 400
+    
+    try:
+        repo = git.Repo(current_repo_path, search_parent_directories=True)
+    except git.exc.InvalidGitRepositoryError:
+        return jsonify({"error": "The analyzed folder is not a Git repository."}), 400
+    except Exception as e:
+        return jsonify({"error": f"Git Error: {str(e)}"}), 500
+        
+    commits = []
+    # Get last 15 commits
+    for c in repo.iter_commits('HEAD', max_count=15):
+        commits.append({
+            "hash": c.hexsha[:7],
+            "message": c.summary,
+            "author": c.author.name,
+            "date": c.authored_datetime.strftime("%b %d, %Y")
+        })
+        
+    # Calculate churn (most modified files in last 50 commits)
+    churn = {}
+    try:
+        for c in repo.iter_commits('HEAD', max_count=50):
+            for file in c.stats.files.keys():
+                # Only care about actual code files
+                if file.endswith(('.py', '.js', '.ts', '.java', '.go', '.cpp')):
+                    churn[file] = churn.get(file, 0) + 1
+    except Exception:
+        pass # Ignore diff parsing errors on weird repos
+            
+    # Sort and take top 10
+    top_churn = [{"file": k, "changes": v} for k, v in sorted(churn.items(), key=lambda x: x[1], reverse=True)[:10]]
+    
+    return jsonify({
+        "status": "success",
+        "commits": commits,
+        "churn": top_churn
+    })
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)

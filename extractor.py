@@ -6,19 +6,69 @@ import tree_sitter_python as tspython
 from neo4j import GraphDatabase
 import chromadb
 
+# Load languages
+LANGUAGES = {}
+
+def load_lang(ext, module_name, lang_attr="language"):
+    try:
+        module = __import__(module_name)
+        func = getattr(module, lang_attr)
+        LANGUAGES[ext] = Language(func())
+    except Exception as e:
+        print(f"Warning: Could not load tree-sitter parser for {ext}: {e}")
+
+load_lang('.py', 'tree_sitter_python')
+load_lang('.js', 'tree_sitter_javascript')
+load_lang('.ts', 'tree_sitter_typescript', 'language_typescript')
+load_lang('.java', 'tree_sitter_java')
+load_lang('.go', 'tree_sitter_go')
+load_lang('.cpp', 'tree_sitter_cpp')
+
 # Neo4j connection details
 URI = "neo4j://127.0.0.1:7687"
 AUTH = ("neo4j", "password123")
 
-# Initialize Tree-sitter for Python
-PY_LANGUAGE = Language(tspython.language())
-parser = Parser(PY_LANGUAGE)
+# AST Query Configurations
+CONFIGS = {
+    ".py": {
+        "func": "(function_definition name: (identifier) @function.name) @function.def",
+        "cls": "(class_definition name: (identifier) @class.name) @class.def",
+        "call": "(call function: (identifier) @callee)"
+    },
+    ".js": {
+        "func": "(function_declaration name: (identifier) @function.name) @function.def\n(method_definition name: (property_identifier) @function.name) @function.def\n(variable_declarator name: (identifier) @function.name value: (arrow_function)) @function.def",
+        "cls": "(class_declaration name: (identifier) @class.name) @class.def",
+        "call": "(call_expression function: (identifier) @callee)"
+    },
+    ".ts": {
+        "func": "(function_declaration name: (identifier) @function.name) @function.def\n(method_definition name: (property_identifier) @function.name) @function.def\n(variable_declarator name: (identifier) @function.name value: (arrow_function)) @function.def",
+        "cls": "(class_declaration name: (type_identifier) @class.name) @class.def",
+        "call": "(call_expression function: (identifier) @callee)"
+    },
+    ".java": {
+        "func": "(method_declaration name: (identifier) @function.name) @function.def",
+        "cls": "(class_declaration name: (identifier) @class.name) @class.def",
+        "call": "(method_invocation name: (identifier) @callee)"
+    },
+    ".go": {
+        "func": "(function_declaration name: (identifier) @function.name) @function.def\n(method_declaration name: (field_identifier) @function.name) @function.def",
+        "cls": "(type_spec name: (type_identifier) @class.name type: (struct_type)) @class.def",
+        "call": "(call_expression function: (identifier) @callee)"
+    },
+    ".cpp": {
+        "func": "(function_definition declarator: (function_declarator declarator: (identifier) @function.name)) @function.def",
+        "cls": "(class_specifier name: (type_identifier) @class.name) @class.def",
+        "call": "(call_expression function: (identifier) @callee)"
+    }
+}
 
 
 def get_author(file_path, line_number):
     try:
-        repo = git.Repo(".", search_parent_directories=True)
-        blame = repo.blame('HEAD', file_path)
+        repo = git.Repo(os.path.dirname(file_path), search_parent_directories=True)
+        rel_path = os.path.relpath(file_path, repo.working_dir)
+        # Use rel_path for blame, replacing backslashes on Windows
+        blame = repo.blame('HEAD', rel_path.replace("\\", "/"))
         current_line = 0
         for commit, lines in blame:
             for _ in lines:
@@ -31,33 +81,42 @@ def get_author(file_path, line_number):
 
 
 def extract_entities_from_file(file_path, chroma_collection):
-    """Parse a single Python file and return lists of class and function dicts,
+    """Parse a single file and return lists of class and function dicts,
     upserting each entity into ChromaDB. Also returns basic file metadata."""
+    
+    ext = os.path.splitext(file_path)[1].lower()
+    if ext not in LANGUAGES or ext not in CONFIGS:
+        return {'functions': [], 'classes': [], 'file_path': file_path}
+        
+    lang = LANGUAGES[ext]
+    conf = CONFIGS[ext]
+    
+    parser = Parser(lang)
+
     try:
         with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
             code = f.read()
     except Exception as e:
         print(f"  [Skip] Cannot read {file_path}: {e}")
-        return []
+        return {'functions': [], 'classes': [], 'file_path': file_path}
 
     tree = parser.parse(bytes(code, "utf8"))
 
-    # Query to find function definitions and their names
-    query = Query(PY_LANGUAGE, """
-        (function_definition
-            name: (identifier) @function.name) @function.def
-    """)
+    try:
+        query = Query(lang, conf['func'])
+        cursor = tree_sitter.QueryCursor(query)
+        matches = cursor.matches(tree.root_node)
+    except Exception as e:
+        print(f"  [Error] Func query failed for {ext}: {e}")
+        matches = []
 
-    cursor = tree_sitter.QueryCursor(query)
-    # Use matches() so each match dict contains perfectly paired name+def nodes
-    matches = cursor.matches(tree.root_node)
-
-    class_query = Query(PY_LANGUAGE, """
-        (class_definition
-            name: (identifier) @class.name) @class.def
-    """)
-    class_cursor = tree_sitter.QueryCursor(class_query)
-    class_matches = class_cursor.matches(tree.root_node)
+    try:
+        class_query = Query(lang, conf['cls'])
+        class_cursor = tree_sitter.QueryCursor(class_query)
+        class_matches = class_cursor.matches(tree.root_node)
+    except Exception as e:
+        print(f"  [Error] Class query failed for {ext}: {e}")
+        class_matches = []
 
     classes = []
     class_scopes = []  # To map functions to classes
@@ -115,12 +174,15 @@ def extract_entities_from_file(file_path, chroma_collection):
 
         # Find calls inside this function's body
         calls = []
-        call_query = Query(PY_LANGUAGE, "(call function: (identifier) @callee)")
-        call_cursor = tree_sitter.QueryCursor(call_query)
-        call_captures = call_cursor.captures(def_node)
-        if 'callee' in call_captures:
-            for callee_node in call_captures['callee']:
-                calls.append(callee_node.text.decode('utf8'))
+        try:
+            call_query = Query(lang, conf['call'])
+            call_cursor = tree_sitter.QueryCursor(call_query)
+            call_captures = call_cursor.captures(def_node)
+            if 'callee' in call_captures:
+                for callee_node in call_captures['callee']:
+                    calls.append(callee_node.text.decode('utf8'))
+        except Exception:
+            pass
 
         author = get_author(file_path, start_line)
 
@@ -268,30 +330,31 @@ def analyze_project(directory_path):
     collection = chroma_client.create_collection(name="codebase_nodes")
     print("[Chroma] Created fresh 'codebase_nodes' collection.")
 
-    # -- Walk directory and process every .py file --------------------------
+    # -- Walk directory and process all supported files --------------------------
     # Directories to never recurse into
     SKIP_DIRS = {'.venv', 'venv', 'env', '__pycache__', '.git',
                  'node_modules', '.tox', 'dist', 'build', '.eggs',
                  '.mypy_cache', '.pytest_cache', 'site-packages'}
 
-    py_files = []
+    target_files = []
     for root, dirs, files in os.walk(directory_path):
         # Prune dirs in-place so os.walk won't descend into them
         dirs[:] = [d for d in dirs if d not in SKIP_DIRS and not d.startswith('.')]
         for fname in files:
-            if fname.endswith('.py'):
-                py_files.append(os.path.join(root, fname))
+            ext = os.path.splitext(fname)[1].lower()
+            if ext in LANGUAGES:
+                target_files.append(os.path.join(root, fname))
 
-    if not py_files:
-        print(f"No .py files found in {directory_path}")
+    if not target_files:
+        print(f"No supported code files found in {directory_path}")
         return {"files": 0, "functions": 0}
 
-    print(f"\nFound {len(py_files)} Python file(s). Extracting...\n")
+    print(f"\nFound {len(target_files)} supported file(s). Extracting...\n")
 
     total_functions = 0
     all_neo4j_ops = []  # list of (cypher, params) tuples
 
-    for fp in py_files:
+    for fp in target_files:
         print(f"  Parsing: {fp}")
         entities = extract_entities_from_file(fp, collection)
         funcs_len = len(entities['functions'])
@@ -312,8 +375,8 @@ def analyze_project(directory_path):
         print(f"[Neo4j] Error during write: {e}")
         raise
 
-    print(f"\n=== Complete: {len(py_files)} file(s), {total_functions} function(s) ===\n")
-    return {"files": len(py_files), "functions": total_functions}
+    print(f"\n=== Complete: {len(target_files)} file(s), {total_functions} function(s) ===\n")
+    return {"files": len(target_files), "functions": total_functions}
 
 
 # -- Allow direct CLI usage -------------------------------------------------

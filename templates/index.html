@@ -6,7 +6,7 @@
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
     <title>LogicLens - Graph View</title>
     <!-- Tailwind -->
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries,typography"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script id="tailwind-config">
         tailwind.config = {
@@ -237,12 +237,6 @@
                     </div>
                 </div>
 
-                <a id="nav-graph"
-                    class="nav-item flex items-center gap-4 px-3 py-3 bg-sky-500/10 text-sky-400 border-l-[3px] border-sky-400 transition-all duration-150 ease-in-out font-inter text-xs font-medium cursor-pointer rounded-lg"
-                    onclick="setActiveNav('nav-graph')">
-                    <span class="material-symbols-outlined text-[22px]" data-icon="search">search</span>
-                    <span class="sidebar-text hidden whitespace-nowrap text-sm">Graph View</span>
-                </a>
                 <a id="nav-semantic-search"
                     class="nav-item flex items-center gap-4 px-3 py-3 text-slate-500 hover:text-slate-300 border-l-[3px] border-transparent transition-all duration-150 ease-in-out font-inter text-xs font-medium cursor-pointer rounded-lg"
                     onclick="setActiveNav('nav-semantic-search')">
@@ -446,11 +440,6 @@
 
                     <!-- Action Buttons -->
                     <div class="pt-3 mt-auto flex flex-col gap-2">
-                        <button id="btn-analyze-code"
-                            class="w-full py-2.5 bg-sky-500 hover:bg-sky-400 text-white font-semibold rounded-lg flex items-center justify-center gap-2 transition-colors text-sm shadow-md">
-                            <span class="material-symbols-outlined text-[18px]" data-icon="insights">insights</span>
-                            Analyze Code
-                        </button>
                         <button id="btn-view-source"
                             class="w-full py-2.5 bg-surface-container-highest border border-outline-variant/20 text-on-surface font-semibold rounded-lg flex items-center justify-center gap-2 hover:bg-surface-variant transition-colors text-sm">
                             <span class="material-symbols-outlined text-[18px]" data-icon="code">code</span>
@@ -498,7 +487,7 @@
             <aside id="impact-panel"
                 class="absolute top-0 right-0 h-full w-[450px] glass-panel border-l border-outline-variant/15 z-50 transform translate-x-full transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] shadow-2xl flex flex-col hidden bg-[#0b1326]/95">
                 <div class="p-5 border-b border-outline-variant/15 flex justify-between items-center bg-surface-container-low shrink-0">
-                    <div class="flex items-center gap-2 text-[#a855f7]">
+                    <div class="flex items-center gap-2 text-[#38bdf8]">
                         <span class="material-symbols-outlined text-lg" data-icon="crisis_alert">crisis_alert</span>
                         <span class="text-xs font-bold font-headline uppercase tracking-wider text-on-surface">What-If / Impact Analysis</span>
                     </div>
@@ -512,7 +501,7 @@
                         <select id="wi-func-select" class="flex-1 bg-[#1a2333] border border-slate-600/50 rounded-lg text-slate-200 text-sm font-mono focus:ring-0 px-3 py-2 outline-none">
                             <option value="">— pick a function —</option>
                         </select>
-                        <button id="wi-run-btn" class="bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white font-bold text-sm rounded-md px-4 py-2 shadow-lg hover:opacity-90 flex gap-2 items-center transition-all">
+                        <button id="wi-run-btn" class="bg-gradient-to-r from-[#0284c7] to-[#38bdf8] text-white font-bold text-sm rounded-md px-4 py-2 shadow-lg hover:opacity-90 flex gap-2 items-center transition-all">
                             <div class="spinner border-t-white hidden" id="wi-spinner" style="width:14px;height:14px;"></div>
                             <span id="wi-btn-text">Analyze Impact</span>
                         </button>
@@ -522,22 +511,59 @@
                 <!-- Tabs -->
                 <div class="flex gap-1 border-b border-outline-variant/15 px-4 pt-2 bg-surface-container-lowest shrink-0">
                     <button class="wi-tab text-xs font-bold px-4 py-2 border-b-2 border-transparent text-on-surface-variant transition-colors" data-pane="steps">Agent Steps</button>
-                    <button class="wi-tab text-xs font-bold px-4 py-2 border-b-2 border-[#a855f7] text-[#a855f7] active transition-colors" data-pane="report">Blast Report</button>
+                    <button class="wi-tab text-xs font-bold px-4 py-2 border-b-2 border-[#38bdf8] text-[#38bdf8] active transition-colors" data-pane="report">Blast Report</button>
                 </div>
 
                 <div class="flex-1 overflow-hidden flex flex-col relative">
                     <!-- Agent Steps Pane -->
                     <div class="wi-pane flex-1 overflow-y-auto p-4 hidden flex-col gap-3" id="wi-steps-pane">
                         <div id="wi-thinking" class="flex items-center gap-2 text-on-surface-variant text-xs italic hidden">
-                            <div class="w-2 h-2 rounded-full bg-[#a855f7] animate-pulse"></div>
+                            <div class="w-2 h-2 rounded-full bg-[#38bdf8] animate-pulse"></div>
                             Agents are analysing...
                         </div>
                     </div>
                     <!-- Report Pane -->
                     <div class="wi-pane flex-1 overflow-y-auto p-4 active flex flex-col" id="wi-report-pane">
-                        <div id="wi-report-content" class="text-sm text-on-surface-variant leading-relaxed">
+                        <div id="wi-report-content" class="text-sm text-on-surface-variant leading-relaxed prose prose-invert prose-sm max-w-none">
                             The report will appear here.
                         </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Source Control / Git Drawer -->
+            <aside id="git-panel"
+                class="absolute top-0 right-0 h-full w-[450px] glass-panel border-l border-outline-variant/15 z-50 transform translate-x-full transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] shadow-2xl flex flex-col hidden bg-[#0b1326]/95">
+                <div class="p-5 border-b border-outline-variant/15 flex justify-between items-center bg-surface-container-low shrink-0">
+                    <div class="flex items-center gap-2 text-[#38bdf8]">
+                        <span class="material-symbols-outlined text-lg" data-icon="account_tree">account_tree</span>
+                        <span class="text-xs font-bold font-headline uppercase tracking-wider text-on-surface">Source Control</span>
+                    </div>
+                    <button id="close-git-panel" class="p-1 px-[0.3rem] text-on-surface-variant hover:text-error bg-surface-container-highest rounded-lg transition-colors">
+                        <span class="material-symbols-outlined text-[18px]" data-icon="close">close</span>
+                    </button>
+                </div>
+
+                <!-- Tabs -->
+                <div class="flex gap-1 border-b border-outline-variant/15 px-4 pt-2 bg-surface-container-lowest shrink-0">
+                    <button class="git-tab text-xs font-bold px-4 py-2 border-b-2 border-[#38bdf8] text-[#38bdf8] active transition-colors" data-pane="commits">Commit Timeline</button>
+                    <button class="git-tab text-xs font-bold px-4 py-2 border-b-2 border-transparent text-on-surface-variant transition-colors" data-pane="hotspots">Code Hotspots</button>
+                </div>
+
+                <div class="flex-1 overflow-hidden flex flex-col relative">
+                    <div id="git-loading" class="absolute inset-0 flex items-center justify-center text-outline-variant text-[12px] italic hidden z-10">
+                        Analyzing git history...
+                    </div>
+                    
+                    <!-- Commits Pane -->
+                    <div class="git-pane flex-1 overflow-y-auto p-4 flex flex-col gap-3" id="git-commits-pane">
+                        <div id="git-commits-content" class="space-y-4"></div>
+                    </div>
+                    
+                    <!-- Hotspots Pane -->
+                    <div class="git-pane flex-1 overflow-y-auto p-4 hidden flex-col" id="git-hotspots-pane">
+                        <p class="text-xs text-on-surface-variant mb-4 italic">Files modified most frequently in the last 50 commits.</p>
+                        <div id="git-hotspots-content" class="space-y-2"></div>
                     </div>
                 </div>
             </aside>
@@ -679,7 +705,7 @@
                 } else if (n.type === 'Class') {
                     shape = 'diamond';
                     size = 25;
-                    baseColor = '#a855f7'; // purple-500
+                    baseColor = '#38bdf8'; // purple-500
                 }
 
                 return {
@@ -734,7 +760,7 @@
                     const edgeUpdates = [];
                     visEdges.forEach(e => {
                         if (e.from === selectedId && e.to === selectedId) {
-                            edgeUpdates.push({ id: e.id, color: { color: '#a855f7', opacity: 1.0 }, width: 2.5 }); // self
+                            edgeUpdates.push({ id: e.id, color: { color: '#38bdf8', opacity: 1.0 }, width: 2.5 }); // self
                         } else if (e.from === selectedId) {
                             edgeUpdates.push({ id: e.id, color: { color: '#4ade80', opacity: 1.0 }, width: 2.5 }); // Outgoing (Green)
                         } else if (e.to === selectedId) {
@@ -860,7 +886,7 @@
             explanationEl.classList.remove('text-error');
             confidenceEl.classList.add('hidden');
 
-            fetch(`/api/explain?file=${encodeURIComponent(fname)}&name=${encodeURIComponent(raw.label || '')}&type=${encodeURIComponent(nodeType)}`)
+            fetch(`/api/explain?file=${encodeURIComponent(raw.file || '')}&name=${encodeURIComponent(raw.label || '')}&type=${encodeURIComponent(nodeType)}`)
                 .then(res => res.json())
                 .then(data => {
                     explanationEl.classList.remove('opacity-70', 'italic');
@@ -1136,7 +1162,7 @@
             const nodeType = raw.type || 'Function';
 
             try {
-                const res = await fetch(`/api/source?file=${encodeURIComponent(fname)}&name=${encodeURIComponent(raw.label || '')}&type=${encodeURIComponent(nodeType)}`);
+                const res = await fetch(`/api/source?file=${encodeURIComponent(raw.file || '')}&name=${encodeURIComponent(raw.label || '')}&type=${encodeURIComponent(nodeType)}`);
                 const data = await res.json();
 
                 loadingMsg.classList.add('hidden');
@@ -1261,10 +1287,10 @@
         document.querySelectorAll('.wi-tab').forEach(tab => {
             tab.addEventListener('click', () => {
                 document.querySelectorAll('.wi-tab').forEach(t => {
-                    t.classList.remove('border-[#a855f7]', 'text-[#a855f7]');
+                    t.classList.remove('border-[#38bdf8]', 'text-[#38bdf8]');
                     t.classList.add('border-transparent', 'text-on-surface-variant');
                 });
-                tab.classList.add('border-[#a855f7]', 'text-[#a855f7]');
+                tab.classList.add('border-[#38bdf8]', 'text-[#38bdf8]');
                 tab.classList.remove('border-transparent', 'text-on-surface-variant');
                 
                 document.querySelectorAll('.wi-pane').forEach(p => p.classList.add('hidden'));
@@ -1276,6 +1302,17 @@
         document.getElementById('nav-impact').addEventListener('click', () => {
             impactPanel.classList.remove('hidden');
             setTimeout(() => impactPanel.classList.remove('translate-x-full'), 20);
+            
+            if (currentPanelRaw && currentPanelRaw.label) {
+                const funcName = currentPanelRaw.label;
+                const wiSelect = document.getElementById('wi-func-select');
+                for (let i = 0; i < wiSelect.options.length; i++) {
+                    if (wiSelect.options[i].value === funcName) {
+                        wiSelect.selectedIndex = i;
+                        break;
+                    }
+                }
+            }
         });
 
         closeImpactBtn.addEventListener('click', () => {
@@ -1299,6 +1336,110 @@
             } catch(e) {}
         }
         loadFunctionsForWhatIf();
+
+        // ── Git Source Control Panel Logic ───────────────────────────────────────
+        const gitPanel = document.getElementById('git-panel');
+        const closeGitBtn = document.getElementById('close-git-panel');
+        const gitLoading = document.getElementById('git-loading');
+        const gitCommitsContent = document.getElementById('git-commits-content');
+        const gitHotspotsContent = document.getElementById('git-hotspots-content');
+
+        // Git Tabs
+        document.querySelectorAll('.git-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.git-tab').forEach(t => {
+                    t.classList.remove('border-[#38bdf8]', 'text-[#38bdf8]');
+                    t.classList.add('border-transparent', 'text-on-surface-variant');
+                });
+                tab.classList.add('border-[#38bdf8]', 'text-[#38bdf8]');
+                tab.classList.remove('border-transparent', 'text-on-surface-variant');
+                
+                document.querySelectorAll('.git-pane').forEach(p => p.classList.add('hidden'));
+                document.getElementById(`git-${tab.dataset.pane}-pane`).classList.remove('hidden');
+            });
+        });
+
+        // Open Git Panel
+        document.getElementById('nav-source').addEventListener('click', () => {
+            gitPanel.classList.remove('hidden');
+            setTimeout(() => gitPanel.classList.remove('translate-x-full'), 20);
+            loadGitSummary();
+        });
+
+        closeGitBtn.addEventListener('click', () => {
+            gitPanel.classList.add('translate-x-full');
+            setTimeout(() => gitPanel.classList.add('hidden'), 300);
+        });
+
+        async function loadGitSummary() {
+            gitLoading.classList.remove('hidden');
+            gitCommitsContent.innerHTML = '';
+            gitHotspotsContent.innerHTML = '';
+            
+            try {
+                const res = await fetch('/api/git/summary');
+                const data = await res.json();
+                
+                gitLoading.classList.add('hidden');
+                
+                if (data.error) {
+                    gitCommitsContent.innerHTML = `<p class="text-sm text-red-300 bg-red-500/10 p-3 rounded-lg border border-red-500/20">${data.error}</p>`;
+                    return;
+                }
+                
+                // Render Commits
+                if (data.commits && data.commits.length > 0) {
+                    data.commits.forEach(c => {
+                        const d = document.createElement('div');
+                        d.className = "bg-surface-container-low border border-outline-variant/15 rounded-lg p-3";
+                        d.innerHTML = `
+                            <div class="flex justify-between items-start mb-1">
+                                <span class="font-mono text-[#38bdf8] font-bold text-xs">${c.hash}</span>
+                                <span class="text-[10px] text-on-surface-variant">${c.date}</span>
+                            </div>
+                            <p class="text-xs text-on-surface mb-2 font-medium">${c.message}</p>
+                            <div class="flex items-center gap-1.5 text-[10px] text-on-surface-variant uppercase tracking-wider">
+                                <span class="material-symbols-outlined text-[14px]">person</span> ${c.author}
+                            </div>
+                        `;
+                        gitCommitsContent.appendChild(d);
+                    });
+                } else {
+                    gitCommitsContent.innerHTML = `<p class="text-xs text-on-surface-variant italic">No recent commits found.</p>`;
+                }
+                
+                // Render Hotspots
+                if (data.churn && data.churn.length > 0) {
+                    const maxChanges = data.churn[0].changes;
+                    data.churn.forEach(h => {
+                        const pct = Math.max(5, (h.changes / maxChanges) * 100);
+                        const d = document.createElement('div');
+                        d.className = "bg-surface-container-low border border-outline-variant/15 rounded-lg p-3 flex flex-col gap-2";
+                        
+                        let colorClass = 'bg-[#38bdf8]';
+                        if (h.changes >= 10) colorClass = 'bg-red-400';
+                        else if (h.changes >= 5) colorClass = 'bg-orange-400';
+                        
+                        d.innerHTML = `
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="font-mono text-on-surface truncate pr-2" title="${h.file}">${basename(h.file)}</span>
+                                <span class="font-bold ${colorClass.replace('bg-', 'text-')}">${h.changes} changes</span>
+                            </div>
+                            <div class="w-full bg-surface-container-highest rounded-full h-1.5">
+                                <div class="${colorClass} h-1.5 rounded-full" style="width: ${pct}%"></div>
+                            </div>
+                        `;
+                        gitHotspotsContent.appendChild(d);
+                    });
+                } else {
+                    gitHotspotsContent.innerHTML = `<p class="text-xs text-on-surface-variant italic">No file churn data available.</p>`;
+                }
+                
+            } catch (err) {
+                gitLoading.classList.add('hidden');
+                gitCommitsContent.innerHTML = `<p class="text-sm text-red-300 bg-red-500/10 p-3 rounded-lg border border-red-500/20">Failed to connect to backend.</p>`;
+            }
+        }
 
         const AGENT_MAP = {
           'Senior Codebase Graph Analyst': {cls:'text-primary', label:'🔍 Investigator — Graph Analyst'},
@@ -1366,7 +1507,7 @@
                             try {
                                 const msg = JSON.parse(line.substring(6));
                                 if (msg.type === 'start') {
-                                    addStepCard(`🚀 Starting What-If analysis for: <code>${fn}</code>`, null, 'text-on-surface-variant');
+                                    addStepCard(`Starting What-If analysis for: <code>${fn}</code>`, null, 'text-on-surface-variant');
                                 } else if (msg.type === 'step') {
                                     const text = msg.text || '';
                                     let agentKey = Object.keys(AGENT_MAP).find(k => text.includes(k));
@@ -1376,13 +1517,13 @@
                                     addStepCard(msg.text, null, 'text-on-surface-variant');
                                 } else if (msg.type === 'done') {
                                     wiThinking.classList.add('hidden');
-                                    addStepCard('✅ Analysis complete — switch to the Blast Report tab.', null, 'text-[#4ade80]');
+                                    addStepCard('Analysis complete — switch to the Blast Report tab.', null, 'text-[#4ade80]');
                                     wiReportContent.innerHTML = marked.parse(msg.report || '');
                                     // Switch to report tab
                                     document.querySelector('.wi-tab[data-pane="report"]').click();
                                 } else if (msg.type === 'error') {
                                     wiThinking.classList.add('hidden');
-                                    addStepCard('❌ ' + (msg.text || 'Unknown error'), null, 'text-error');
+                                    addStepCard('Error: ' + (msg.text || 'Unknown error'), null, 'text-error');
                                 }
                             } catch(err) {
                                 console.error('JSON parse error on chunk:', err);
