@@ -567,6 +567,43 @@
                     </div>
                 </div>
             </aside>
+
+            <!-- Semantic Search View Overlay -->
+            <div id="semantic-search-view" class="absolute inset-0 z-[60] bg-surface-dim/95 backdrop-blur-md hidden flex-col items-center pt-24 overflow-hidden">
+                <div class="w-full max-w-3xl px-6 flex flex-col items-center gap-6 relative">
+                    <button id="ss-close-btn" class="absolute -top-12 right-6 p-2 text-on-surface-variant hover:text-error bg-surface-container-highest rounded-lg transition-colors shadow-lg">
+                        <span class="material-symbols-outlined" data-icon="close">close</span>
+                    </button>
+                    <div class="text-center space-y-2">
+                        <h2 class="text-3xl font-bold font-headline text-on-surface">Semantic Search</h2>
+                        <p class="text-on-surface-variant text-sm">Find functionality using natural language queries powered by ChromaDB.</p>
+                    </div>
+                    
+                    <div class="flex w-full gap-3">
+                        <div class="flex-1 flex items-center bg-surface-container-lowest border border-outline-variant/30 rounded-xl px-4 py-3 shadow-lg focus-within:border-primary/50 focus-within:shadow-[0_0_20px_rgba(142,213,255,0.15)] transition-all">
+                            <span class="material-symbols-outlined text-outline-variant mr-3" data-icon="search">search</span>
+                            <input id="ss-input" type="text" placeholder="e.g. How is the Neo4j graph created?" class="bg-transparent border-none text-on-surface w-full outline-none placeholder-outline-variant font-mono text-sm" />
+                        </div>
+                        <button id="ss-btn" class="bg-primary hover:bg-primary-container text-on-primary px-6 rounded-xl font-bold transition-colors shadow-lg active:scale-95 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[18px]" data-icon="travel_explore">travel_explore</span>
+                            Search
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Results Area -->
+                <div id="ss-results" class="w-full max-w-4xl px-6 mt-12 flex-1 overflow-y-auto space-y-4 pb-12">
+                    <div id="ss-loading" class="hidden flex-col items-center justify-center mt-10 gap-4">
+                        <div class="spinner !block !border-primary/30 !border-t-primary w-8 h-8"></div>
+                        <span class="text-on-surface-variant animate-pulse">Searching vector space...</span>
+                    </div>
+                    <div id="ss-list" class="flex flex-col gap-4">
+                        <div class="text-on-surface-variant text-sm italic text-center mt-10">
+                            Search for logic using natural language.
+                        </div>
+                    </div>
+                </div>
+            </div>
         </main>
     </div>
 
@@ -706,6 +743,12 @@
                     shape = 'diamond';
                     size = 25;
                     baseColor = '#38bdf8'; // purple-500
+                } else if (n.type === 'APIRoute') {
+                    shape = 'hexagon';
+                    size = 20;
+                    baseColor = '#f59e0b'; // amber-500
+                    borderColor = '#fbbf24'; // amber-400
+                    fontColor = '#fffbeb'; // amber-50
                 }
 
                 return {
@@ -1440,6 +1483,109 @@
                 gitCommitsContent.innerHTML = `<p class="text-sm text-red-300 bg-red-500/10 p-3 rounded-lg border border-red-500/20">Failed to connect to backend.</p>`;
             }
         }
+
+        // ── Semantic Search Panel Logic ───────────────────────────────────────
+        const searchView = document.getElementById('semantic-search-view');
+        const ssCloseBtn = document.getElementById('ss-close-btn');
+        const ssInput = document.getElementById('ss-input');
+        const ssBtn = document.getElementById('ss-btn');
+        const ssLoading = document.getElementById('ss-loading');
+        const ssList = document.getElementById('ss-list');
+
+        // Open Search Panel
+        document.getElementById('nav-semantic-search').addEventListener('click', () => {
+            searchView.classList.remove('hidden');
+            searchView.classList.add('flex');
+            ssInput.focus();
+        });
+
+        ssCloseBtn.addEventListener('click', () => {
+            searchView.classList.add('hidden');
+            searchView.classList.remove('flex');
+        });
+
+        ssBtn.addEventListener('click', async () => {
+            const q = ssInput.value.trim();
+            if (!q) return;
+
+            ssBtn.disabled = true;
+            ssLoading.classList.remove('hidden');
+            ssLoading.classList.add('flex');
+            ssList.innerHTML = '';
+
+            try {
+                const res = await fetch('/api/search?q=' + encodeURIComponent(q));
+                const data = await res.json();
+                
+                ssLoading.classList.add('hidden');
+                ssLoading.classList.remove('flex');
+                
+                if (data.error) {
+                    ssList.innerHTML = `<p class="text-sm text-red-300 bg-red-500/10 p-3 rounded-lg border border-red-500/20">${data.error}</p>`;
+                    return;
+                }
+                
+                if (data.results && data.results.length > 0) {
+                    data.results.forEach(r => {
+                        const score = Math.round(r.similarity * 100);
+                        const scoreColor = score >= 80 ? 'text-green-400' : (score >= 50 ? 'text-yellow-400' : 'text-red-400');
+                        
+                        const d = document.createElement('div');
+                        d.className = "bg-surface-container-low border border-outline-variant/15 rounded-lg p-5 flex flex-col gap-3 hover:border-primary/40 transition-colors shadow-sm cursor-pointer hover:bg-surface-container-highest/50";
+                        
+                        const metaName = r.metadata?.name || 'Unknown';
+                        const metaFile = r.metadata?.filepath ? basename(r.metadata.filepath) : 'Unknown';
+                        
+                        d.innerHTML = `
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h4 class="font-bold text-lg text-[#38bdf8] tracking-tight">${metaName}</h4>
+                                    <p class="text-xs font-mono text-on-surface-variant mt-1">${metaFile}</p>
+                                </div>
+                                <div class="font-mono text-sm font-bold ${scoreColor} bg-surface-container-highest px-2 py-1 rounded border border-outline-variant/20 shadow-inner">
+                                    ${score}% Match
+                                </div>
+                            </div>
+                            <div class="mt-2 bg-[#0d1424] rounded-md p-3 overflow-x-auto border border-outline-variant/10 max-h-[300px] overflow-y-auto">
+                                <pre><code class="text-xs font-mono text-on-surface">${escHtml(r.code_snippet)}</code></pre>
+                            </div>
+                        `;
+                        
+                        d.onclick = () => {
+                            // Hide overlay
+                            searchView.classList.add('hidden');
+                            searchView.classList.remove('flex');
+                            
+                            // Find and focus node
+                            if (network && globalRawNodes) {
+                                const foundNode = globalRawNodes.find(rn => rn.label === metaName && basename(rn.file) === metaFile);
+                                if (foundNode) {
+                                    openPanel(foundNode);
+                                    focusNode(foundNode.id);
+                                } else {
+                                    alert('Node not found on the current graph canvas.');
+                                }
+                            }
+                        };
+                        
+                        ssList.appendChild(d);
+                    });
+                    
+                } else {
+                    ssList.innerHTML = `<p class="text-sm text-on-surface-variant italic text-center mt-10 bg-surface-container-low p-6 rounded-lg border border-outline-variant/10">No matches found.</p>`;
+                }
+            } catch (err) {
+                ssLoading.classList.add('hidden');
+                ssLoading.classList.remove('flex');
+                ssList.innerHTML = `<p class="text-sm text-red-300 bg-red-500/10 p-3 rounded-lg border border-red-500/20">Failed to search ChromaDB.</p>`;
+            } finally {
+                ssBtn.disabled = false;
+            }
+        });
+        
+        ssInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') ssBtn.click();
+        });
 
         const AGENT_MAP = {
           'Senior Codebase Graph Analyst': {cls:'text-primary', label:'🔍 Investigator — Graph Analyst'},
