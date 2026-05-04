@@ -1,10 +1,14 @@
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 import git
 import tree_sitter
 from tree_sitter import Language, Parser, Query
 import tree_sitter_python as tspython
 from neo4j import GraphDatabase
 import chromadb
+import re
 
 # Load languages
 LANGUAGES = {}
@@ -19,14 +23,19 @@ def load_lang(ext, module_name, lang_attr="language"):
 
 load_lang('.py', 'tree_sitter_python')
 load_lang('.js', 'tree_sitter_javascript')
+load_lang('.jsx', 'tree_sitter_javascript')
 load_lang('.ts', 'tree_sitter_typescript', 'language_typescript')
+load_lang('.tsx', 'tree_sitter_typescript', 'language_typescript')
 load_lang('.java', 'tree_sitter_java')
 load_lang('.go', 'tree_sitter_go')
 load_lang('.cpp', 'tree_sitter_cpp')
+load_lang('.cc', 'tree_sitter_cpp')
+load_lang('.h', 'tree_sitter_cpp')
+load_lang('.hpp', 'tree_sitter_cpp')
 
 # Neo4j connection details
-URI = "neo4j://127.0.0.1:7687"
-AUTH = ("neo4j", "password123")
+URI = os.getenv("NEO4J_URI", "neo4j://127.0.0.1:7687")
+AUTH = (os.getenv("NEO4J_USERNAME", "neo4j"), os.getenv("NEO4J_PASSWORD", "password123"))
 
 # AST Query Configurations
 CONFIGS = {
@@ -61,6 +70,11 @@ CONFIGS = {
         "call": "(call_expression function: (identifier) @callee)"
     }
 }
+CONFIGS[".jsx"] = CONFIGS[".js"]
+CONFIGS[".tsx"] = CONFIGS[".ts"]
+CONFIGS[".cc"] = CONFIGS[".cpp"]
+CONFIGS[".h"] = CONFIGS[".cpp"]
+CONFIGS[".hpp"] = CONFIGS[".cpp"]
 
 
 def get_author(file_path, line_number):
@@ -186,6 +200,20 @@ def extract_entities_from_file(file_path, chroma_collection):
 
         author = get_author(file_path, start_line)
 
+        # Disconnected Islands Regex Scan
+        api_exposures = []
+        api_calls = []
+        
+        # Backend exposures (Python Flask / Java Spring)
+        # e.g., @app.route('/api/users'), @GetMapping("/api/users")
+        exposures_matches = re.findall(r'@(?:app\.route|(?:Get|Post|Put|Delete|Patch)Mapping)\([\'"]([^\'"]+)[\'"]', raw_code)
+        api_exposures.extend(exposures_matches)
+        
+        # Frontend calls (fetch, axios)
+        # e.g., fetch('/api/users'), axios.get('/api/users')
+        calls_matches = re.findall(r'(?:fetch|axios\.(?:get|post|put|delete|patch))\([\'"]([^\'"]+)[\'"]', raw_code)
+        api_calls.extend(calls_matches)
+
         # Check if function belongs to a class
         parent_class = None
         for cls in class_scopes:
@@ -216,7 +244,9 @@ def extract_entities_from_file(file_path, chroma_collection):
             'line':   start_line,
             'calls':  list(set(calls)),
             'author': author,
-            'parent_class': parent_class_name
+            'parent_class': parent_class_name,
+            'api_exposures': list(set(api_exposures)),
+            'api_calls': list(set(api_calls))
         })
 
     return {
@@ -295,6 +325,30 @@ def get_neo4j_ops(entities, file_path):
                         "file":        norm_path,
                     }
                 ))
+
+    # 5. API Routes (Bridging Frontend and Backend)
+    for func in functions:
+        for route in func.get('api_exposures', []):
+            ops.append((
+                "MERGE (api:APIRoute {name: $path})",
+                {"path": route}
+            ))
+            ops.append((
+                "MATCH (f:Function {name: $func_name, file: $file}), (api:APIRoute {name: $path}) "
+                "MERGE (f)-[:EXPOSES_API]->(api)",
+                {"func_name": func['name'], "file": norm_path, "path": route}
+            ))
+            
+        for route in func.get('api_calls', []):
+            ops.append((
+                "MERGE (api:APIRoute {name: $path})",
+                {"path": route}
+            ))
+            ops.append((
+                "MATCH (f:Function {name: $func_name, file: $file}), (api:APIRoute {name: $path}) "
+                "MERGE (f)-[:CALLS_API]->(api)",
+                {"func_name": func['name'], "file": norm_path, "path": route}
+            ))
 
     return ops
 
