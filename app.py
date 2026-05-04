@@ -15,6 +15,7 @@ from neo4j import GraphDatabase
 from extractor import analyze_project, LANGUAGES, CONFIGS
 import tree_sitter
 from tree_sitter import Parser, Query
+import chromadb
 
 app = Flask(__name__, static_folder='logo', static_url_path='/logo')
 
@@ -386,6 +387,36 @@ def api_git_summary():
         "commits": commits,
         "churn": top_churn
     })
+
+@app.route("/api/search", methods=["GET"])
+def api_search():
+    q = request.args.get("q")
+    if not q:
+        return jsonify({"error": "Missing 'q' parameter."}), 400
+    
+    try:
+        chroma_client = chromadb.PersistentClient(path="./chroma_data")
+        try:
+            collection = chroma_client.get_collection(name="codebase_nodes")
+        except Exception:
+            return jsonify({"error": "ChromaDB collection not found. Please analyze a project first."}), 404
+            
+        results = collection.query(query_texts=[q], n_results=5)
+        
+        matches = []
+        if results and 'ids' in results and results['ids'] and len(results['ids'][0]) > 0:
+            for i in range(len(results['ids'][0])):
+                dist = results['distances'][0][i] if 'distances' in results and results['distances'] else 0
+                matches.append({
+                    "id": results['ids'][0][i],
+                    "code_snippet": results['documents'][0][i],
+                    "metadata": results['metadatas'][0][i],
+                    "similarity": 1.0 - dist
+                })
+                
+        return jsonify({"status": "success", "results": matches})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
