@@ -94,6 +94,20 @@ def get_author(file_path, line_number):
     return "Unknown"
 
 
+def scan_vulnerabilities(raw_code):
+    vulns = []
+    if re.search(r'AKIA[0-9A-Z]{16}', raw_code):
+        vulns.append("Hardcoded AWS Access Key")
+    if re.search(r'ghp_[a-zA-Z0-9]{36}', raw_code):
+        vulns.append("Hardcoded GitHub Token")
+    if re.search(r'(?i)password\s*=\s*[\'"][^\'"]+[\'"]', raw_code):
+        vulns.append("Hardcoded Password")
+    if re.search(r'(?i)api_?key\s*=\s*[\'"][^\'"]+[\'"]', raw_code):
+        vulns.append("Hardcoded API Key")
+    if re.search(r'(?i)SELECT.*FROM.*\+.*', raw_code) or re.search(r'(?i)f[\'"]SELECT.*\{.*\}.*[\'"]', raw_code):
+        vulns.append("Potential SQL Injection Risk")
+    return vulns
+
 def extract_entities_from_file(file_path, chroma_collection):
     """Parse a single file and return lists of class and function dicts,
     upserting each entity into ChromaDB. Also returns basic file metadata."""
@@ -148,6 +162,7 @@ def extract_entities_from_file(file_path, chroma_collection):
         start_line = name_node.start_point[0] + 1
         raw_code = def_node.text.decode('utf8')
         author = get_author(file_path, start_line)
+        vulns = scan_vulnerabilities(raw_code)
         
         chroma_id = f"{os.path.basename(file_path)}::class::{name}"
         try:
@@ -166,6 +181,7 @@ def extract_entities_from_file(file_path, chroma_collection):
             'name': name,
             'line': start_line,
             'author': author,
+            'vulnerabilities': vulns,
             'start_byte': def_node.start_byte,
             'end_byte': def_node.end_byte
         }
@@ -185,6 +201,7 @@ def extract_entities_from_file(file_path, chroma_collection):
         name       = name_node.text.decode('utf8')
         start_line = name_node.start_point[0] + 1
         raw_code   = def_node.text.decode('utf8')
+        vulns = scan_vulnerabilities(raw_code)
 
         # Find calls inside this function's body
         calls = []
@@ -244,6 +261,7 @@ def extract_entities_from_file(file_path, chroma_collection):
             'line':   start_line,
             'calls':  list(set(calls)),
             'author': author,
+            'vulnerabilities': vulns,
             'parent_class': parent_class_name,
             'api_exposures': list(set(api_exposures)),
             'api_calls': list(set(api_calls))
@@ -277,8 +295,8 @@ def get_neo4j_ops(entities, file_path):
     for cls in classes:
         ops.append((
             "MERGE (c:Class {name: $name, file: $file}) "
-            "SET c.line = $line, c.author = $author",
-            {"name": cls['name'], "file": norm_path, "line": cls['line'], "author": cls['author']}
+            "SET c.line = $line, c.author = $author, c.vulnerabilities = $vulns",
+            {"name": cls['name'], "file": norm_path, "line": cls['line'], "author": cls['author'], "vulns": cls.get('vulnerabilities', [])}
         ))
         ops.append((
             "MATCH (file:File {file: $file}), (c:Class {name: $name, file: $file}) "
@@ -290,8 +308,8 @@ def get_neo4j_ops(entities, file_path):
     for func in functions:
         ops.append((
             "MERGE (f:Function {name: $name, file: $file}) "
-            "SET f.line = $line, f.author = $author",
-            {"name": func['name'], "file": norm_path, "line": func['line'], "author": func['author']}
+            "SET f.line = $line, f.author = $author, f.vulnerabilities = $vulns",
+            {"name": func['name'], "file": norm_path, "line": func['line'], "author": func['author'], "vulns": func.get('vulnerabilities', [])}
         ))
         
         if func['parent_class']:

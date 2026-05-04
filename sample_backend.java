@@ -12,9 +12,17 @@ public class UserController {
         return "List of users";
     }
 
+    @GetMapping("/api/user_data")
+    public String getUserData(String userId) {
+        String dbPassword = "SuperSecretPassword123!"; // Hardcoded password
+        String query = "SELECT * FROM users WHERE id = " + userId; // SQL Injection Risk
+        return "Executed " + query;
+    }
+
     public void callOtherService() {
         // Just a dummy to test outgoing calls from backend
         String url = "/api/settings";
-        System.out.println("Calling " + url);
+        String awsKey = "AKIA1234567890ABCDEF"; // Hardcoded AWS Key
+        System.out.println("Calling " + url + " with " + awsKey);
     }
 }

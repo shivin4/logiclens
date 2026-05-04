@@ -402,6 +402,18 @@
                                 class="text-[12px] text-on-surface-variant leading-relaxed font-inter">Select a function
                                 node to view its explanation.</p>
                         </div>
+                        </div>
+                    </div>
+
+                    <!-- Security Warnings Section -->
+                    <div id="panel-vuln-container" class="hidden space-y-2 pt-3 border-t border-outline-variant/15">
+                        <div class="flex flex-1 items-center gap-2">
+                            <span class="material-symbols-outlined text-red-500 text-[18px]" data-icon="gpp_maybe">gpp_maybe</span>
+                            <h4 class="text-sm font-bold font-headline text-red-400">Security Warnings</h4>
+                        </div>
+                        <div class="bg-red-500/10 rounded-lg p-3 border border-red-500/20">
+                            <ul id="panel-vulns" class="list-disc pl-4 text-[12px] text-red-300 space-y-1"></ul>
+                        </div>
                     </div>
 
                     <!-- Trace Dependencies Structure -->
@@ -751,11 +763,21 @@
                     fontColor = '#fffbeb'; // amber-50
                 }
 
+                let borderWidth = 1;
+                let shadow = false;
+                if (n.vulnerabilities && n.vulnerabilities.length > 0) {
+                    borderColor = '#ef4444'; // red-500
+                    borderWidth = 3;
+                    shadow = { enabled: true, color: 'rgba(239, 68, 68, 0.5)', size: 15, x: 0, y: 0 };
+                }
+
                 return {
                     id: n.id,
                     label: n.label,
                     shape: shape,
                     size: size,
+                    borderWidth: borderWidth,
+                    shadow: shadow,
                     color: {
                         background: baseColor,
                         border: borderColor,
@@ -920,6 +942,16 @@
 
             document.getElementById('d-group').textContent = fname;
             document.getElementById('d-group-swatch').style.backgroundColor = themeColor;
+
+            // Handle Vulnerabilities
+            const vulnContainer = document.getElementById('panel-vuln-container');
+            const vulnList = document.getElementById('panel-vulns');
+            if (raw.vulnerabilities && raw.vulnerabilities.length > 0) {
+                vulnContainer.classList.remove('hidden');
+                vulnList.innerHTML = raw.vulnerabilities.map(v => `<li>${escHtml(v)}</li>`).join('');
+            } else {
+                vulnContainer.classList.add('hidden');
+            }
 
             // Handle AI Explanation
             const explanationEl = document.getElementById('d-explanation');

@@ -7,5 +7,6 @@ function getUserData() {
 }
 
 const getSettings = () => {
-    axios.get('/api/settings');
+    const githubToken = "ghp_1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ"; // Hardcoded GitHub Token
+    axios.get('/api/settings', { headers: { 'Authorization': `Bearer ${githubToken}` } });
 }

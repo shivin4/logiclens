@@ -78,6 +78,7 @@ def api_graph():
                             "file":  n.get("file", ""),
                             "line":  n.get("line", 0),
                             "author": n.get("author", ""),
+                            "vulnerabilities": n.get("vulnerabilities", [])
                         }
                     if m_id not in nodes:
                         m_type = list(m.labels)[0] if m.labels else "Unknown"
@@ -88,6 +89,7 @@ def api_graph():
                             "file":  m.get("file", ""),
                             "line":  m.get("line", 0),
                             "author": m.get("author", ""),
+                            "vulnerabilities": m.get("vulnerabilities", [])
                         }
 
                     edges.append({
@@ -112,6 +114,7 @@ def api_graph():
                             "file":  n.get("file", ""),
                             "line":  n.get("line", 0),
                             "author": n.get("author", ""),
+                            "vulnerabilities": n.get("vulnerabilities", [])
                         }
 
     except Exception as e:
@@ -223,10 +226,11 @@ def api_trace():
                         "name": m.get("name", ""), 
                         "file": m.get("file", ""), 
                         "line": m.get("line", 0), 
-                        "author": m.get("author", "")
+                        "author": m.get("author", ""),
+                        "vulnerabilities": m.get("vulnerabilities", [])
                     })
                     
-                in_res = session.run("MATCH (m)-[r:CALLS]->(n) WHERE elementId(n) = $id RETURN m", {"id": node_id})
+                in_res = session.run("MATCH (m)-[r]->(n) WHERE elementId(n) = $id RETURN m", {"id": node_id})
                 for record in in_res:
                     m = record["m"]
                     incoming.append({
@@ -234,7 +238,8 @@ def api_trace():
                         "name": m.get("name", ""), 
                         "file": m.get("file", ""), 
                         "line": m.get("line", 0), 
-                        "author": m.get("author", "")
+                        "author": m.get("author", ""),
+                        "vulnerabilities": m.get("vulnerabilities", [])
                     })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
