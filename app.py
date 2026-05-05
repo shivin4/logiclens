@@ -78,6 +78,7 @@ def api_graph():
                             "file":  n.get("file", ""),
                             "line":  n.get("line", 0),
                             "author": n.get("author", ""),
+                            "handler": n.get("handler", ""),
                             "vulnerabilities": n.get("vulnerabilities", [])
                         }
                     if m_id not in nodes:
@@ -89,6 +90,7 @@ def api_graph():
                             "file":  m.get("file", ""),
                             "line":  m.get("line", 0),
                             "author": m.get("author", ""),
+                            "handler": m.get("handler", ""),
                             "vulnerabilities": m.get("vulnerabilities", [])
                         }
 
@@ -114,6 +116,7 @@ def api_graph():
                             "file":  n.get("file", ""),
                             "line":  n.get("line", 0),
                             "author": n.get("author", ""),
+                            "handler": n.get("handler", ""),
                             "vulnerabilities": n.get("vulnerabilities", [])
                         }
 
@@ -187,8 +190,9 @@ def extract_code(filepath, node_name, node_type):
         matches = cursor.matches(tree.root_node)
         
         for _pattern_index, match_dict in matches:
-            name_node = match_dict.get('class.name') if node_type == "Class" else match_dict.get('function.name')
-            def_node = match_dict.get('class.def') if node_type == "Class" else match_dict.get('function.def')
+            # Try to find the name and definition nodes regardless of the specific capture name
+            name_node = match_dict.get('function.name') or match_dict.get('class.name')
+            def_node  = match_dict.get('function.def') or match_dict.get('class.def')
             
             if not name_node or not def_node:
                 continue
@@ -197,7 +201,6 @@ def extract_code(filepath, node_name, node_type):
             def_node = def_node[0] if isinstance(def_node, list) else def_node
             
             extracted_name = name_node.text.decode('utf8')
-            print(f"[DEBUG] Found extracted_name: {extracted_name}")
             if extracted_name == node_name:
                 return def_node.text.decode('utf8')
                 

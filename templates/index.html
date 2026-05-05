@@ -372,18 +372,7 @@
                         </div>
                     </div>
 
-                    <!-- File Module Group -->
-                    <div class="space-y-2">
-                        <div class="flex items-center justify-between">
-                            <h4 class="text-[11px] uppercase font-bold text-on-surface-variant tracking-wider">Module
-                                Group</h4>
-                        </div>
-                        <div
-                            class="bg-surface-container-lowest rounded-lg p-3 font-mono text-xs overflow-hidden border border-outline-variant/20 flex gap-3 items-center">
-                            <div id="d-group-swatch" class="w-3 h-3 rounded-full bg-primary shadow flex-shrink-0"></div>
-                            <span id="d-group" class="text-on-surface-variant truncate">—</span>
-                        </div>
-                    </div>
+
 
                     <!-- Explanation Section -->
                     <div class="space-y-2 pt-3 border-t border-outline-variant/15">
@@ -402,7 +391,6 @@
                                 class="text-[12px] text-on-surface-variant leading-relaxed font-inter">Select a function
                                 node to view its explanation.</p>
                         </div>
-                        </div>
                     </div>
 
                     <!-- Security Warnings Section -->
@@ -417,12 +405,12 @@
                     </div>
 
                     <!-- Trace Dependencies Structure -->
-                    <div class="space-y-2 pt-3 border-t border-outline-variant/15">
-                        <div class="flex items-center justify-between">
+                    <div class="flex-1 flex flex-col space-y-2 pt-3 border-t border-outline-variant/15 min-h-0">
+                        <div class="flex items-center justify-between shrink-0">
                             <h4 class="text-[11px] uppercase font-bold text-on-surface-variant tracking-wider">
                                 Dependencies</h4>
                         </div>
-                        <div class="space-y-2 flex-1 overflow-y-auto">
+                        <div class="space-y-2 flex-1 overflow-y-auto pr-1">
                             <!-- Outgoing (Calls) -->
                             <div class="border-b border-outline-variant/10 pb-2">
                                 <button id="i-calls-btn"
@@ -451,7 +439,7 @@
                     </div>
 
                     <!-- Action Buttons -->
-                    <div class="pt-3 mt-auto flex flex-col gap-2">
+                    <div class="pt-3 mt-auto flex flex-col gap-2 shrink-0">
                         <button id="btn-view-source"
                             class="w-full py-2.5 bg-surface-container-highest border border-outline-variant/20 text-on-surface font-semibold rounded-lg flex items-center justify-center gap-2 hover:bg-surface-variant transition-colors text-sm">
                             <span class="material-symbols-outlined text-[18px]" data-icon="code">code</span>
@@ -961,7 +949,8 @@
             explanationEl.classList.remove('text-error');
             confidenceEl.classList.add('hidden');
 
-            fetch(`/api/explain?file=${encodeURIComponent(raw.file || '')}&name=${encodeURIComponent(raw.label || '')}&type=${encodeURIComponent(nodeType)}`)
+            const nameToExplain = nodeType === 'APIRoute' && raw.handler ? raw.handler : raw.label;
+            fetch(`/api/explain?file=${encodeURIComponent(raw.file || '')}&name=${encodeURIComponent(nameToExplain || '')}&type=${encodeURIComponent(nodeType)}`)
                 .then(res => res.json())
                 .then(data => {
                     explanationEl.classList.remove('opacity-70', 'italic');
@@ -1237,7 +1226,8 @@
             const nodeType = raw.type || 'Function';
 
             try {
-                const res = await fetch(`/api/source?file=${encodeURIComponent(raw.file || '')}&name=${encodeURIComponent(raw.label || '')}&type=${encodeURIComponent(nodeType)}`);
+                const nameToFetch = nodeType === 'APIRoute' && raw.handler ? raw.handler : (raw.label || '');
+                const res = await fetch(`/api/source?file=${encodeURIComponent(raw.file || '')}&name=${encodeURIComponent(nameToFetch)}&type=${encodeURIComponent(nodeType)}`);
                 const data = await res.json();
 
                 loadingMsg.classList.add('hidden');

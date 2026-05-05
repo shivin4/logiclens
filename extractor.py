@@ -348,8 +348,9 @@ def get_neo4j_ops(entities, file_path):
     for func in functions:
         for route in func.get('api_exposures', []):
             ops.append((
-                "MERGE (api:APIRoute {name: $path})",
-                {"path": route}
+                "MERGE (api:APIRoute {name: $path}) "
+                "SET api.file = $file, api.line = $line, api.author = $author, api.handler = $handler",
+                {"path": route, "file": norm_path, "line": func['line'], "author": func['author'], "handler": func['name']}
             ))
             ops.append((
                 "MATCH (f:Function {name: $func_name, file: $file}), (api:APIRoute {name: $path}) "
