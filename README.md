@@ -187,7 +187,6 @@ python whatif_engine.py --function function_name
 - Re-analysis is destructive: it clears existing SQLite graph and Chroma data before indexing.
 - `CALLS` edges are currently linked only when callee names are defined in the same file (cross-file resolution is limited).
 - The what-if Chroma lookup may miss source blocks because extractor IDs include a file/type prefix while retrieval uses plain function names.
-- `app.py` currently prints `GEMINI_API_KEY` at startup; avoid running with sensitive secrets in shared logs.
 - No automated unit/integration test suite is included yet.
 - No dedicated lint/format CI pipeline is configured.
 
