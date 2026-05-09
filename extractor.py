@@ -6,7 +6,7 @@ import tree_sitter_python as tspython
 import chromadb
 import re
 
-from logiclens.config import chroma_collection_name, chroma_dir, graph_db_path, load_app_env
+from logiclens.config import chroma_collection_for_project, chroma_dir, graph_db_path, load_app_env
 from logiclens.scan_ignore import prune_walk_dirs, should_skip_parsed_file
 
 load_app_env()
@@ -295,7 +295,7 @@ def analyze_project(directory_path):
         print(f"[Graph] Error clearing graph: {e}")
         raise
 
-    coll_name = chroma_collection_name()
+    coll_name = chroma_collection_for_project(directory_path)
     chroma_path = str(chroma_dir())
     print(f"[Chroma] Resetting '{coll_name}' collection in {chroma_path}...")
     chroma_client = chromadb.PersistentClient(path=chroma_path)

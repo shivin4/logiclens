@@ -112,31 +112,22 @@ Optional: `LOGICLENS_DATA_DIR`, `FLASK_PORT`, `LOGICLENS_DEBUG=1` (Flask dev ser
 
 ## Run
 
-**Web server (production-style local server):**
+**Desktop (recommended):**
 
 ```bash
-python app.py
+python desktop_main.py
 ```
 
-**Development (Flask debug reloader):**
+Each desktop instance picks a free port (5000, then 5001, …) so **File → New Window** can spawn a second native window without port clashes.
+
+**Browser / API debugging only:** LogicLens is desktop-first; `python app.py` exits unless you enable debug mode:
 
 ```bash
 set LOGICLENS_DEBUG=1
 python app.py
 ```
 
-**Desktop window:**
-
-```bash
-python desktop_main.py
-```
-
-Each desktop instance picks a free port (5000, then 5001, …) so **File → New Window** can spawn a second native window without port clashes. In a normal browser (no pywebview), New Window still opens a new tab.
-
-Open:
-
-- UI: `http://127.0.0.1:5000`
-- First-time API keys: `http://127.0.0.1:5000/setup`
+Then open `http://127.0.0.1:5000` and `/setup` in the browser. The packaged `.exe` always uses the desktop shell.
 
 ## Packaging (Windows)
 

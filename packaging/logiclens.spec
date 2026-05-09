@@ -67,6 +67,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon=str(root / "logo" / "logo.ico"),
 )
 
 coll = COLLECT(
