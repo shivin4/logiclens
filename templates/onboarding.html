@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Welcome — LogicLens</title>
+    <script src="{{ url_for('static', filename='vendor/tailwindcdn.js') }}"></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: { background: "#0b1326", on_surface: "#dae2fd" }
+                }
+            }
+        };
+    </script>
+    <style>
+        :where(button, a, input):focus-visible {
+            outline: 2px solid #38bdf8;
+            outline-offset: 2px;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen bg-[#09090b] text-[#dae2fd]">
+    <div class="min-h-screen flex flex-col items-center justify-center p-6 sm:p-10">
+        <div class="w-full max-w-lg">
+            <div class="flex flex-col items-center gap-3 mb-8 text-center">
+                <img src="/logo/logo.svg" alt="" class="h-12 w-auto opacity-95 mix-blend-screen" />
+                <h1 class="text-2xl font-semibold tracking-tight">Welcome to LogicLens</h1>
+                <p class="text-sm text-slate-400 max-w-md">Set up API keys and open a project in two steps.</p>
+            </div>
+
+            <!-- Step indicator -->
+            <div class="flex justify-center gap-2 mb-8" aria-hidden="true">
+                <span id="step-dot-1" class="h-2 w-8 rounded-full bg-sky-500 transition-colors"></span>
+                <span id="step-dot-2" class="h-2 w-8 rounded-full bg-slate-700 transition-colors"></span>
+            </div>
+
+            <!-- Step 1 -->
+            <div id="step-1" class="rounded-xl border border-slate-700/80 bg-[#0f172a]/90 p-6 shadow-xl">
+                <h2 class="text-sm font-semibold text-slate-200 mb-1">Step 1 — API keys</h2>
+                <p class="text-xs text-slate-500 mb-4">Stored only under <code class="text-slate-400">{{ data_dir }}</code></p>
+                <form id="keys-form" class="space-y-4">
+                    <div>
+                        <label class="block text-sm mb-1" for="groq">Groq API key <span class="text-red-400">*</span></label>
+                        <input id="groq" name="groq" type="password" autocomplete="off" required
+                            class="w-full rounded-lg bg-slate-900 border border-slate-600 px-3 py-2 text-sm" />
+                    </div>
+                    <div>
+                        <label class="block text-sm mb-1" for="gemini">Gemini API key <span class="text-slate-600">(optional)</span></label>
+                        <input id="gemini" name="gemini" type="password" autocomplete="off"
+                            class="w-full rounded-lg bg-slate-900 border border-slate-600 px-3 py-2 text-sm" />
+                    </div>
+                    <div class="rounded-lg border border-slate-700/60 bg-slate-900/50 p-3">
+                        <label class="flex items-start gap-3 cursor-pointer text-sm text-slate-400">
+                            <input id="telemetry" type="checkbox" class="mt-1 rounded border-slate-600" />
+                            <span>
+                                <span class="text-slate-300">Optional crash reporting</span> — if enabled, uncaught errors can be sent to Sentry when you also set <code class="text-xs text-sky-400/90">SENTRY_DSN</code> in your <code class="text-xs">.env</code>. Nothing is sent without a DSN. You can change this later in Settings.
+                            </span>
+                        </label>
+                    </div>
+                    <button type="submit" class="w-full py-2.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-sm font-medium">
+                        Continue
+                    </button>
+                </form>
+                <p id="keys-msg" class="mt-3 text-sm text-amber-400/90 min-h-[1.25rem]"></p>
+            </div>
+
+            <!-- Step 2 -->
+            <div id="step-2" class="hidden rounded-xl border border-slate-700/80 bg-[#0f172a]/90 p-6 shadow-xl">
+                <h2 class="text-sm font-semibold text-slate-200 mb-1">Step 2 — Project folder</h2>
+                <p class="text-xs text-slate-500 mb-4">Choose a repository root to analyze.</p>
+                <div class="flex flex-col sm:flex-row gap-2 mb-3">
+                    <input id="project-path" type="text" placeholder="C:\path\to\your\repo"
+                        class="flex-1 rounded-lg bg-slate-900 border border-slate-600 px-3 py-2 text-sm font-mono" />
+                    <button type="button" id="pick-folder"
+                        class="px-4 py-2 rounded-lg border border-slate-600 text-slate-200 hover:bg-slate-800 text-sm whitespace-nowrap">
+                        Browse…
+                    </button>
+                </div>
+                <button type="button" id="run-analyze"
+                    class="w-full py-2.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-sm font-medium">
+                    Analyze &amp; open app
+                </button>
+                <p id="analyze-msg" class="mt-3 text-sm text-amber-400/90 min-h-[1.25rem]"></p>
+                <p class="mt-4 text-center">
+                    <a href="/" class="text-xs text-slate-500 hover:text-sky-400">Skip and go to app</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const step1 = document.getElementById('step-1');
+        const step2 = document.getElementById('step-2');
+        const dot1 = document.getElementById('step-dot-1');
+        const dot2 = document.getElementById('step-dot-2');
+
+        function goStep2() {
+            step1.classList.add('hidden');
+            step2.classList.remove('hidden');
+            dot1.classList.remove('bg-sky-500');
+            dot1.classList.add('bg-slate-700');
+            dot2.classList.remove('bg-slate-700');
+            dot2.classList.add('bg-sky-500');
+            document.getElementById('project-path').focus();
+        }
+
+        document.getElementById('keys-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const msg = document.getElementById('keys-msg');
+            msg.textContent = 'Saving…';
+            const body = {
+                groq_api_key: document.getElementById('groq').value,
+                gemini_api_key: document.getElementById('gemini').value,
+                telemetry_opt_in: document.getElementById('telemetry').checked,
+            };
+            const r = await fetch('/setup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+            const j = await r.json();
+            if (!r.ok) {
+                msg.textContent = j.error || 'Could not save';
+                return;
+            }
+            msg.textContent = '';
+            goStep2();
+        };
+
+        document.getElementById('pick-folder').onclick = async () => {
+            const msg = document.getElementById('analyze-msg');
+            msg.textContent = '';
+            try {
+                const r = await fetch('/api/pick_folder', { method: 'POST' });
+                const j = await r.json();
+                if (j.cancelled) return;
+                if (j.error) {
+                    msg.textContent = j.error;
+                    return;
+                }
+                if (j.path) document.getElementById('project-path').value = j.path;
+            } catch (err) {
+                msg.textContent = err.message || 'Folder picker failed';
+            }
+        };
+
+        document.getElementById('run-analyze').onclick = async () => {
+            const path = document.getElementById('project-path').value.trim();
+            const msg = document.getElementById('analyze-msg');
+            if (!path) {
+                msg.textContent = 'Enter or pick a folder path.';
+                return;
+            }
+            msg.textContent = 'Analyzing…';
+            try {
+                const r = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path }),
+                });
+                const j = await r.json();
+                if (!r.ok) throw new Error(j.error || 'Analyze failed');
+                window.location.href = '/';
+            } catch (err) {
+                msg.textContent = err.message || 'Analyze failed';
+            }
+        };
+    </script>
+</body>
+
+</html>

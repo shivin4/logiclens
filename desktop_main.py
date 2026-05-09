@@ -67,7 +67,12 @@ class DesktopApi:
 
 def main() -> None:
     threading.Thread(target=_serve, daemon=True).start()
-    url = f"http://{flask_host()}:{flask_port()}/"
+    start_path = (
+        "/onboarding"
+        if not (os.environ.get("GROQ_API_KEY") or "").strip()
+        else "/"
+    )
+    url = f"http://{flask_host()}:{flask_port()}{start_path}"
     webview.create_window(
         "LogicLens",
         url,

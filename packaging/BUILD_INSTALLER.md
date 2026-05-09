@@ -30,7 +30,11 @@ Confirm `dist\LogicLens\LogicLens.exe` runs (double-click or run from that folde
 4. Update `#define MyAppVersion`, `MyAppURL`, and optionally `MyAppPublisher`.
 5. Build → Compile.
 
-Output: `dist_installer\LogicLens-Setup-x.y.z.exe`
+Output: `dist_installer\LogicLens-Setup-x.y.z.exe` (version must match `#define MyAppVersion` in `installer.iss` and `logiclens/version.py`).
+
+## 3b. Code signing (recommended for releases)
+
+See **[SIGNING.md](SIGNING.md)** — sign `dist\LogicLens\LogicLens.exe` before compiling Inno (or sign both the unpacked exe and the final setup `.exe`).
 
 ## 4. Ship the installer
 
