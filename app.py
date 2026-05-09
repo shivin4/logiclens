@@ -415,11 +415,12 @@ def api_search():
         if results and 'ids' in results and results['ids'] and len(results['ids'][0]) > 0:
             for i in range(len(results['ids'][0])):
                 dist = results['distances'][0][i] if 'distances' in results and results['distances'] else 0
+                similarity = max(0.0, min(1.0, 1.0 - dist))
                 matches.append({
                     "id": results['ids'][0][i],
                     "code_snippet": results['documents'][0][i],
                     "metadata": results['metadatas'][0][i],
-                    "similarity": 1.0 - dist
+                    "similarity": similarity
                 })
                 
         return jsonify({"status": "success", "results": matches})
@@ -427,4 +428,4 @@ def api_search():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5000)

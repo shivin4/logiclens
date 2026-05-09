@@ -400,7 +400,10 @@ def analyze_project(directory_path):
         print("[Chroma] Deleted existing collection.")
     except Exception:
         print("[Chroma] No existing collection — starting fresh.")
-    collection = chroma_client.create_collection(name="codebase_nodes")
+    collection = chroma_client.create_collection(
+        name="codebase_nodes",
+        metadata={"hnsw:space": "cosine"}
+    )
     print("[Chroma] Created fresh 'codebase_nodes' collection.")
 
     # -- Walk directory and process all supported files --------------------------
