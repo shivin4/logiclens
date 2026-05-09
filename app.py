@@ -6,17 +6,27 @@ from logiclens.config import (
     get_data_dir,
     graph_db_path,
     load_app_env,
+    normalize_project_file_path,
     use_debug_server,
 )
 
 load_app_env()
 
+import json
 import os
 import subprocess
 import sys
 import git
 
-from flask import Flask, request, jsonify, render_template, Response, send_from_directory
+from flask import (
+    Flask,
+    request,
+    jsonify,
+    render_template,
+    Response,
+    send_from_directory,
+    stream_with_context,
+)
 from extractor import analyze_project, LANGUAGES, CONFIGS
 import tree_sitter
 from tree_sitter import Parser, Query
@@ -113,6 +123,32 @@ def setup_save():
     )
 
 
+def _indexed_projects_from_manifests() -> list[dict]:
+    """Projects that have an on-disk analysis manifest (for settings / cleanup UI)."""
+    data_dir = get_data_dir()
+    out: list[dict] = []
+    for p in sorted(data_dir.glob("analysis_manifest_*.json")):
+        key = p.name[len("analysis_manifest_") : -len(".json")]
+        try:
+            manifest = json.loads(p.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        root = manifest.get("root")
+        if not root or not isinstance(root, str):
+            continue
+        files = manifest.get("files")
+        nfiles = len(files) if isinstance(files, dict) else 0
+        out.append(
+            {
+                "project_key": key,
+                "root": root,
+                "tracked_files": nfiles,
+            }
+        )
+    out.sort(key=lambda x: x["root"].lower())
+    return out
+
+
 @app.route("/api/bootstrap", methods=["GET"])
 def api_bootstrap():
     data_dir = get_data_dir()
@@ -127,6 +163,7 @@ def api_bootstrap():
             "telemetry_enabled": os.environ.get("LOGICLENS_TELEMETRY", "").lower()
             in ("1", "true", "yes")
             and bool((os.environ.get("SENTRY_DSN") or "").strip()),
+            "indexed_projects": _indexed_projects_from_manifests(),
         }
     )
 
@@ -151,6 +188,115 @@ def _is_localhost_request() -> bool:
     return addr in ("127.0.0.1", "::1", "localhost")
 
 
+RECENT_FOLDERS_MAX = 10
+_RECENT_FOLDERS_FILE = "recent_folders.json"
+
+
+def _recent_folders_path() -> Path:
+    return get_data_dir() / _RECENT_FOLDERS_FILE
+
+
+def _recent_folder_key(path: str) -> str:
+    return os.path.normcase(os.path.normpath(os.path.abspath(path.strip())))
+
+
+def _read_recent_folders() -> list[str]:
+    path = _recent_folders_path()
+    if not path.is_file():
+        return []
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+    if isinstance(data, list):
+        raw = data
+    elif isinstance(data, dict) and isinstance(data.get("folders"), list):
+        raw = data["folders"]
+    else:
+        return []
+    out: list[str] = []
+    seen: set[str] = set()
+    for item in raw:
+        p = str(item).strip()
+        if not p:
+            continue
+        k = _recent_folder_key(p)
+        if k in seen:
+            continue
+        seen.add(k)
+        out.append(p)
+        if len(out) >= RECENT_FOLDERS_MAX:
+            break
+    return out
+
+
+def _write_recent_folders(folders: list[str]) -> None:
+    path = _recent_folders_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps({"folders": folders}, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+
+
+def _add_recent_folder(folder: str) -> list[str]:
+    p = folder.strip().strip('"').strip("'")
+    if not p:
+        return _read_recent_folders()
+    cur = _read_recent_folders()
+    nk = _recent_folder_key(p)
+    cur = [x for x in cur if _recent_folder_key(x) != nk]
+    cur.insert(0, p)
+    cur = cur[:RECENT_FOLDERS_MAX]
+    _write_recent_folders(cur)
+    return cur
+
+
+def _merge_recent_folder_lists(import_first: list[str], existing: list[str]) -> list[str]:
+    seen: set[str] = set()
+    out: list[str] = []
+    for group in (import_first, existing):
+        for item in group:
+            p = str(item).strip()
+            if not p:
+                continue
+            k = _recent_folder_key(p)
+            if k in seen:
+                continue
+            seen.add(k)
+            out.append(p)
+            if len(out) >= RECENT_FOLDERS_MAX:
+                return out
+    return out
+
+
+@app.route("/api/recent_folders", methods=["GET"])
+def api_recent_folders_get():
+    """Recent project paths shared across all LogicLens windows (same data dir)."""
+    if not _is_localhost_request():
+        return jsonify({"error": "Local use only."}), 403
+    return jsonify({"folders": _read_recent_folders()})
+
+
+@app.route("/api/recent_folders", methods=["POST"])
+def api_recent_folders_post():
+    if not _is_localhost_request():
+        return jsonify({"error": "Local use only."}), 403
+    data = request.get_json() or {}
+    if data.get("path"):
+        folders = _add_recent_folder(str(data["path"]))
+        return jsonify({"folders": folders})
+    imp = data.get("import_folders")
+    if isinstance(imp, list) and imp:
+        merged = _merge_recent_folder_lists(
+            [str(x) for x in imp],
+            _read_recent_folders(),
+        )
+        _write_recent_folders(merged)
+        return jsonify({"folders": merged})
+    return jsonify({"error": 'Expected "path" or non-empty "import_folders".'}), 400
+
+
 # Runs in a subprocess so tkinter is on the main thread of that process (Waitress-safe).
 _PICK_FOLDER_PY = (
     "import tkinter as tk\n"
@@ -169,7 +315,11 @@ _PICK_FOLDER_PY = (
 
 @app.route("/api/pick_folder", methods=["POST"])
 def api_pick_folder():
-    """Open the OS folder picker on the machine running Flask (this PC). Localhost only."""
+    """Open the OS folder picker on the machine running Flask (this PC). Localhost only.
+
+    PyInstaller builds must use pywebview's JS API pick_folder instead: here
+    ``sys.executable`` is LogicLens.exe, which would spawn a second app instance.
+    """
     if not _is_localhost_request():
         return jsonify(
             {
@@ -177,6 +327,13 @@ def api_pick_folder():
                 "(not over the network).",
             }
         ), 403
+    if getattr(sys, "frozen", False):
+        return jsonify(
+            {
+                "error": "Use Open project / File → Open Folder in the app window "
+                "(packaged build cannot open the picker from the server).",
+            }
+        ), 503
     try:
         proc = subprocess.run(
             [sys.executable, "-c", _PICK_FOLDER_PY],
@@ -197,6 +354,92 @@ def api_pick_folder():
         return jsonify({"error": "Folder dialog timed out."}), 500
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+def _read_last_graph_root_file() -> str:
+    p = get_data_dir() / "last_graph_project_root.txt"
+    if not p.is_file():
+        return ""
+    try:
+        return p.read_text(encoding="utf-8").strip()
+    except OSError:
+        return ""
+
+
+@app.route("/api/storage/clear", methods=["POST"])
+def api_storage_clear():
+    """Clear SQLite graph, manifests, and/or Chroma collections. Localhost only."""
+    if not _is_localhost_request():
+        return jsonify({"error": "Local use only."}), 403
+
+    data = request.get_json() or {}
+    mode = str(data.get("mode") or "all").lower()
+    data_dir = get_data_dir()
+
+    if mode == "all":
+        try:
+            store = SqliteGraphStore(graph_db_path())
+            store.clear()
+        except Exception as e:
+            return jsonify({"error": f"Could not clear graph DB: {e}"}), 500
+        for p in data_dir.glob("analysis_manifest_*.json"):
+            try:
+                p.unlink()
+            except OSError:
+                pass
+        last_root = data_dir / "last_graph_project_root.txt"
+        if last_root.is_file():
+            try:
+                last_root.unlink()
+            except OSError:
+                pass
+        try:
+            client = chromadb.PersistentClient(path=str(chroma_dir()))
+            for c in client.list_collections():
+                try:
+                    client.delete_collection(c.name)
+                except Exception:
+                    pass
+        except Exception as e:
+            return jsonify({"error": f"Chroma cleanup failed: {e}"}), 500
+        return jsonify({"status": "ok", "cleared": "all"})
+
+    if mode == "project":
+        raw_path = (data.get("path") or "").strip().strip('"').strip("'")
+        if not raw_path or not os.path.isdir(raw_path):
+            return jsonify({"error": "Invalid or missing project path."}), 400
+        norm_root = normalize_project_file_path(raw_path)
+        coll_name = chroma_collection_for_project(raw_path)
+        manifest = data_dir / f"analysis_manifest_{coll_name}.json"
+        if manifest.is_file():
+            try:
+                manifest.unlink()
+            except OSError:
+                pass
+        try:
+            client = chromadb.PersistentClient(path=str(chroma_dir()))
+            try:
+                client.delete_collection(coll_name)
+            except Exception:
+                pass
+        except Exception as e:
+            return jsonify({"error": f"Chroma cleanup failed: {e}"}), 500
+
+        if _read_last_graph_root_file() == norm_root:
+            try:
+                store = SqliteGraphStore(graph_db_path())
+                store.clear()
+            except Exception as e:
+                return jsonify({"error": f"Could not clear graph DB: {e}"}), 500
+            last_root = data_dir / "last_graph_project_root.txt"
+            if last_root.is_file():
+                try:
+                    last_root.unlink()
+                except OSError:
+                    pass
+        return jsonify({"status": "ok", "cleared": "project", "path": norm_root})
+
+    return jsonify({"error": 'Use mode "all" or "project".'}), 400
 
 
 @app.route("/api/analyze", methods=["POST"])
@@ -419,6 +662,7 @@ def api_whatif():
     global current_repo_path
     proj = current_repo_path or ""
 
+    @stream_with_context
     def stream():
         old = os.environ.get("LOGICLENS_ACTIVE_PROJECT")
         try:
@@ -429,19 +673,34 @@ def api_whatif():
             from whatif_engine import run_whatif_engine
 
             yield from run_whatif_engine(target)
+        except Exception as e:
+            import traceback
+
+            err_tb = traceback.format_exc()
+            msg = str(e) or type(e).__name__
+            payload = json.dumps(
+                {
+                    "role": "system",
+                    "content": msg,
+                    "type": "error",
+                    "text": f"{msg}\n\n{err_tb}",
+                }
+            )
+            yield f"data: {payload}\n\n"
         finally:
             if old is None:
                 os.environ.pop("LOGICLENS_ACTIVE_PROJECT", None)
             else:
                 os.environ["LOGICLENS_ACTIVE_PROJECT"] = old
 
+    # Do not set "Connection" — hop-by-hop headers are forbidden for WSGI apps (PEP 3333);
+    # Waitress raises AssertionError and returns 500 if they are present.
     return Response(
         stream(),
-        mimetype='text/event-stream',
+        mimetype="text/event-stream",
         headers={
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
-            'X-Accel-Buffering': 'no',
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
         },
     )
 

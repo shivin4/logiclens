@@ -21,7 +21,7 @@
                         "secondary-fixed": "#62fae3",
                         "on-surface": "#dae2fd",
                         "on-secondary-container": "#004d44",
-                        "on-surface-variant": "#bdc8d1",
+                        "on-surface-variant": "#d1d9e0",
                         "on-tertiary-fixed-variant": "#653e00",
                         "error": "#ffb4ab",
                         "surface-container": "#171f33",
@@ -207,8 +207,8 @@
             align-items: center;
             justify-content: center;
             width: 10.5rem;
-            min-height: 7.5rem;
-            padding: 1.25rem 1rem;
+            min-height: 6.25rem;
+            padding: 1rem 0.75rem;
             border-radius: 0.625rem;
             border: 1px solid rgba(51, 65, 85, 0.6);
             background: rgba(15, 23, 42, 0.85);
@@ -229,6 +229,48 @@
         #empty-state {
             background: radial-gradient(ellipse 80% 60% at 50% 20%, rgba(30, 58, 138, 0.12), transparent 55%),
                 #09090b;
+            /* Top-aligned flow fits default window height without clipping */
+            justify-content: flex-start;
+            padding-top: 0.5rem;
+            padding-bottom: 1rem;
+        }
+
+        #empty-state .welcome-inner {
+            padding-top: 0.75rem;
+            padding-bottom: 1rem;
+        }
+
+        @media (max-height: 800px) {
+            #empty-state .welcome-hero-logo {
+                height: 2.25rem;
+            }
+
+            #empty-state .welcome-hero-title {
+                font-size: 1.25rem;
+                line-height: 1.3;
+            }
+
+            #empty-state .welcome-inner {
+                padding-top: 0.25rem;
+            }
+
+            #empty-state .welcome-hero {
+                margin-bottom: 1rem;
+                gap: 0.5rem;
+            }
+
+            .welcome-tile {
+                min-height: 5.5rem;
+                padding: 0.75rem 0.5rem;
+            }
+
+            #empty-state .welcome-tiles-wrap {
+                margin-bottom: 1rem;
+            }
+
+            #empty-state .welcome-parallel-cta {
+                margin-top: 1rem;
+            }
         }
 
         .welcome-tiles {
@@ -272,7 +314,7 @@
                 max-width: 100%;
             }
 
-            #empty-state .px-6 {
+            #empty-state .welcome-inner {
                 padding-left: 1rem;
                 padding-right: 1rem;
             }
@@ -288,7 +330,7 @@
     class="bg-background text-on-surface font-body selection:bg-primary/30 overflow-hidden h-screen w-screen flex flex-col">
     <!-- TopNavBar -->
     <header
-        class="bg-[#0f172a] border-b border-slate-700/50 shadow-md w-full top-0 sticky flex justify-between items-center px-6 h-16 z-50">
+        class="bg-[#0f172a] border-b border-slate-700/50 shadow-sm w-full top-0 shrink-0 flex justify-between items-center px-4 sm:px-6 h-14 sm:h-16 z-50">
         <div class="flex items-center gap-4 w-1/3">
             <div class="relative" id="file-menu-wrap">
                 <button type="button" id="file-menu-btn"
@@ -315,7 +357,7 @@
                 class="flex items-center gap-2 bg-[#1a2333] border border-slate-600/50 shadow-inner rounded-xl pr-1 transition-all focus-within:bg-[#1f2a40] focus-within:border-sky-500/50 focus-within:shadow-[0_0_15px_rgba(56,189,248,0.15)] w-full">
                 <input id="path-input" type="text" placeholder="Enter your folder path"
                     class="bg-transparent border-none text-slate-200 text-sm font-mono focus:ring-0 flex-1 px-4 py-2.5 placeholder-slate-500 outline-none w-full" />
-                <button id="analyze-btn"
+                <button type="button" id="analyze-btn"
                     class="bg-gradient-to-r from-primary to-primary-container text-on-primary font-bold text-sm rounded-md px-3 py-1.5 shadow-lg shadow-primary/20 hover:opacity-90 flex gap-1 items-center transition-all scale-100 active:scale-95">
                     <div class="spinner"></div>
                     <span class="btn-text-icon flex items-center gap-1">
@@ -344,7 +386,7 @@
         </div>
     </header>
 
-    <div class="flex flex-1 overflow-hidden relative">
+    <div class="flex flex-1 min-h-0 overflow-hidden relative">
         <!-- SideNavBar -->
         <aside id="sidebar"
             class="bg-[#171f33] h-full w-[60px] left-0 border-r border-[#3e484f]/15 hidden lg:flex flex-col py-4 z-40 transition-all duration-300 ease-in-out shrink-0 relative">
@@ -406,7 +448,7 @@
         </aside>
 
         <!-- Main Content Area: Graph Canvas -->
-        <main class="flex-1 relative bg-surface-dim overflow-hidden flex flex-col">
+        <main class="flex-1 min-h-0 relative bg-surface-dim overflow-hidden flex flex-col">
             <!-- SVG Grid Background -->
             <div id="main-grid-bg" class="absolute inset-0 z-0 pointer-events-none opacity-[0.15] transition-opacity duration-300">
                 <svg height="100%" width="100%" xmlns="http://www.w3.org/2000/svg">
@@ -424,15 +466,17 @@
 
             <!-- Welcome / empty state (Cursor-style home) -->
             <div id="empty-state"
-                class="absolute inset-0 z-20 flex flex-col items-stretch justify-center pointer-events-auto overflow-y-auto">
-                <div class="flex flex-col items-center w-full max-w-3xl mx-auto px-6 py-10">
-                    <div class="flex flex-col items-center gap-3 mb-10">
-                        <img src="/logo/logo.svg" alt="" class="h-11 w-auto opacity-95 mix-blend-screen" />
+                class="absolute inset-0 z-20 flex flex-col items-stretch pointer-events-auto overflow-y-auto min-h-0">
+                <div
+                    class="welcome-inner flex flex-col items-center w-full max-w-3xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+                    <div class="welcome-hero flex flex-col items-center gap-2 sm:gap-3 mb-6 sm:mb-8">
+                        <img src="/logo/logo.svg" alt=""
+                            class="welcome-hero-logo h-9 sm:h-11 w-auto opacity-95 mix-blend-screen" />
                         <span
-                            class="text-2xl font-semibold tracking-tight text-slate-100 font-headline">LogicLens</span>
-                        <p class="text-sm text-slate-500 text-center max-w-md leading-relaxed">Dependency graph and AI
-                            insights for your codebase. Open a project to get started.</p>
-                        <div class="flex items-center gap-4 text-xs text-slate-500 mt-1">
+                            class="welcome-hero-title text-xl sm:text-2xl font-semibold tracking-tight text-slate-100 font-headline">LogicLens</span>
+                        <p class="text-xs sm:text-sm text-slate-500 text-center max-w-md leading-relaxed px-1">
+                            Dependency graph and AI insights for your codebase. Open a project to get started.</p>
+                        <div class="flex items-center gap-4 text-xs text-slate-500 mt-0.5">
                             <button type="button" id="welcome-link-settings"
                                 class="hover:text-sky-400 transition-colors">Settings</button>
                             <span class="text-slate-700">·</span>
@@ -440,7 +484,7 @@
                         </div>
                     </div>
 
-                    <div class="welcome-tiles mb-10">
+                    <div class="welcome-tiles welcome-tiles-wrap mb-6 sm:mb-8">
                         <button type="button" id="welcome-open-project" class="welcome-tile">
                             <span class="material-symbols-outlined text-3xl text-sky-400 mb-1"
                                 data-icon="folder_open">folder_open</span>
@@ -471,12 +515,12 @@
                             <span class="text-[11px] text-slate-600" id="welcome-recent-meta"></span>
                         </div>
                         <div id="welcome-recent-list"
-                            class="rounded-lg border border-slate-800/90 bg-slate-950/50 overflow-hidden min-h-[3rem]">
+                            class="rounded-lg border border-slate-800/90 bg-slate-950/50 min-h-[2.5rem] max-h-[min(28vh,12rem)] overflow-x-hidden overflow-y-auto">
                         </div>
                     </div>
 
                     <button type="button" id="welcome-parallel-cta"
-                        class="mt-10 px-5 py-2.5 rounded-full border border-slate-700/80 bg-slate-900/80 text-slate-300 text-sm hover:border-sky-500/40 hover:text-sky-300 hover:bg-slate-800/90 transition-colors flex items-center gap-2">
+                        class="welcome-parallel-cta mt-4 sm:mt-6 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full border border-slate-700/80 bg-slate-900/80 text-slate-300 text-xs sm:text-sm hover:border-sky-500/40 hover:text-sky-300 hover:bg-slate-800/90 transition-colors flex items-center gap-2">
                         <span>Open another window for side-by-side projects</span>
                         <span class="material-symbols-outlined text-[18px] opacity-70"
                             data-icon="north_east">north_east</span>
@@ -693,8 +737,13 @@
                 </div>
 
                 <div class="p-4 bg-surface-container-lowest border-b border-outline-variant/10 flex flex-col gap-3 shrink-0">
+                    <div class="flex flex-col gap-1.5 w-full">
+                        <label for="wi-func-filter" class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Search functions</label>
+                        <input type="search" id="wi-func-filter" autocomplete="off" placeholder="Type to filter the list…"
+                            class="w-full bg-[#1a2333] border border-slate-600/50 rounded-lg text-slate-200 text-sm font-mono focus:ring-0 px-3 py-2 outline-none placeholder:text-slate-600" />
+                    </div>
                     <div class="flex items-center gap-2 w-full">
-                        <select id="wi-func-select" class="flex-1 bg-[#1a2333] border border-slate-600/50 rounded-lg text-slate-200 text-sm font-mono focus:ring-0 px-3 py-2 outline-none">
+                        <select id="wi-func-select" class="flex-1 bg-[#1a2333] border border-slate-600/50 rounded-lg text-slate-200 text-sm font-mono focus:ring-0 px-3 py-2 outline-none min-w-0">
                             <option value="">— pick a function —</option>
                         </select>
                         <button id="wi-run-btn" class="bg-gradient-to-r from-[#0284c7] to-[#38bdf8] text-white font-bold text-sm rounded-md px-4 py-2 shadow-lg hover:opacity-90 flex gap-2 items-center transition-all">
@@ -816,15 +865,35 @@
                     <span class="material-symbols-outlined text-[22px]" aria-hidden="true">close</span>
                 </button>
             </div>
-            <div class="px-5 py-4 space-y-5 overflow-y-auto text-sm text-slate-300">
+            <div class="px-5 py-4 space-y-6 overflow-y-auto text-sm text-slate-300">
                 <section class="space-y-2">
                     <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Application</h3>
-                    <p class="text-slate-400 text-xs leading-relaxed">Data and graph files are stored on this computer.
-                    </p>
+                    <p class="text-slate-400 text-xs leading-relaxed">Data and graph files are stored on this computer.</p>
                     <div class="rounded-lg bg-[#0b1326] border border-slate-600/30 p-3 font-mono text-[11px] text-slate-400 break-all"
                         id="settings-data-dir">—</div>
-                    <p class="text-xs text-slate-500">Graph DB: <span id="settings-graph-db" class="text-slate-400">—</span>
-                    </p>
+                    <p class="text-xs text-slate-500 mt-2">Graph DB: <span id="settings-graph-db" class="text-slate-400">—</span></p>
+                </section>
+                <section class="space-y-2">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Stored graph data</h3>
+                    <p class="text-slate-400 text-xs leading-relaxed">Remove cached analysis and vector indexes from this computer. Your source files are not deleted.</p>
+                    <div class="flex flex-col gap-3">
+                        <button type="button" id="settings-clear-all-storage-btn"
+                            class="text-sm px-3 py-2 rounded-lg border border-red-500/45 text-red-200 hover:bg-red-950/35 transition-colors text-left">
+                            Clear all graph &amp; index data…
+                        </button>
+                        <div class="space-y-2">
+                            <label for="settings-clear-project-select" class="text-xs font-bold uppercase tracking-wider text-slate-500">Delete one project</label>
+                            <select id="settings-clear-project-select"
+                                class="w-full rounded-lg bg-[#0b1326] border border-slate-600/30 px-3 py-2 font-mono text-[11px] text-slate-300 outline-none">
+                                <option value="">— Select indexed project —</option>
+                            </select>
+                            <button type="button" id="settings-clear-project-btn"
+                                class="text-sm px-3 py-2 rounded-lg border border-slate-600 text-slate-200 hover:bg-slate-800 transition-colors w-full text-left">
+                                Delete data for selected project…
+                            </button>
+                        </div>
+                    </div>
+                    <p id="settings-storage-msg" class="text-xs text-slate-400 min-h-[1.25rem]" role="status" aria-live="polite"></p>
                 </section>
                 <section class="space-y-2" aria-labelledby="settings-updates-h">
                     <h3 id="settings-updates-h" class="text-xs font-bold uppercase tracking-wider text-slate-500">Updates
@@ -835,7 +904,7 @@
                         class="text-sm px-3 py-1.5 rounded-lg border border-slate-600 text-slate-200 hover:bg-slate-800 transition-colors">
                         Check for updates
                     </button>
-                    <p id="settings-update-msg" class="text-xs text-slate-400 min-h-[2.75rem] leading-relaxed"
+                    <p id="settings-update-msg" class="text-xs text-slate-400 min-h-[2.5rem] leading-relaxed"
                         role="status" aria-live="polite"></p>
                 </section>
                 <section class="space-y-2">
@@ -850,14 +919,13 @@
                 </section>
                 <section class="space-y-2">
                     <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Tips</h3>
-                    <ul class="text-xs text-slate-400 space-y-1 list-disc pl-4 leading-relaxed">
-                        <li>Use <strong class="text-slate-300">File → Open Recent</strong> to switch projects quickly.
-                        </li>
+                    <ul class="text-xs text-slate-400 space-y-1.5 list-disc pl-4 leading-relaxed">
+                        <li>Use <strong class="text-slate-300">File → Open Recent</strong> to switch projects quickly.</li>
                         <li>Re-run <strong class="text-slate-300">Analyze</strong> after changing source files.</li>
                     </ul>
                 </section>
             </div>
-            <div class="px-5 py-3 border-t border-slate-600/30 flex justify-end bg-[#0f172a]/50">
+            <div class="px-5 py-3 border-t border-slate-600/30 flex justify-end shrink-0 bg-[#0f172a]/50">
                 <button type="button" id="settings-done-btn"
                     class="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-sm font-medium transition-colors">
                     Done
@@ -874,6 +942,71 @@
             '#f87171', '#a78bfa', '#34d399', '#8ed5ff',
             '#c4e7ff', '#03c6b2', '#ffb960', '#7bd0ff'
         ];
+
+        /** Dark label text tuned per accent fill (WCAG-friendly on light node boxes). */
+        const LABEL_TEXT_ON_LIGHT_BG = {
+            '44e2cd': '#0a2e29',
+            'ffc176': '#3a1f00',
+            'fbbf24': '#2d1800',
+            '34d399': '#042e1a',
+            'ffb960': '#2a1500',
+            'a78bfa': '#1a0a3d',
+            '03c6b2': '#00201c',
+        };
+
+        /** vis label colors from hex fill — light boxes get dark text (and vice versa). */
+        function contrastLabelForBg(hex) {
+            const h = (hex || '').replace('#', '').toLowerCase();
+            if (h.length !== 6) return { color: '#f8fafc', stroke: 'rgba(15,23,42,0.85)', strokeW: 2 };
+            const r = parseInt(h.slice(0, 2), 16) / 255;
+            const g = parseInt(h.slice(2, 4), 16) / 255;
+            const b = parseInt(h.slice(4, 6), 16) / 255;
+            const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+            if (lum > 0.42) {
+                const color = LABEL_TEXT_ON_LIGHT_BG[h] || '#0a0f1a';
+                return { color, stroke: 'rgba(255,255,255,0.92)', strokeW: 2 };
+            }
+            return { color: '#f8fafc', stroke: 'rgba(15,23,42,0.9)', strokeW: 2 };
+        }
+
+        function pickHierarchicalRootNodeId(rawNodes, rawEdges) {
+            if (!rawNodes || !rawNodes.length) return null;
+            const inc = new Map();
+            rawNodes.forEach((n) => inc.set(n.id, 0));
+            (rawEdges || []).forEach((e) => {
+                inc.set(e.to, (inc.get(e.to) || 0) + 1);
+            });
+            const files = rawNodes.filter((n) => n.type === 'File');
+            const roots = files.filter((n) => (inc.get(n.id) || 0) === 0);
+            if (roots.length) return roots[0].id;
+            if (files.length) return files[0].id;
+            let best = rawNodes[0].id;
+            let min = Infinity;
+            rawNodes.forEach((n) => {
+                const c = inc.get(n.id) || 0;
+                if (c < min) {
+                    min = c;
+                    best = n.id;
+                }
+            });
+            return best;
+        }
+
+        /** After hierarchical fit, pan so root sits near top-center of the viewport. */
+        function focusHierarchyRootTopCenter(net, rootId, containerEl) {
+            if (!net || !rootId || !containerEl) return;
+            const pos = net.getPositions([rootId])[rootId];
+            if (!pos) return;
+            const scale = net.getScale() || 1;
+            const H = containerEl.clientHeight || 600;
+            const wantFromTop = 0.16;
+            const centerWorldDown = ((0.5 - wantFromTop) * H) / scale;
+            net.moveTo({
+                position: { x: pos.x, y: pos.y + centerWorldDown },
+                scale,
+                animation: { duration: 480, easingFunction: 'easeInOutQuad' },
+            });
+        }
 
         // ── State ─────────────────────────────────────────────────────────────────
         let network = null;
@@ -900,10 +1033,10 @@
         function setWelcomeVisible(show) {
             if (!emptyState) return;
             emptyState.style.display = show ? 'flex' : 'none';
-            const lens = document.getElementById('status-lens');
             const bar = document.getElementById('graph-toolbar');
             const grid = document.getElementById('main-grid-bg');
-            if (lens) lens.classList.toggle('hidden', show);
+            // Keep status-lens visible on the welcome screen so Analyze errors and
+            // "no graph" messages are not hidden behind the overlay.
             if (bar) bar.classList.toggle('hidden', show);
             if (grid) grid.classList.toggle('opacity-0', show);
         }
@@ -924,7 +1057,17 @@
 
         // ── Helpers ───────────────────────────────────────────────────────────────
         function setStatus(msg) {
-            statusText.textContent = msg;
+            if (statusText) statusText.textContent = msg;
+        }
+
+        function parseJsonBody(raw, res) {
+            if (!raw || !raw.trim()) return {};
+            try {
+                return JSON.parse(raw);
+            } catch {
+                const clip = raw.length > 220 ? raw.slice(0, 220) + '…' : raw;
+                throw new Error(clip || `Server error (HTTP ${res.status})`);
+            }
         }
         function setLoading(on) {
             btn.disabled = on;
@@ -932,29 +1075,72 @@
         }
         function basename(p) { return p.replace(/\\/g, '/').split('/').pop(); }
 
-        // ── File menu: recent folders (localStorage) ─────────────────────────────
-        const RECENT_KEY = 'logiclens_recent_folders';
-        const RECENT_MAX = 10;
+        // ── File menu: recent folders (data-dir JSON via API — shared across windows) ─
+        // Each desktop window uses a different localhost port, so localStorage is NOT shared.
+        const RECENT_KEY_LEGACY = 'logiclens_recent_folders';
+        let recentFoldersCache = [];
 
         function getRecentFolders() {
+            return recentFoldersCache;
+        }
+
+        async function fetchRecentFoldersFromServer() {
             try {
-                const raw = localStorage.getItem(RECENT_KEY);
-                const arr = raw ? JSON.parse(raw) : [];
-                return Array.isArray(arr) ? arr.filter(p => typeof p === 'string' && p.trim()) : [];
+                const res = await fetch('/api/recent_folders');
+                const data = parseJsonBody(await res.text(), res);
+                if (!res.ok) throw new Error(data.error || 'recent_folders');
+                recentFoldersCache = Array.isArray(data.folders) ? data.folders : [];
             } catch (e) {
-                return [];
+                recentFoldersCache = [];
             }
         }
 
-        function addRecentFolder(absPath) {
+        async function initRecentFolders() {
+            await fetchRecentFoldersFromServer();
+            if (!recentFoldersCache.length) {
+                try {
+                    const raw = localStorage.getItem(RECENT_KEY_LEGACY);
+                    const arr = raw ? JSON.parse(raw) : [];
+                    const ls = Array.isArray(arr)
+                        ? arr.filter(p => typeof p === 'string' && p.trim())
+                        : [];
+                    if (ls.length) {
+                        const res = await fetch('/api/recent_folders', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ import_folders: ls }),
+                        });
+                        const data = parseJsonBody(await res.text(), res);
+                        if (res.ok && Array.isArray(data.folders)) {
+                            recentFoldersCache = data.folders;
+                        } else {
+                            await fetchRecentFoldersFromServer();
+                        }
+                        try { localStorage.removeItem(RECENT_KEY_LEGACY); } catch (e) { /* quota */ }
+                    }
+                } catch (e) { /* ignore migration */ }
+            }
+            refreshRecentUIs();
+        }
+
+        async function addRecentFolder(absPath) {
             const p = (absPath || '').trim();
             if (!p) return;
-            let list = getRecentFolders().filter(x => x !== p);
-            list.unshift(p);
-            list = list.slice(0, RECENT_MAX);
             try {
-                localStorage.setItem(RECENT_KEY, JSON.stringify(list));
-            } catch (e) { /* quota */ }
+                const res = await fetch('/api/recent_folders', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: p }),
+                });
+                const data = parseJsonBody(await res.text(), res);
+                if (res.ok && Array.isArray(data.folders)) {
+                    recentFoldersCache = data.folders;
+                } else {
+                    await fetchRecentFoldersFromServer();
+                }
+            } catch (e) {
+                await fetchRecentFoldersFromServer();
+            }
             refreshRecentUIs();
         }
 
@@ -1023,7 +1209,8 @@
             });
         }
 
-        function openFileMenu() {
+        async function openFileMenu() {
+            await fetchRecentFoldersFromServer();
             renderFileMenuRecent();
             document.getElementById('file-menu-dropdown')?.classList.remove('hidden');
         }
@@ -1032,12 +1219,16 @@
             document.getElementById('file-menu-dropdown')?.classList.add('hidden');
         }
 
-        document.getElementById('file-menu-btn')?.addEventListener('click', (e) => {
+        document.getElementById('file-menu-btn')?.addEventListener('click', async (e) => {
             e.stopPropagation();
             const dd = document.getElementById('file-menu-dropdown');
             if (!dd) return;
+            const wasHidden = dd.classList.contains('hidden');
             dd.classList.toggle('hidden');
-            if (!dd.classList.contains('hidden')) renderFileMenuRecent();
+            if (wasHidden && !dd.classList.contains('hidden')) {
+                await fetchRecentFoldersFromServer();
+                renderFileMenuRecent();
+            }
         });
 
         document.querySelectorAll('[data-file-action]').forEach(el => {
@@ -1084,6 +1275,19 @@
                         (d.groq_configured
                             ? 'border-emerald-500/40 text-emerald-400'
                             : 'border-amber-500/40 text-amber-400');
+                }
+                const st = document.getElementById('settings-storage-msg');
+                if (st) st.textContent = '';
+                const psel = document.getElementById('settings-clear-project-select');
+                if (psel) {
+                    psel.innerHTML = '<option value="">— Select indexed project —</option>';
+                    (d.indexed_projects || []).forEach((p) => {
+                        const o = document.createElement('option');
+                        o.value = p.root;
+                        const n = typeof p.tracked_files === 'number' ? p.tracked_files : 0;
+                        o.textContent = `${p.root} (${n} files)`;
+                        psel.appendChild(o);
+                    });
                 }
             } catch (err) {
                 document.getElementById('settings-data-dir').textContent = '(Could not load)';
@@ -1135,6 +1339,61 @@
         document.getElementById('settings-close-btn')?.addEventListener('click', closeSettingsModal);
         document.getElementById('settings-done-btn')?.addEventListener('click', closeSettingsModal);
         document.getElementById('settings-check-updates-btn')?.addEventListener('click', runUpdateCheck);
+
+        document.getElementById('settings-clear-all-storage-btn')?.addEventListener('click', async () => {
+            const sm = document.getElementById('settings-storage-msg');
+            const ok = confirm(
+                'Remove ALL cached LogicLens data on this computer?\n\n' +
+                'This deletes the SQLite graph, every project manifest, and all Chroma vector indexes. ' +
+                'Your source code is not affected. You will need to run Analyze again for each project.'
+            );
+            if (!ok) return;
+            if (sm) sm.textContent = 'Working…';
+            try {
+                const res = await fetch('/api/storage/clear', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mode: 'all' }),
+                });
+                const d = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(d.error || 'Request failed');
+                if (sm) sm.textContent = 'All stored analysis data was removed. Run Analyze to rebuild a graph.';
+                openSettingsModal();
+            } catch (e) {
+                if (sm) sm.textContent = e.message || 'Could not clear storage.';
+            }
+        });
+
+        document.getElementById('settings-clear-project-btn')?.addEventListener('click', async () => {
+            const sm = document.getElementById('settings-storage-msg');
+            const psel = document.getElementById('settings-clear-project-select');
+            const path = (psel && psel.value) ? psel.value.trim() : '';
+            if (!path) {
+                alert('Select a project from the list first.');
+                return;
+            }
+            const ok = confirm(
+                'Delete cached manifest and vector index for this project only?\n\n' +
+                path +
+                '\n\nIf this project is the one currently loaded in the graph, the SQLite graph will be cleared too. Your source files are not deleted.'
+            );
+            if (!ok) return;
+            if (sm) sm.textContent = 'Working…';
+            try {
+                const res = await fetch('/api/storage/clear', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mode: 'project', path }),
+                });
+                const d = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(d.error || 'Request failed');
+                if (sm) sm.textContent = 'Project cache removed. Run Analyze if you need this graph again.';
+                openSettingsModal();
+            } catch (e) {
+                if (sm) sm.textContent = e.message || 'Could not delete project data.';
+            }
+        });
+
         settingsModal?.addEventListener('click', (e) => {
             if (e.target === settingsModal) closeSettingsModal();
         });
@@ -1156,7 +1415,7 @@
         document.getElementById('welcome-link-settings')?.addEventListener('click', openSettingsModal);
 
         setWelcomeVisible(true);
-        refreshRecentUIs();
+        initRecentFolders();
 
         // ── Analyze Action ────────────────────────────────────────────────────────
         async function runAnalyze() {
@@ -1164,7 +1423,7 @@
             if (!path) { setStatus('⚠ Please enter a folder path.'); return; }
 
             setLoading(true);
-            setStatus(' Digging through logic layers...');
+            setStatus('Digging through logic layers…');
             setWelcomeVisible(false);
 
             try {
@@ -1173,10 +1432,16 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ path }),
                 });
-                const data = await res.json();
+                const data = parseJsonBody(await res.text(), res);
                 if (!res.ok) throw new Error(data.error || 'Extraction failed');
 
-                setStatus(`Loading logic graph for ${data.files} files...`);
+                if (data.skipped_unchanged) {
+                    setStatus(
+                        `⚡ Reused cached graph — ${data.functions} functions · ${data.files} files unchanged`
+                    );
+                } else {
+                    setStatus(`Loading logic graph for ${data.files} files…`);
+                }
                 await loadGraph();
 
                 loadExplorerTree(path);
@@ -1185,11 +1450,12 @@
                     loadFunctionsForWhatIf();
                 }
 
-                addRecentFolder(path);
+                await addRecentFolder(path);
 
             } catch (e) {
                 setStatus(` ${e.message}`);
                 setWelcomeVisible(true);
+                await fetchRecentFoldersFromServer();
                 renderWelcomeRecents();
             } finally {
                 setLoading(false);
@@ -1201,6 +1467,18 @@
         async function pickProjectFolder() {
             setStatus('Opening folder dialog…');
             try {
+                // Desktop (pywebview): native dialog on the GUI thread. Frozen .exe cannot
+                // use /api/pick_folder (that would spawn a second LogicLens process).
+                if (window.pywebview?.api?.pick_folder) {
+                    const path = await window.pywebview.api.pick_folder();
+                    if (!path) {
+                        setStatus('Ready to analyze');
+                        return;
+                    }
+                    pathInput.value = path;
+                    await runAnalyze();
+                    return;
+                }
                 const res = await fetch('/api/pick_folder', { method: 'POST' });
                 const data = await res.json();
                 if (!res.ok) {
@@ -1232,11 +1510,11 @@
         // ── Load Graph ───────────────────────────────────────────────────────
         async function loadGraph() {
             const res = await fetch('/api/graph');
-            const data = await res.json();
+            const data = parseJsonBody(await res.text(), res);
             if (!res.ok) throw new Error(data.error || 'Failed to load graph');
 
             if (!data.nodes.length) {
-                setStatus('No python logic blocks found.');
+                setStatus('No graph nodes found — try a folder with .py, .js/.ts, .java, .go, or C++ sources.');
                 setWelcomeVisible(true);
                 renderWelcomeRecents();
                 return;
@@ -1277,24 +1555,37 @@
 
                 let borderColor = 'rgba(255,255,255,0.15)';
                 let fontColor = '#ffffff';
+                let fontStroke = 'rgba(15,23,42,0.85)';
+                let fontStrokeW = 1;
 
                 if (n.type === 'File') {
                     shape = 'hexagon';
                     size = 35;
                     fontSize = 18;
-                    baseColor = '#f8fafc'; // light fill color
-                    borderColor = '#94a3b8'; // grey outline
-                    fontColor = '#334155'; // dark text for contrast
+                    baseColor = '#e8eef7';
+                    borderColor = '#475569';
+                    fontColor = '#020617';
+                    fontStroke = 'rgba(248,250,252,0.95)';
+                    fontStrokeW = 2;
                 } else if (n.type === 'Class') {
                     shape = 'diamond';
                     size = 25;
-                    baseColor = '#38bdf8'; // purple-500
+                    baseColor = '#38bdf8';
                 } else if (n.type === 'APIRoute') {
                     shape = 'hexagon';
                     size = 20;
                     baseColor = '#f59e0b'; // amber-500
                     borderColor = '#fbbf24'; // amber-400
-                    fontColor = '#fffbeb'; // amber-50
+                }
+
+                if (n.type !== 'File') {
+                    const L = contrastLabelForBg(baseColor);
+                    fontColor = L.color;
+                    fontStroke = L.stroke;
+                    fontStrokeW = L.strokeW;
+                    if (n.type === 'APIRoute') {
+                        fontColor = '#1c0e00';
+                    }
                 }
 
                 let borderWidth = 1;
@@ -1323,6 +1614,8 @@
                         size: fontSize,
                         face: 'Inter, sans-serif',
                         bold: { color: fontColor, size: fontSize },
+                        strokeWidth: fontStrokeW,
+                        strokeColor: fontStroke,
                     },
                     borderWidth: 1.5,
                     borderWidthSelected: 3,
@@ -1341,8 +1634,8 @@
                 width: 1.5,
                 selectionWidth: 0,
                 smooth: layoutMode === 'hierarchy'
-                    ? { enabled: false }
-                    : { type: 'dynamic' },
+                    ? { enabled: true, type: 'cubicBezier', forceDirection: 'vertical', roundness: 0.35 }
+                    : { enabled: true, type: 'dynamic' },
             })));
 
             const opts = buildOptions();
@@ -1382,9 +1675,32 @@
                 }
             });
 
-            network.on('stabilized', () => {
-                network.fit({ animation: { duration: 600, easingFunction: 'easeInOutQuad' } });
-            });
+            if (layoutMode === 'physics') {
+                // Fit once after initial stabilization only — do not disable physics, so edges
+                // keep pulling related nodes into clusters. (Listening to every ``stabilized`` +
+                // fit was what broke pan/zoom when zoomed in.)
+                network.once('stabilizationIterationsDone', () => {
+                    network.fit({
+                        padding: 56,
+                        animation: { duration: 600, easingFunction: 'easeInOutQuad' },
+                    });
+                });
+            } else {
+                const rawNodesForRoot = nodes;
+                const rawEdgesForRoot = edges;
+                const graphContainer = container;
+                network.once('stabilized', () => {
+                    network.fit({
+                        padding: { top: 72, bottom: 72, left: 44, right: 44 },
+                        animation: { duration: 600, easingFunction: 'easeInOutQuad' },
+                    });
+                    setTimeout(() => {
+                        if (!network) return;
+                        const rid = pickHierarchicalRootNodeId(rawNodesForRoot, rawEdgesForRoot);
+                        if (rid) focusHierarchyRootTopCenter(network, rid, graphContainer);
+                    }, 620);
+                });
+            }
         }
 
         // ── Vis Options ─────────────────────────────────────────────────
@@ -1403,11 +1719,24 @@
             if (layoutMode === 'hierarchy') {
                 return {
                     ...base,
+                    // Narrower boxes → more nodes fit per row without a mile-wide canvas.
+                    nodes: {
+                        chosen: true,
+                        widthConstraint: { maximum: 220 },
+                    },
                     layout: {
+                        improvedLayout: true,
                         hierarchical: {
-                            enabled: true, direction: 'UD', sortMethod: 'directed',
-                            nodeSpacing: 180, levelSeparation: 120, treeSpacing: 250,
-                            blockShifting: true, edgeMinimization: true, parentCentralization: true,
+                            enabled: true,
+                            direction: 'UD',
+                            sortMethod: 'directed',
+                            shakeTowards: 'leaves',
+                            nodeSpacing: 140,
+                            levelSeparation: 220,
+                            treeSpacing: 200,
+                            blockShifting: true,
+                            edgeMinimization: true,
+                            parentCentralization: false,
                         },
                     },
                     physics: { enabled: false },
@@ -1418,12 +1747,18 @@
                 ...base,
                 layout: { hierarchical: { enabled: false }, improvedLayout: true },
                 physics: {
-                    enabled: true, solver: 'forceAtlas2Based',
+                    enabled: true,
+                    solver: 'forceAtlas2Based',
                     forceAtlas2Based: {
-                        gravitationalConstant: -70, centralGravity: 0.005,
-                        springLength: 200, springConstant: 0.04, damping: 0.6, avoidOverlap: 0.9,
+                        gravitationalConstant: -70,
+                        centralGravity: 0.006,
+                        springLength: 190,
+                        springConstant: 0.06,
+                        damping: 0.62,
+                        avoidOverlap: 1,
                     },
-                    stabilization: { iterations: 200 },
+                    // Keep warm-up iterations; fit is handled once in JS (not on every stabilized).
+                    stabilization: { iterations: 280, fit: false },
                 },
             };
         }
@@ -1456,7 +1791,7 @@
             }
         });
 
-        btnFit.addEventListener('click', () => network && network.fit({ animation: true }));
+        btnFit.addEventListener('click', () => network && network.fit({ animation: true, padding: 56 }));
         btnZoomIn.addEventListener('click', () => network && network.moveTo({ scale: network.getScale() * 1.3, animation: true }));
         btnZoomOut.addEventListener('click', () => network && network.moveTo({ scale: network.getScale() * 0.75, animation: true }));
 
@@ -1555,6 +1890,15 @@
         function focusNode(nid) {
             network.selectNodes([nid]);
             network.focus(nid, { scale: 1.2, animation: true });
+        }
+
+        function focusGraphOnFunctionName(name) {
+            if (!network || !name || !globalRawNodes || !globalRawNodes.length) return;
+            const n = globalRawNodes.find(
+                (x) => x.label === name && x.type !== 'File' && x.type !== 'Class'
+            ) || globalRawNodes.find((x) => x.label === name);
+            if (!n || !n.id) return;
+            focusNode(n.id);
         }
 
         function highlightGraphTrace(centerId, incoming, outgoing) {
@@ -1874,6 +2218,25 @@
         const wiReportPane = document.getElementById('wi-report-pane');
         const wiThinking = document.getElementById('wi-thinking');
         const wiReportContent = document.getElementById('wi-report-content');
+        const wiFuncFilter = document.getElementById('wi-func-filter');
+        let wiAllFunctionNames = [];
+
+        function repopulateWiFunctionSelect() {
+            const q = (wiFuncFilter && wiFuncFilter.value) ? wiFuncFilter.value.trim().toLowerCase() : '';
+            const prev = wiFuncSelect.value;
+            wiFuncSelect.innerHTML = '<option value="">— pick a function —</option>';
+            wiAllFunctionNames
+                .filter((name) => !q || name.toLowerCase().includes(q))
+                .forEach((fn) => {
+                    const opt = document.createElement('option');
+                    opt.value = fn;
+                    opt.textContent = fn;
+                    wiFuncSelect.appendChild(opt);
+                });
+            if (prev && [...wiFuncSelect.options].some((o) => o.value === prev)) {
+                wiFuncSelect.value = prev;
+            }
+        }
 
         // Tab switching
         document.querySelectorAll('.wi-tab').forEach(tab => {
@@ -1918,16 +2281,16 @@
                 const res = await fetch('/api/functions');
                 const data = await res.json();
                 if (data.functions) {
-                    wiFuncSelect.innerHTML = '<option value="">— pick a function —</option>';
-                    data.functions.forEach(fn => {
-                        const opt = document.createElement('option');
-                        opt.value = fn; opt.textContent = fn;
-                        wiFuncSelect.appendChild(opt);
-                    });
+                    wiAllFunctionNames = data.functions.slice().sort((a, b) =>
+                        a.localeCompare(b, undefined, { sensitivity: 'base' })
+                    );
+                    repopulateWiFunctionSelect();
                 }
-            } catch(e) {}
+            } catch (e) {}
         }
         loadFunctionsForWhatIf();
+
+        wiFuncFilter?.addEventListener('input', () => repopulateWiFunctionSelect());
 
         // ── Git Source Control Panel Logic ───────────────────────────────────────
         const gitPanel = document.getElementById('git-panel');
@@ -2166,6 +2529,8 @@
             const fn = wiFuncSelect.value;
             if (!fn) { alert('Please select a function.'); return; }
 
+            focusGraphOnFunctionName(fn);
+
             wiRunBtn.disabled = true;
             wiSpinner.classList.remove('hidden');
             wiBtnText.textContent = 'Running...';
@@ -2184,6 +2549,21 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ function: fn })
                 });
+
+                if (!response.ok) {
+                    const t = await response.text();
+                    let err = `HTTP ${response.status}`;
+                    try {
+                        const j = JSON.parse(t);
+                        if (j.error) err = j.error;
+                    } catch (_) {
+                        if (t) err = t.slice(0, 400);
+                    }
+                    throw new Error(err);
+                }
+                if (!response.body) {
+                    throw new Error('No response body from server.');
+                }
 
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder("utf-8");
@@ -2213,7 +2593,8 @@
                                 } else if (msg.type === 'done') {
                                     wiThinking.classList.add('hidden');
                                     addStepCard('Analysis complete — switch to the Blast Report tab.', null, 'text-[#4ade80]');
-                                    wiReportContent.innerHTML = marked.parse(msg.report || '');
+                                    const md = msg.report || msg.content || '';
+                                    wiReportContent.innerHTML = md ? marked.parse(md) : '<span class="text-on-surface-variant italic">No report text returned.</span>';
                                     // Switch to report tab
                                     document.querySelector('.wi-tab[data-pane="report"]').click();
                                 } else if (msg.type === 'error') {
@@ -2228,7 +2609,8 @@
                 }
             } catch (err) {
                 wiThinking.classList.add('hidden');
-                addStepCard('❌ Connection failed.', null, 'text-error');
+                const detail = (err && err.message) ? err.message : String(err);
+                addStepCard('Request failed: ' + detail, null, 'text-error');
             } finally {
                 wiRunBtn.disabled = false;
                 wiSpinner.classList.add('hidden');

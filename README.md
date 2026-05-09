@@ -151,7 +151,8 @@ Static site: **[landing/index.html](landing/index.html)** — set `INSTALLER_URL
 | `app.py` | Flask app, REST API, template routes |
 | `desktop_main.py` | Waitress + pywebview entry |
 | `extractor.py` | Tree-sitter extract, incremental analyze, Chroma upserts |
-| `whatif_engine.py` | CrewAI what-if stream (SSE) |
+| `whatif_engine.py` | Safe What-If entry (SSE); delegates to `whatif_crew.py` |
+| `whatif_crew.py` | CrewAI implementation (optional deps) |
 | `logiclens/config.py` | Paths, env, `normalize_project_file_path`, Chroma collection naming |
 | `logiclens/sqlite_graph.py` | Graph CRUD, `delete_file_subgraph` |
 | `logiclens/version.py` | `__version__`, default GitHub repo for updates |
