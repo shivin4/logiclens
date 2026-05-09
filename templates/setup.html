@@ -28,6 +28,10 @@
                 <label class="block text-sm mb-1">Gemini API key (optional)</label>
                 <input type="password" name="gemini" class="w-full rounded bg-slate-800 border border-slate-600 px-3 py-2 text-sm" autocomplete="off" />
             </div>
+            <label class="flex items-start gap-2 text-xs text-slate-400 cursor-pointer">
+                <input type="checkbox" name="telemetry" class="mt-0.5 rounded border-slate-600" />
+                <span>Allow optional crash reporting (requires <code class="text-sky-400/80">SENTRY_DSN</code> in <code>.env</code>; off by default)</span>
+            </label>
             <button type="submit" class="w-full py-2 rounded bg-sky-600 hover:bg-sky-500 text-white text-sm font-medium">Save and continue</button>
         </form>
         <p id="msg" class="mt-4 text-sm"></p>
@@ -40,7 +44,8 @@
             msg.textContent = 'Saving…';
             const groq = document.querySelector('[name=groq]').value;
             const gemini = document.querySelector('[name=gemini]').value;
-            const r = await fetch('/setup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ groq_api_key: groq, gemini_api_key: gemini }) });
+            const telemetry = document.querySelector('[name=telemetry]')?.checked || false;
+            const r = await fetch('/setup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ groq_api_key: groq, gemini_api_key: gemini, telemetry_opt_in: telemetry }) });
             const j = await r.json();
             if (r.ok) { msg.textContent = j.message || 'Saved.'; window.location.href = '/'; }
             else { msg.textContent = j.error || 'Error'; }

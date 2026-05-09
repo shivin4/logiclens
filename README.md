@@ -1,215 +1,204 @@
-# LogicLens Code Dependency Analyzer
+# LogicLens
 
-LogicLens is a local-first code intelligence tool that scans a repository, builds a dependency graph in an embedded SQLite store (no separate graph server), indexes source blocks in ChromaDB, and serves an interactive Flask UI for graph exploration, semantic search, git hotspot analysis, and streamed "what-if" blast-radius reports.
+**Version 1.1.0** — Local-first desktop app to explore a codebase as a **dependency graph**, run **semantic search**, see **git** context, and use **AI** (Groq + CrewAI) for explanations and “what-if” blast-radius style reports. No separate database server: the graph lives in **SQLite**, embeddings in **ChromaDB**, all under your machine’s app data folder.
 
-## What It Does Today
+---
 
-- Parses supported source files with Tree-sitter.
-- Extracts file/class/function entities and in-file call relationships.
-- Detects simple hardcoded-secret and SQL-injection risk patterns.
-- Builds a local SQLite-backed graph with structural and API-bridge relationships.
-- Indexes class/function source into ChromaDB for semantic retrieval.
-- Exposes Flask APIs used by a single-page frontend for:
-  - graph visualization,
-  - source and dependency drill-down,
-  - short AI explanations (Groq),
-  - semantic code search (ChromaDB),
-  - git commit/churn insights,
-  - streamed CrewAI what-if analysis.
+## Highlights
 
-## Tech Stack
+- **Desktop-first:** `desktop_main.py` (or the packaged `.exe`) opens a native window (pywebview + Waitress).
+- **First-run onboarding:** `/onboarding` — API keys, optional telemetry flag, folder picker, then analyze (opens automatically when Groq is not configured).
+- **Incremental analyze:** Re-running **Analyze** on the same project only re-processes files whose **mtime + size** changed (plus adds/removes). Switching to another repo forces a **full** graph rebuild (single shared `logiclens_graph.db`).
+- **Per-project Chroma:** Each analyzed folder gets its own collection (`ll_proj_<hash>`); vectors for other projects stay on disk.
+- **Updates:** Settings → **Check for updates** calls GitHub Releases (`shivin4/logiclens` by default; overridable via env).
+- **Optional telemetry:** Opt-in via UI; requires `SENTRY_DSN` in `.env` and `sentry-sdk`. **Nothing is sent** without a DSN.
+- **Accessibility:** Visible **focus rings** on interactive controls; Settings dialog has **ARIA** labels, **Escape** closes, focus moves into the dialog when opened.
 
-- Backend: Python, Flask
-- Parsing: Tree-sitter (`tree-sitter-*` language modules)
-- Graph store: embedded SQLite (`logiclens_graph.db` under the app data directory)
-- Vector store: ChromaDB (persistent local collection)
-- AI: Groq API, CrewAI (Gemini package is installed but not used by the current explain endpoint)
-- Frontend: server-rendered HTML template + JavaScript + Tailwind + vis-network
+---
 
-## Supported Languages
+## Tech stack
 
-The extractor currently scans these extensions:
+| Layer | Choice |
+|--------|--------|
+| UI | Flask-served templates, Tailwind, vis-network |
+| Server | Waitress (desktop), optional Flask dev server |
+| Graph | SQLite (`logiclens_graph.db`) |
+| Vectors | ChromaDB (persistent directory) |
+| Parse | Tree-sitter |
+| AI | Groq (explanations / LLM), CrewAI (what-if) |
 
-- `.py`
-- `.js`, `.jsx`
-- `.ts`, `.tsx`
-- `.java`
-- `.go`
-- `.cpp`, `.cc`, `.h`, `.hpp`
+---
 
-## Architecture Overview
+## Supported languages
 
-### 1) Analysis Pipeline
+`.py` · `.js` / `.jsx` · `.ts` / `.tsx` · `.java` · `.go` · `.cpp` / `.cc` / `.h` / `.hpp`
 
-1. User submits a target folder path via `POST /api/analyze`.
-2. `extractor.analyze_project()`:
-   - **Incremental (default):** for the same project root, compares each file’s `mtime + size` to a manifest in the app data dir; only **added, changed, or deleted** files are re-parsed; vectors for removed files are dropped from Chroma and nodes are removed from SQLite. Set `LOGICLENS_FULL_ANALYZE=1` to wipe the graph and Chroma collection and re-index everything.
-   - **Full:** when switching projects, the manifest does not match, or you force a full run — clears SQLite, recreates the per-project Chroma collection, walks all supported files (skipping common build/env folders), parses classes/functions/calls/API-route patterns, writes nodes/edges to SQLite, and upserts source into ChromaDB.
-3. UI calls APIs to render graph and details.
+---
 
-### 2) Data Stores
+## Quick start (development)
 
-- Graph nodes: `File`, `Class`, `Function`, `APIRoute`
-- Graph relationships:
-  - `CONTAINS`
-  - `CALLS`
-  - `EXPOSES_API`
-  - `CALLS_API`
-- ChromaDB:
-  - persistent path defaults to the app data directory (`%LOCALAPPDATA%\\LogicLens\\chroma_data` on Windows when packaged; project root in dev)
-  - one **collection per project folder** (`ll_proj_<hash>`), with stable vector ids per file + symbol (no basename collisions)
+**Requirements:** Python 3.10+, Groq API key for AI features.
 
-### 3) What-If Engine
-
-`whatif_engine.py` builds a 3-agent CrewAI workflow that:
-
-- finds direct callers from the SQLite graph,
-- attempts to fetch caller source from ChromaDB,
-- generates a markdown blast-radius report,
-- streams updates/results as Server-Sent Events.
-
-## Project Structure
-
-- `app.py` - Flask app, API routes, UI serving
-- `extractor.py` - Tree-sitter extraction + graph/Chroma population
-- `logiclens/` - config and SQLite graph module
-- `desktop_main.py` - desktop shell (Waitress + pywebview)
-- `packaging/` - PyInstaller spec and Inno Setup template
-- `landing/` - static download page for GitHub Pages or similar
-- `whatif_engine.py` - CrewAI what-if orchestration and SSE stream output
-- `templates/index.html` - frontend UI
-- `requirements.txt` - Python dependencies
-- `list_models.py` - helper script for Gemini model listing
-- `test_chroma.py` - manual Chroma query script
-
-## Requirements
-
-- Python 3.10+ recommended
-- Network access for Groq API (for AI explanation / what-if reports)
-
-## Setup
-
-1. Clone and enter the repository.
-2. Create and activate a virtual environment.
-3. Install dependencies:
-
-```bash
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-```
-
-4. Create `.env` in the project root (see `.env.example`), or use **Setup** in the UI at `http://127.0.0.1:5000/setup` after first run.
-
-```env
-GROQ_API_KEY=your_groq_key
-GEMINI_API_KEY=optional
-```
-
-Optional: `LOGICLENS_DATA_DIR`, `FLASK_PORT`, `LOGICLENS_DEBUG=1` (Flask dev server instead of Waitress).
-
-## Run
-
-**Desktop (recommended):**
-
-```bash
 python desktop_main.py
 ```
 
-Each desktop instance picks a free port (5000, then 5001, …) so **File → New Window** can spawn a second native window without port clashes.
+If `GROQ_API_KEY` is not set in `%LOCALAPPDATA%\LogicLens\.env` (packaged) or your project `.env` (dev), the app opens **Onboarding** first.
 
-**Browser / API debugging only:** LogicLens is desktop-first; `python app.py` exits unless you enable debug mode:
+**Browser-only debugging** (not the normal workflow):
 
-```bash
+```powershell
 set LOGICLENS_DEBUG=1
 python app.py
 ```
 
-Then open `http://127.0.0.1:5000` and `/setup` in the browser. The packaged `.exe` always uses the desktop shell.
+Then open `http://127.0.0.1:5000`.
 
-## Packaging (Windows)
+---
 
-See **[packaging/BUILD_INSTALLER.md](packaging/BUILD_INSTALLER.md)** for the full pipeline.
+## First run & API keys
 
-1. `pip install pyinstaller`
-2. From the repo root: `pyinstaller packaging/logiclens.spec`
-3. Output: `dist/LogicLens/` (folder build).
-4. Install [Inno Setup 6](https://jrsoftware.org/isinfo.php), open `packaging/installer.iss`, generate a **unique AppId** (Tools → Generate GUID), update version/publisher URL, then compile → `dist_installer/LogicLens-Setup-x.y.z.exe`.
+1. **Onboarding** (`/onboarding`): Groq (required), Gemini (optional), optional crash-reporting checkbox, then pick a folder and **Analyze & open app**.
+2. Or use **Settings → Open setup page** (`/setup`) anytime.
 
-The installer uses a **per-user** path (`%LocalAppData%\Programs\LogicLens`), **Start Menu** shortcuts with `AppUserModelID`, and **HKCU App Paths** so Windows Search and Run can resolve `LogicLens.exe` after indexing.
+Keys are written to **`%LOCALAPPDATA%\LogicLens\.env`** when packaged, or your configured `LOGICLENS_DATA_DIR`.
 
-## Landing page (downloads & docs)
+See **`.env.example`** for all options (`LOGICLENS_FULL_ANALYZE`, telemetry, Sentry, etc.).
 
-The marketing site lives in **[landing/index.html](landing/index.html)**. Edit the `INSTALLER_URL` and `SOURCE_URL` script constants, then host the folder on [GitHub Pages](https://pages.github.com/), Netlify, or Vercel — see **[landing/DEPLOY.md](landing/DEPLOY.md)**.
+---
 
-Optional direct CLI runs:
+## How analyze works (simple)
 
-```bash
-# Full extraction/indexing for a target path
-python extractor.py "C:/path/to/repo"
+| Situation | What happens |
+|-----------|----------------|
+| **First time** on a folder | Full rebuild: clear SQLite graph, recreate that project’s Chroma collection, walk all eligible files, build graph + vectors. |
+| **Same folder again** | Incremental: only files with changed **mtime/size** (or new/deleted paths) are updated; rest skipped. |
+| **Different folder** after another project | Full rebuild for the new folder (SQLite only holds one project at a time). |
 
-# Run what-if engine directly for one function
-python whatif_engine.py --function function_name
+Fingerprint manifest: `analysis_manifest_<collection>.json`. Force full: `LOGICLENS_FULL_ANALYZE=1`.
+
+---
+
+## Data on disk
+
+All paths are under the **app data directory** unless you set `LOGICLENS_DATA_DIR`:
+
+| Location | Role |
+|----------|------|
+| **App data directory** | Single “home” for local state. **Packaged:** `%LOCALAPPDATA%\LogicLens\`. **Dev:** usually the repo root unless `LOGICLENS_DATA_DIR` overrides. |
+| **`logiclens_graph.db`** (SQLite) | **One file**, **one logical graph at a time**: whatever project you last analyzed successfully. It is **not** a multi-repo database; it is cleared or patched to match **one** workspace root. |
+| **`chroma_data/`** (Chroma) | **Many collections** on disk. Each project folder gets its own collection name (`ll_proj_<hash of normalized path>`). Older projects’ vectors **remain** when you open another repo. |
+| **`analysis_manifest_<collection>.json`** | Per-project **file fingerprint** ledger (`mtime_ns` + `size` per normalized path). Drives **incremental** vs **full** work for that root. |
+| **`last_graph_project_root.txt`** | One line: normalized path of the project the **SQLite** file currently describes. If you analyze a **different** root, the code forces a **full** graph rebuild so incremental never runs on top of another project’s nodes. |
+| **`.env`** in app data | API keys and optional overrides (from `/setup`, onboarding, or manual edit). |
+
+**Why both SQLite and Chroma?** SQLite stores **structure** (nodes/edges, calls, API bridges). Chroma stores **embeddings** for **semantic search** and tools that need raw snippets. They are updated together for changed files.
+
+---
+
+## Updates
+
+- **UI:** Settings → **Check for updates** — compares `logiclens/version.py` (or `LOGICLENS_APP_VERSION`) to `https://api.github.com/repos/<owner>/<repo>/releases/latest`.
+- **Override repo:** `LOGICLENS_GITHUB_OWNER`, `LOGICLENS_GITHUB_REPO` in `.env`.
+
+---
+
+## Telemetry (privacy-first)
+
+- **Default:** off. No analytics SDK runs unless `LOGICLENS_TELEMETRY=1` **and** `SENTRY_DSN` is set.
+- **Behavior:** `sentry-sdk` + Flask integration; `send_default_pii=False`, `traces_sample_rate=0`.
+- Install: included in `requirements.txt`; harmless if unused.
+
+---
+
+## Accessibility
+
+- **Focus:** `:focus-visible` outline on buttons, links, inputs.
+- **Settings modal:** `role="dialog"`, `aria-labelledby`, `aria-describedby`, labelled close button, **Escape** to dismiss, initial focus on the dialog panel.
+
+---
+
+## Packaging & trust (Windows)
+
+| Doc | Purpose |
+|-----|---------|
+| **[packaging/BUILD_INSTALLER.md](packaging/BUILD_INSTALLER.md)** | PyInstaller → Inno Setup pipeline |
+| **[packaging/SIGNING.md](packaging/SIGNING.md)** | Code-sign `LogicLens.exe` and the installer for fewer SmartScreen warnings |
+
+**Version bump checklist:** sync `logiclens/version.py` (`_DEFAULT_VERSION`), `packaging/installer.iss` (`MyAppVersion`), `landing/index.html` (`INSTALLER_URL` asset name), and your GitHub Release asset filename.
+
+```powershell
+pyinstaller packaging\logiclens.spec
+# Optional: sign dist\LogicLens\LogicLens.exe (see SIGNING.md)
+# Compile packaging\installer.iss → dist_installer\LogicLens-Setup-1.1.0.exe
 ```
 
-## API Reference
+---
 
-### Core
+## Landing page
 
-- `GET /` - UI page
-- `POST /api/analyze` - Analyze a repository path
-- `POST /api/pick_folder` - Open a native folder dialog on the PC running the server (localhost only); returns `{"path": "..."}` or `{"cancelled": true}`
-- `GET /api/graph` - Fetch all graph nodes/edges
-- `GET /api/explorer?path=...` - Directory tree explorer
-- `GET /api/trace?node_id=...` - Incoming/outgoing dependencies
-- `GET /api/source?file=...&name=...&type=...` - Extract source block
-- `GET /api/explain?file=...&name=...&type=...` - Groq short explanation
+Static site: **[landing/index.html](landing/index.html)** — set `INSTALLER_URL` / `SOURCE_URL`, host on GitHub Pages / Netlify / Vercel — **[landing/DEPLOY.md](landing/DEPLOY.md)**.
 
-### Insights & AI
+---
 
-- `GET /api/functions` - Function name list from graph
-- `POST /api/whatif` - Streamed what-if blast-radius report (SSE)
-- `GET /api/git/summary` - Recent commits + top churn files
-- `GET /api/search?q=...` - Semantic search in ChromaDB
-- `GET /api/check_env` - Indicates whether `GROQ_API_KEY` is present
+## Project structure
 
-## Typical Workflow
+| Path | Role |
+|------|------|
+| `app.py` | Flask app, REST API, template routes |
+| `desktop_main.py` | Waitress + pywebview entry |
+| `extractor.py` | Tree-sitter extract, incremental analyze, Chroma upserts |
+| `whatif_engine.py` | CrewAI what-if stream (SSE) |
+| `logiclens/config.py` | Paths, env, `normalize_project_file_path`, Chroma collection naming |
+| `logiclens/sqlite_graph.py` | Graph CRUD, `delete_file_subgraph` |
+| `logiclens/version.py` | `__version__`, default GitHub repo for updates |
+| `logiclens/updates.py` | GitHub Releases latest check |
+| `logiclens/telemetry.py` | Optional Sentry init |
+| `templates/index.html` | Main UI |
+| `templates/onboarding.html` | First-run wizard |
+| `templates/setup.html` | API key form |
+| `packaging/logiclens.spec` | PyInstaller |
+| `packaging/installer.iss` | Inno Setup |
 
-1. Start the server.
-2. Analyze a local repo path.
-3. Explore the generated dependency graph.
-4. Click a node to inspect source, trace dependencies, and request an AI explanation.
-5. Run semantic search with natural language queries.
-6. Use git summary to identify hotspots.
-7. Trigger what-if analysis for a target function.
+---
 
-## Current Limitations
+## API reference (selected)
 
-- Analysis skips common dependency and build folders (`vendor`, `node_modules`, `.next`, `dist`, `build`, etc.), minified `*.min.js`, and very large JS/TS files (see `LOGICLENS_MAX_JS_BYTES` in `.env.example`). A Go `vendor/` tree is therefore excluded from the graph by design.
-- Re-analysis is destructive: it clears existing SQLite graph and Chroma data before indexing.
-- `CALLS` edges are currently linked only when callee names are defined in the same file (cross-file resolution is limited).
-- The what-if Chroma lookup may miss source blocks because extractor IDs include a file/type prefix while retrieval uses plain function names.
-- No automated unit/integration test suite is included yet.
-- No dedicated lint/format CI pipeline is configured.
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/` | Main UI |
+| GET | `/onboarding` | First-run wizard |
+| GET | `/setup` | API key setup page |
+| POST | `/setup` | Save keys + telemetry flags (JSON) |
+| GET | `/api/bootstrap` | Data paths, `groq_configured`, `app_version`, etc. |
+| GET | `/api/updates/check` | GitHub latest release metadata |
+| POST | `/api/analyze` | Run `analyze_project` |
+| POST | `/api/pick_folder` | Native folder dialog (localhost only) |
+| GET | `/api/graph` | Full graph |
+| GET | `/api/search?q=` | Semantic search (current project) |
+| POST | `/api/whatif` | SSE what-if report |
 
-## Troubleshooting
+---
 
-- `Invalid directory path` on analyze:
-  - ensure the submitted path exists and is accessible.
-- Graph or Chroma path issues:
-  - check `LOGICLENS_DATA_DIR` and permissions; ensure analysis has been run at least once.
-- Search endpoint says collection not found:
-  - run analysis first to create/populate `codebase_nodes`.
-- What-if errors about missing dependencies:
-  - install all requirements, and ensure CrewAI-related dependencies resolve correctly in your environment.
-- AI explanation unavailable:
-  - set `GROQ_API_KEY` in `.env` and restart the server.
-- Graph is a dense “hairball” or counts thousands of functions from a small file set:
-  - you are likely indexing bundled assets; `vendor/` and similar dirs are skipped by default. For stray huge `.js` files, lower `LOGICLENS_MAX_JS_BYTES` in `.env` so they are skipped.
+## Limitations
 
-## Security Notes
+- Large **vendor** trees and minified JS are skipped or capped (`LOGICLENS_MAX_JS_BYTES`).
+- **`CALLS`** edges are strongest for callees **defined in the same file**; cross-file resolution is partial.
+- **Incremental** change detection uses **mtime + size**, not a full-file hash (rare false “unchanged”).
+- Duplicate **function names** across files can confuse naive name-based lookups in some AI tools.
 
-- Keep `.env` local and never commit API keys.
-- The extractor does best-effort pattern scanning for risky literals, but this is not a complete security scanner.
+---
+
+## Security
+
+- Never commit `.env`. Keys stay local.
+- Pattern-based “vulnerability” hints are **heuristic**, not a full SAST.
+
+---
 
 ## License
 
-No license file is currently included in this repository.
+No license file is bundled in this repository; add one if you distribute forks.

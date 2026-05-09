@@ -85,6 +85,23 @@
     <script src="{{ url_for('static', filename='vendor/vis-network.min.js') }}"></script>
 
     <style>
+        :where(button, a[href], input, textarea, select, summary):focus-visible {
+            outline: 2px solid #38bdf8;
+            outline-offset: 2px;
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
         .material-symbols-outlined {
             font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
         }
@@ -788,14 +805,15 @@
 
     <!-- Settings modal -->
     <div id="settings-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/55"
-        aria-modal="true" role="dialog" aria-labelledby="settings-title">
-        <div
+        aria-modal="true" role="dialog" aria-labelledby="settings-title" aria-describedby="settings-desc">
+        <p id="settings-desc" class="sr-only">Application settings and update check. Press Escape to close.</p>
+        <div id="settings-dialog-panel" tabindex="-1"
             class="w-full max-w-md rounded-xl border border-slate-600/50 bg-[#131b2e] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             <div class="flex items-center justify-between px-5 py-4 border-b border-slate-600/30">
                 <h2 id="settings-title" class="text-lg font-semibold text-slate-100 font-headline">Settings</h2>
-                <button type="button" id="settings-close-btn"
+                <button type="button" id="settings-close-btn" aria-label="Close settings"
                     class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-700/50 hover:text-slate-200 transition-colors">
-                    <span class="material-symbols-outlined text-[22px]">close</span>
+                    <span class="material-symbols-outlined text-[22px]" aria-hidden="true">close</span>
                 </button>
             </div>
             <div class="px-5 py-4 space-y-5 overflow-y-auto text-sm text-slate-300">
@@ -807,6 +825,18 @@
                         id="settings-data-dir">—</div>
                     <p class="text-xs text-slate-500">Graph DB: <span id="settings-graph-db" class="text-slate-400">—</span>
                     </p>
+                </section>
+                <section class="space-y-2" aria-labelledby="settings-updates-h">
+                    <h3 id="settings-updates-h" class="text-xs font-bold uppercase tracking-wider text-slate-500">Updates
+                    </h3>
+                    <p class="text-slate-400 text-xs">Installed version <span id="settings-app-version"
+                            class="text-slate-200 font-mono">—</span></p>
+                    <button type="button" id="settings-check-updates-btn"
+                        class="text-sm px-3 py-1.5 rounded-lg border border-slate-600 text-slate-200 hover:bg-slate-800 transition-colors">
+                        Check for updates
+                    </button>
+                    <p id="settings-update-msg" class="text-xs text-slate-400 min-h-[2.75rem] leading-relaxed"
+                        role="status" aria-live="polite"></p>
                 </section>
                 <section class="space-y-2">
                     <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">AI &amp; API keys</h3>
@@ -1036,14 +1066,18 @@
         async function openSettingsModal() {
             if (!settingsModal) return;
             settingsModal.classList.remove('hidden');
+            const um = document.getElementById('settings-update-msg');
+            if (um) um.textContent = '';
             try {
                 const res = await fetch('/api/bootstrap');
                 const d = await res.json();
                 const dd = document.getElementById('settings-data-dir');
                 const gd = document.getElementById('settings-graph-db');
                 const badge = document.getElementById('settings-groq-badge');
+                const ver = document.getElementById('settings-app-version');
                 if (dd) dd.textContent = d.data_dir || '—';
                 if (gd) gd.textContent = d.graph_db || '—';
+                if (ver) ver.textContent = d.app_version || '—';
                 if (badge) {
                     badge.textContent = d.groq_configured ? 'Groq: configured' : 'Groq: not set';
                     badge.className = 'text-[10px] font-mono px-2 py-0.5 rounded border ' +
@@ -1054,17 +1088,61 @@
             } catch (err) {
                 document.getElementById('settings-data-dir').textContent = '(Could not load)';
             }
+            requestAnimationFrame(() => {
+                document.getElementById('settings-dialog-panel')?.focus();
+            });
         }
 
         function closeSettingsModal() {
             settingsModal?.classList.add('hidden');
         }
 
+        async function runUpdateCheck() {
+            const msg = document.getElementById('settings-update-msg');
+            if (!msg) return;
+            msg.textContent = 'Checking…';
+            try {
+                const res = await fetch('/api/updates/check');
+                const d = await res.json();
+                if (d.error) {
+                    msg.textContent = 'Could not reach GitHub: ' + d.error;
+                    return;
+                }
+                if (d.update_available) {
+                    msg.textContent = '';
+                    msg.append('Update available: ');
+                    const strong = document.createElement('strong');
+                    strong.className = 'text-sky-300';
+                    strong.textContent = d.latest_version || '';
+                    msg.appendChild(strong);
+                    msg.append(' ');
+                    const a = document.createElement('a');
+                    a.href = d.installer_asset_url || d.release_url || '#';
+                    a.className = 'text-sky-400 underline';
+                    a.target = '_blank';
+                    a.rel = 'noopener noreferrer';
+                    a.textContent = 'Download';
+                    msg.appendChild(a);
+                } else {
+                    msg.textContent = 'You are up to date (' + (d.current_version || '') + ').';
+                }
+            } catch (e) {
+                msg.textContent = e.message || 'Update check failed';
+            }
+        }
+
         document.getElementById('settings-open-btn')?.addEventListener('click', openSettingsModal);
         document.getElementById('settings-close-btn')?.addEventListener('click', closeSettingsModal);
         document.getElementById('settings-done-btn')?.addEventListener('click', closeSettingsModal);
+        document.getElementById('settings-check-updates-btn')?.addEventListener('click', runUpdateCheck);
         settingsModal?.addEventListener('click', (e) => {
             if (e.target === settingsModal) closeSettingsModal();
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key !== 'Escape') return;
+            if (!settingsModal || settingsModal.classList.contains('hidden')) return;
+            closeSettingsModal();
         });
 
         document.getElementById('welcome-open-project')?.addEventListener('click', () => pickProjectFolder());

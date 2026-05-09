@@ -23,6 +23,9 @@ a = Analysis(
     hiddenimports=[
         "logiclens.config",
         "logiclens.sqlite_graph",
+        "logiclens.version",
+        "logiclens.updates",
+        "logiclens.telemetry",
         "waitress",
         "webview",
         "chromadb",

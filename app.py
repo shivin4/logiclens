@@ -22,11 +22,30 @@ import tree_sitter
 from tree_sitter import Parser, Query
 import chromadb
 
+from pathlib import Path
+
 from logiclens.sqlite_graph import SqliteGraphStore
+from logiclens.telemetry import init_flask_telemetry
+from logiclens.updates import check_for_updates
+from logiclens.version import __version__
 
 app = Flask(__name__, static_folder="static", static_url_path="/static")
+init_flask_telemetry(app)
 
 current_repo_path = None
+
+
+def _parse_env_file(env_path: Path) -> dict[str, str]:
+    out: dict[str, str] = {}
+    if not env_path.is_file():
+        return out
+    for line in env_path.read_text(encoding="utf-8").splitlines():
+        s = line.strip()
+        if not s or s.startswith("#") or "=" not in s:
+            continue
+        k, _, v = s.partition("=")
+        out[k.strip()] = v.strip()
+    return out
 
 
 def _graph() -> SqliteGraphStore:
@@ -48,6 +67,11 @@ def setup_page():
     return render_template("setup.html", data_dir=str(get_data_dir()))
 
 
+@app.route("/onboarding", methods=["GET"])
+def onboarding_page():
+    return render_template("onboarding.html", data_dir=str(get_data_dir()))
+
+
 @app.route("/setup", methods=["POST"])
 def setup_save():
     data = request.get_json() or {}
@@ -57,15 +81,36 @@ def setup_save():
         return jsonify({"error": "GROQ_API_KEY is required for AI features."}), 400
     data_dir = get_data_dir()
     env_path = data_dir / ".env"
-    lines = [
-        f"GROQ_API_KEY={groq}",
-        f"GEMINI_API_KEY={gemini}",
-        f"CHROMA_PERSIST_PATH={chroma_dir().resolve()}",
-        "",
+    prev = _parse_env_file(env_path)
+    telemetry_on = bool(data.get("telemetry_opt_in"))
+    rows: dict[str, str] = {
+        "GROQ_API_KEY": groq,
+        "GEMINI_API_KEY": gemini,
+        "CHROMA_PERSIST_PATH": str(chroma_dir().resolve()),
+        "LOGICLENS_TELEMETRY": "1" if telemetry_on else "0",
+    }
+    sentry_dsn = (data.get("sentry_dsn") or "").strip()
+    if sentry_dsn:
+        rows["SENTRY_DSN"] = sentry_dsn
+    elif prev.get("SENTRY_DSN"):
+        rows["SENTRY_DSN"] = prev["SENTRY_DSN"]
+
+    key_order = [
+        "GROQ_API_KEY",
+        "GEMINI_API_KEY",
+        "CHROMA_PERSIST_PATH",
+        "LOGICLENS_TELEMETRY",
+        "SENTRY_DSN",
     ]
+    lines = [f"{k}={rows[k]}" for k in key_order if k in rows] + [""]
     env_path.write_text("\n".join(lines), encoding="utf-8")
     load_app_env()
-    return jsonify({"status": "success", "message": "Saved. Restart the app if it was already running."})
+    return jsonify(
+        {
+            "status": "success",
+            "message": "Saved. Restart the app for telemetry changes to fully apply.",
+        }
+    )
 
 
 @app.route("/api/bootstrap", methods=["GET"])
@@ -78,8 +123,17 @@ def api_bootstrap():
             "graph_db": str(graph_db_path()),
             "user_env_present": env_file.is_file(),
             "groq_configured": bool(os.environ.get("GROQ_API_KEY")),
+            "app_version": __version__,
+            "telemetry_enabled": os.environ.get("LOGICLENS_TELEMETRY", "").lower()
+            in ("1", "true", "yes")
+            and bool((os.environ.get("SENTRY_DSN") or "").strip()),
         }
     )
+
+
+@app.route("/api/updates/check", methods=["GET"])
+def api_updates_check():
+    return jsonify(check_for_updates())
 
 
 @app.route("/api/health", methods=["GET"])

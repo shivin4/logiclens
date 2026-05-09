@@ -11,7 +11,7 @@
 ; or: https://www.guidgen.com — keep braces in the AppId line).
 
 #define MyAppName "LogicLens"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.1.0"
 #define MyAppPublisher "LogicLens"
 #define MyAppExeName "LogicLens.exe"
 ; Public homepage / source (shown in Programs and Features)
@@ -50,6 +50,10 @@ VersionInfoDescription=LogicLens Code Dependency Analyzer
 VersionInfoProductName={#MyAppName}
 VersionInfoProductVersion={#MyAppVersion}
 SetupIconFile=..\logo\logo.ico
+; Code signing (optional — see packaging/SIGNING.md):
+; SignTool=signtool
+; SignedUninstaller=yes
+; In [Files] / custom steps, use SignTool to sign LogicLens.exe before packaging, or sign the final Setup output.
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
