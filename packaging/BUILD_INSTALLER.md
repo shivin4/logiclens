@@ -17,7 +17,9 @@ pip install pyinstaller
 From the **repository root**:
 
 ```powershell
-pyinstaller packaging\logiclens.spec
+# If PyInstaller says dist\LogicLens is not empty, remove it first:
+Remove-Item -Recurse -Force dist\LogicLens -ErrorAction SilentlyContinue
+pyinstaller packaging\logiclens.spec --noconfirm
 ```
 
 Confirm `dist\LogicLens\LogicLens.exe` runs (double-click or run from that folder).
