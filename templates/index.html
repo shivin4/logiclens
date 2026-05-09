@@ -5,9 +5,9 @@
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
     <title>LogicLens - Graph View</title>
-    <!-- Tailwind -->
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries,typography"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Tailwind + marked (bundled under /static/vendor for offline/desktop) -->
+    <script src="{{ url_for('static', filename='vendor/tailwindcdn.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/marked.min.js') }}"></script>
     <script id="tailwind-config">
         tailwind.config = {
             darkMode: "class",
@@ -82,7 +82,7 @@
         rel="stylesheet" />
 
     <!-- Vis-Network -->
-    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <script src="{{ url_for('static', filename='vendor/vis-network.min.js') }}"></script>
 
     <style>
         .material-symbols-outlined {

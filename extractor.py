@@ -1,14 +1,15 @@
 import os
-from dotenv import load_dotenv
-
-load_dotenv()
 import git
 import tree_sitter
 from tree_sitter import Language, Parser, Query
 import tree_sitter_python as tspython
-from neo4j import GraphDatabase
 import chromadb
 import re
+
+from logiclens.config import chroma_collection_name, chroma_dir, graph_db_path, load_app_env
+
+load_app_env()
+from logiclens.sqlite_graph import SqliteGraphStore, apply_entities_to_store
 
 # Load languages
 LANGUAGES = {}
@@ -32,10 +33,6 @@ load_lang('.cpp', 'tree_sitter_cpp')
 load_lang('.cc', 'tree_sitter_cpp')
 load_lang('.h', 'tree_sitter_cpp')
 load_lang('.hpp', 'tree_sitter_cpp')
-
-# Neo4j connection details
-URI = os.getenv("NEO4J_URI", "neo4j://127.0.0.1:7687")
-AUTH = (os.getenv("NEO4J_USERNAME", "neo4j"), os.getenv("NEO4J_PASSWORD", "password123"))
 
 # AST Query Configurations
 CONFIGS = {
@@ -75,6 +72,10 @@ CONFIGS[".tsx"] = CONFIGS[".ts"]
 CONFIGS[".cc"] = CONFIGS[".cpp"]
 CONFIGS[".h"] = CONFIGS[".cpp"]
 CONFIGS[".hpp"] = CONFIGS[".cpp"]
+
+
+def _graph_store() -> SqliteGraphStore:
+    return SqliteGraphStore(graph_db_path())
 
 
 def get_author(file_path, line_number):
@@ -275,136 +276,38 @@ def extract_entities_from_file(file_path, chroma_collection):
 
 
 
-def get_neo4j_ops(entities, file_path):
-    """Return list of (cypher_string, params_dict) tuples.
-    Generate explicit File, Class, and Function nodes with CONTAINS hierarchy."""
-    norm_path = file_path.replace("\\", "/")
-    ops = []
-    
-    classes = entities['classes']
-    functions = entities['functions']
-
-    # 1. File Node
-    ops.append((
-        "MERGE (file:File {file: $file}) "
-        "SET file.name = $name",
-        {"file": norm_path, "name": os.path.basename(norm_path)}
-    ))
-
-    # 2. Class Nodes & File->Class CONTAINS
-    for cls in classes:
-        ops.append((
-            "MERGE (c:Class {name: $name, file: $file}) "
-            "SET c.line = $line, c.author = $author, c.vulnerabilities = $vulns",
-            {"name": cls['name'], "file": norm_path, "line": cls['line'], "author": cls['author'], "vulns": cls.get('vulnerabilities', [])}
-        ))
-        ops.append((
-            "MATCH (file:File {file: $file}), (c:Class {name: $name, file: $file}) "
-            "MERGE (file)-[:CONTAINS]->(c)",
-            {"file": norm_path, "name": cls['name']}
-        ))
-
-    # 3. Function Nodes & Hierarchy CONTAINS
-    for func in functions:
-        ops.append((
-            "MERGE (f:Function {name: $name, file: $file}) "
-            "SET f.line = $line, f.author = $author, f.vulnerabilities = $vulns",
-            {"name": func['name'], "file": norm_path, "line": func['line'], "author": func['author'], "vulns": func.get('vulnerabilities', [])}
-        ))
-        
-        if func['parent_class']:
-            # Method belongs to Class
-            ops.append((
-                "MATCH (c:Class {name: $cls_name, file: $file}), (f:Function {name: $func_name, file: $file}) "
-                "MERGE (c)-[:CONTAINS]->(f)",
-                {"cls_name": func['parent_class'], "func_name": func['name'], "file": norm_path}
-            ))
-        else:
-            # Module-level belongs to File
-            ops.append((
-                "MATCH (file:File {file: $file}), (f:Function {name: $func_name, file: $file}) "
-                "MERGE (file)-[:CONTAINS]->(f)",
-                {"file": norm_path, "func_name": func['name']}
-            ))
-
-    # 4. Function CALLS Function logic
-    # Currently we only trace calls between functions to keep it granular.
-    defined_names = {f['name'] for f in functions}
-    for func in functions:
-        for callee in func['calls']:
-            if callee in defined_names:
-                ops.append((
-                    "MATCH (caller:Function {name: $caller_name, file: $file}), "
-                    "(callee:Function {name: $callee_name, file: $file}) "
-                    "MERGE (caller)-[:CALLS]->(callee)",
-                    {
-                        "caller_name": func['name'],
-                        "callee_name": callee,
-                        "file":        norm_path,
-                    }
-                ))
-
-    # 5. API Routes (Bridging Frontend and Backend)
-    for func in functions:
-        for route in func.get('api_exposures', []):
-            ops.append((
-                "MERGE (api:APIRoute {name: $path}) "
-                "SET api.file = $file, api.line = $line, api.author = $author, api.handler = $handler",
-                {"path": route, "file": norm_path, "line": func['line'], "author": func['author'], "handler": func['name']}
-            ))
-            ops.append((
-                "MATCH (f:Function {name: $func_name, file: $file}), (api:APIRoute {name: $path}) "
-                "MERGE (f)-[:EXPOSES_API]->(api)",
-                {"func_name": func['name'], "file": norm_path, "path": route}
-            ))
-            
-        for route in func.get('api_calls', []):
-            ops.append((
-                "MERGE (api:APIRoute {name: $path})",
-                {"path": route}
-            ))
-            ops.append((
-                "MATCH (f:Function {name: $func_name, file: $file}), (api:APIRoute {name: $path}) "
-                "MERGE (f)-[:CALLS_API]->(api)",
-                {"func_name": func['name'], "file": norm_path, "path": route}
-            ))
-
-    return ops
-
-
 def analyze_project(directory_path):
     """
     Main entry point.
-    1. Wipes Neo4j and ChromaDB.
-    2. Walks directory_path for all .py files.
-    3. Extracts functions and pushes to both DBs.
+    1. Wipes embedded graph (SQLite) and ChromaDB.
+    2. Walks directory_path for supported source files.
+    3. Extracts functions and pushes to both stores.
     """
     print(f"\n=== Analyzing project: {directory_path} ===\n")
 
-    # -- Wipe Neo4j ---------------------------------------------------------
-    print("[Neo4j] Clearing existing graph data...")
+    store = _graph_store()
+    print("[Graph] Clearing embedded SQLite graph...")
     try:
-        with GraphDatabase.driver(URI, auth=AUTH) as driver:
-            with driver.session() as session:
-                session.run("MATCH (n) DETACH DELETE n")
-        print("[Neo4j] Graph cleared.")
+        store.clear()
+        print("[Graph] Graph cleared.")
     except Exception as e:
-        print(f"[Neo4j] Error clearing graph: {e}")
+        print(f"[Graph] Error clearing graph: {e}")
         raise
 
-    # -- Wipe & recreate ChromaDB collection --------------------------------
-    print("[Chroma] Resetting 'codebase_nodes' collection...")
-    chroma_client = chromadb.PersistentClient(path="./chroma_data")
+    coll_name = chroma_collection_name()
+    chroma_path = str(chroma_dir())
+    print(f"[Chroma] Resetting '{coll_name}' collection in {chroma_path}...")
+    chroma_client = chromadb.PersistentClient(path=chroma_path)
     try:
-        chroma_client.delete_collection("codebase_nodes")
+        chroma_client.delete_collection(coll_name)
         print("[Chroma] Deleted existing collection.")
     except Exception:
         print("[Chroma] No existing collection — starting fresh.")
     collection = chroma_client.create_collection(
-        name="codebase_nodes",
+        name=coll_name,
         metadata={"hnsw:space": "cosine"}
     )
-    print("[Chroma] Created fresh 'codebase_nodes' collection.")
+    print(f"[Chroma] Created fresh '{coll_name}' collection.")
 
     # -- Walk directory and process all supported files --------------------------
     # Directories to never recurse into
@@ -428,7 +331,6 @@ def analyze_project(directory_path):
     print(f"\nFound {len(target_files)} supported file(s). Extracting...\n")
 
     total_functions = 0
-    all_neo4j_ops = []  # list of (cypher, params) tuples
 
     for fp in target_files:
         print(f"  Parsing: {fp}")
@@ -437,19 +339,9 @@ def analyze_project(directory_path):
         cls_len = len(entities['classes'])
         print(f"    -> {funcs_len} function(s), {cls_len} class(es) found")
         total_functions += funcs_len
-        all_neo4j_ops.extend(get_neo4j_ops(entities, fp))
+        apply_entities_to_store(store, entities, fp)
 
-    # -- Push all parameterized queries to Neo4j ----------------------------
-    print(f"\n[Neo4j] Executing {len(all_neo4j_ops)} parameterized queries...")
-    try:
-        with GraphDatabase.driver(URI, auth=AUTH) as driver:
-            with driver.session() as session:
-                for cypher, params in all_neo4j_ops:
-                    session.run(cypher, params)
-        print("[Neo4j] Done.")
-    except Exception as e:
-        print(f"[Neo4j] Error during write: {e}")
-        raise
+    print(f"\n[Graph] SQLite write complete ({graph_db_path()}).")
 
     print(f"\n=== Complete: {len(target_files)} file(s), {total_functions} function(s) ===\n")
     return {"files": len(target_files), "functions": total_functions}
