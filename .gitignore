@@ -8,3 +8,5 @@ dist/
 *.egg-info/
 .env
 chroma_data/
+logiclens_graph.db
+dist_installer/

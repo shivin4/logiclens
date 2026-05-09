@@ -6,7 +6,7 @@ Uses CrewAI to orchestrate three specialist agents that analyse the
 
 Agents
 ------
-1. The Investigator  — queries Neo4j for structural call-graph dependencies
+1. The Investigator  — queries the embedded graph for structural call-graph dependencies
 2. The Semantic Architect — fetches & analyses raw source code from ChromaDB
 3. The Explainer     — synthesises a developer-friendly Markdown report
 
@@ -24,35 +24,28 @@ import os
 import sys
 from typing import Any
 
-# ── Load .env FIRST so every subsequent import sees the variables ──────────────
-from dotenv import load_dotenv
-
-load_dotenv()
-
 # ── Third-party imports ────────────────────────────────────────────────────────
 try:
     from crewai import Agent, Crew, Process, Task, LLM
     from crewai.tools import BaseTool
-    from neo4j import GraphDatabase, exceptions as neo4j_exc
-    from pydantic import Field
     import chromadb
 except ImportError as e:
     sys.exit(
         f"[ERROR] Missing dependency: {e}\n"
         "Install with:\n"
-        "  pip install crewai langchain-openai neo4j chromadb python-dotenv"
+        "  pip install crewai langchain-openai chromadb python-dotenv"
     )
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 0.  Configuration (read from .env)
 # ──────────────────────────────────────────────────────────────────────────────
 
+from logiclens.config import chroma_collection_name, chroma_dir, graph_db_path, load_app_env
+from logiclens.sqlite_graph import SqliteGraphStore
+
+load_app_env()
+
 GROQ_API_KEY: str = os.environ.get("GROQ_API_KEY", "")
-NEO4J_URI: str = os.environ.get("NEO4J_URI", "neo4j://127.0.0.1:7687")
-NEO4J_USERNAME: str = os.environ.get("NEO4J_USERNAME", "neo4j")
-NEO4J_PASSWORD: str = os.environ.get("NEO4J_PASSWORD", "password123")
-CHROMA_PERSIST_PATH: str = os.environ.get("CHROMA_PERSIST_PATH", "./chroma_data")
-CHROMA_COLLECTION_NAME: str = os.environ.get("CHROMA_COLLECTION_NAME", "codebase_nodes")
 
 if not GROQ_API_KEY:
     print("[WARNING] GROQ_API_KEY is not set. What-If engine will report a system error if run.")
@@ -62,9 +55,9 @@ if not GROQ_API_KEY:
 # ──────────────────────────────────────────────────────────────────────────────
 
 
-class Neo4jBlastRadiusTool(BaseTool):
+class GraphBlastRadiusTool(BaseTool):
     """
-    Queries the Neo4j call-graph to find every function that *directly*
+    Queries the embedded SQLite call-graph to find every function that *directly*
     calls the given target function (i.e. its immediate blast radius).
 
     Input:  target_function — the exact name of the function to inspect.
@@ -72,10 +65,10 @@ class Neo4jBlastRadiusTool(BaseTool):
             or an explanatory error string on failure.
     """
 
-    name: str = "neo4j_blast_radius_tool"
+    name: str = "graph_blast_radius_tool"
     description: str = (
         "Use this tool to find all functions that directly call a given target "
-        "function in the codebase graph stored in Neo4j. "
+        "function in the codebase dependency graph (local SQLite store). "
         "Input: the exact name of the target function (a plain string). "
         "Output: a list of caller function names."
     )
@@ -83,36 +76,11 @@ class Neo4jBlastRadiusTool(BaseTool):
     def _run(self, target_function: str) -> str:  # type: ignore[override]
         target_function = target_function.strip().strip('"').strip("'")
 
-        cypher = (
-            "MATCH (caller)-[:CALLS]->(target {name: $function_name}) "
-            "RETURN caller.name AS affected_function"
-        )
-
         try:
-            driver = GraphDatabase.driver(
-                NEO4J_URI,
-                auth=(NEO4J_USERNAME, NEO4J_PASSWORD),
-            )
-            with driver.session() as session:
-                records = session.run(cypher, function_name=target_function)
-                affected: list[str] = [
-                    r["affected_function"]
-                    for r in records
-                    if r["affected_function"] is not None
-                ]
-            driver.close()
-        except neo4j_exc.AuthError:
-            return (
-                "[Neo4j ERROR] Authentication failed. "
-                "Check NEO4J_USERNAME and NEO4J_PASSWORD in .env."
-            )
-        except neo4j_exc.ServiceUnavailable:
-            return (
-                "[Neo4j ERROR] Cannot reach the database. "
-                f"Verify that Neo4j is running at {NEO4J_URI}."
-            )
+            store = SqliteGraphStore(graph_db_path())
+            affected = store.callers_of_function_name(target_function)
         except Exception as exc:  # noqa: BLE001
-            return f"[Neo4j ERROR] Unexpected error: {exc}"
+            return f"[Graph ERROR] Unexpected error: {exc}"
 
         if not affected:
             return (
@@ -155,8 +123,8 @@ class ChromaDBSourceCodeTool(BaseTool):
             return "[ChromaDB ERROR] No function names provided."
 
         try:
-            client = chromadb.PersistentClient(path=CHROMA_PERSIST_PATH)
-            collection = client.get_collection(name=CHROMA_COLLECTION_NAME)
+            client = chromadb.PersistentClient(path=str(chroma_dir()))
+            collection = client.get_collection(name=chroma_collection_name())
         except Exception as exc:  # noqa: BLE001
             return f"[ChromaDB ERROR] Could not connect to collection: {exc}"
 
@@ -165,27 +133,29 @@ class ChromaDBSourceCodeTool(BaseTool):
 
         for name in names:
             try:
-                result: dict[str, Any] = collection.get(
-                    ids=[name],
+                result = collection.get(
+                    where={"name": name},
                     include=["documents", "metadatas"],
+                    limit=50,
                 )
-                docs = result.get("documents", [])
-                metas = result.get("metadatas", [])
+                docs = result.get("documents") or []
+                metas = result.get("metadatas") or []
 
-                if not docs or docs[0] is None:
+                if not docs or all(d is None for d in docs):
                     not_found.append(name)
                     continue
 
-                source_code: str = docs[0]
-                meta: dict = metas[0] if metas else {}
-
-                header = (
-                    f"### Function: `{name}`\n"
-                    f"- **File:** {meta.get('filepath', 'N/A')}\n"
-                    f"- **Lines:** {meta.get('start_line', '?')}–{meta.get('end_line', '?')}\n"
-                    f"- **Author:** {meta.get('author', 'Unknown')}\n"
-                )
-                output_parts.append(f"{header}\n```python\n{source_code}\n```")
+                for idx, source_code in enumerate(docs):
+                    if source_code is None:
+                        continue
+                    meta: dict = metas[idx] if idx < len(metas) and metas[idx] else {}
+                    header = (
+                        f"### Function: `{name}`\n"
+                        f"- **File:** {meta.get('filepath', 'N/A')}\n"
+                        f"- **Lines:** {meta.get('start_line', '?')}–{meta.get('end_line', '?')}\n"
+                        f"- **Author:** {meta.get('author', 'Unknown')}\n"
+                    )
+                    output_parts.append(f"{header}\n```python\n{source_code}\n```")
 
             except Exception as exc:  # noqa: BLE001
                 output_parts.append(f"### Function: `{name}`\n[ERROR] {exc}")
@@ -202,7 +172,7 @@ class ChromaDBSourceCodeTool(BaseTool):
 
 
 # Instantiate tools once so agents share the same objects
-neo4j_blast_radius_tool = Neo4jBlastRadiusTool()
+graph_blast_radius_tool = GraphBlastRadiusTool()
 chromadb_source_code_tool = ChromaDBSourceCodeTool()
 
 
@@ -240,7 +210,7 @@ def build_agents(llm: LLM) -> tuple[Agent, Agent, Agent]:
     investigator = Agent(
         role="Senior Codebase Graph Analyst",
         goal=(
-            "Use the Neo4j blast-radius tool to discover the precise structural "
+            "Use the graph blast-radius tool to discover the precise structural "
             "call-graph dependencies of a given function. Return a definitive, "
             "complete list of every function that directly calls the target."
         ),
@@ -250,7 +220,7 @@ def build_agents(llm: LLM) -> tuple[Agent, Agent, Agent]:
             "You trust data from the graph database above all else and always verify "
             "your findings before passing them downstream."
         ),
-        tools=[neo4j_blast_radius_tool],
+        tools=[graph_blast_radius_tool],
         llm=llm,
         verbose=True,
         allow_delegation=False,
@@ -313,7 +283,7 @@ def build_tasks(
     # --- Task 1: Structural Dependency Discovery ------------------------------
     task_graph = Task(
         description=(
-            f"Use the `neo4j_blast_radius_tool` to find **every function** in the "
+            f"Use the `graph_blast_radius_tool` to find **every function** in the "
             f"codebase that directly calls `{target_function}`.\n\n"
             "Your output MUST be:\n"
             "1. A numbered list of all caller function names.\n"

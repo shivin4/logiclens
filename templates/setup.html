@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LogicLens — Setup</title>
+    <script src="{{ url_for('static', filename='vendor/tailwindcdn.js') }}"></script>
+    <script>
+        tailwind.config = { darkMode: "class", theme: { extend: { colors: { background: "#0b1326", on_surface: "#dae2fd" } } } };
+    </script>
+</head>
+<body class="min-h-screen bg-[#0b1326] text-[#dae2fd] p-8">
+    <div class="max-w-lg mx-auto">
+        <h1 class="text-2xl font-semibold mb-2">LogicLens setup</h1>
+        <p class="text-sm text-slate-400 mb-6">API keys are stored only on this machine under:</p>
+        <code class="block text-xs bg-slate-800 p-3 rounded mb-6 break-all">{{ data_dir }}</code>
+
+        <form id="f" class="space-y-4">
+            <div>
+                <label class="block text-sm mb-1">Groq API key (required for AI)</label>
+                <input type="password" name="groq" class="w-full rounded bg-slate-800 border border-slate-600 px-3 py-2 text-sm" autocomplete="off" required />
+            </div>
+            <div>
+                <label class="block text-sm mb-1">Gemini API key (optional)</label>
+                <input type="password" name="gemini" class="w-full rounded bg-slate-800 border border-slate-600 px-3 py-2 text-sm" autocomplete="off" />
+            </div>
+            <button type="submit" class="w-full py-2 rounded bg-sky-600 hover:bg-sky-500 text-white text-sm font-medium">Save and continue</button>
+        </form>
+        <p id="msg" class="mt-4 text-sm"></p>
+        <p class="mt-8"><a href="/" class="text-sky-400 hover:underline">Back to app</a></p>
+    </div>
+    <script>
+        document.getElementById('f').onsubmit = async (e) => {
+            e.preventDefault();
+            const msg = document.getElementById('msg');
+            msg.textContent = 'Saving…';
+            const groq = document.querySelector('[name=groq]').value;
+            const gemini = document.querySelector('[name=gemini]').value;
+            const r = await fetch('/setup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ groq_api_key: groq, gemini_api_key: gemini }) });
+            const j = await r.json();
+            if (r.ok) { msg.textContent = j.message || 'Saved.'; window.location.href = '/'; }
+            else { msg.textContent = j.error || 'Error'; }
+        };
+    </script>
+</body>
+</html>
