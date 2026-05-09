@@ -4,9 +4,22 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>LogicLens — See your codebase as a graph</title>
+  <title>LogicLens v1.1.0 — See your codebase as a graph</title>
   <meta name="description"
-    content="Local-first desktop app: dependency graphs, semantic search, git insights, and AI-powered impact analysis. No separate database server." />
+    content="LogicLens 1.1.0: local-first Windows desktop app for dependency graphs, semantic search, git context, and AI impact analysis. SQLite + ChromaDB — no separate database server." />
+  <meta name="theme-color" content="#05080f" />
+  <link rel="canonical" href="https://shivin4.github.io/logiclens/" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="LogicLens — Code dependency analyzer" />
+  <meta property="og:description"
+    content="Interactive dependency graphs, semantic search, and AI-assisted what-if analysis. Local-first on Windows." />
+  <meta property="og:url" content="https://shivin4.github.io/logiclens/" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="LogicLens — Code dependency analyzer" />
+  <meta name="twitter:description"
+    content="Interactive dependency graphs, semantic search, and AI-assisted what-if analysis. Local-first on Windows." />
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -67,7 +80,6 @@
       padding: 0 1.5rem;
     }
 
-    /* Nav */
     header.nav {
       position: sticky;
       top: 0;
@@ -171,7 +183,6 @@
       border-color: rgba(148, 163, 184, 0.25);
     }
 
-    /* Hero */
     .hero {
       padding: 4.5rem 0 5rem;
       text-align: center;
@@ -199,7 +210,7 @@
       letter-spacing: -0.04em;
       line-height: 1.1;
       margin: 0 0 1.25rem;
-      max-width: 18ch;
+      max-width: 20ch;
       margin-left: auto;
       margin-right: auto;
     }
@@ -233,7 +244,6 @@
       opacity: 0.85;
     }
 
-    /* Preview card */
     .preview {
       border-radius: var(--radius);
       border: 1px solid var(--border);
@@ -295,7 +305,6 @@
       height: 100%;
     }
 
-    /* Sections */
     section.block {
       padding: 4.5rem 0;
       border-top: 1px solid var(--border);
@@ -310,7 +319,7 @@
 
     .block .sub {
       color: var(--muted);
-      max-width: 36rem;
+      max-width: 40rem;
       margin-bottom: 2.5rem;
     }
 
@@ -357,7 +366,36 @@
       margin-bottom: 1rem;
     }
 
-    /* Why download */
+    .whatsnew {
+      border-radius: var(--radius);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      background: rgba(14, 165, 233, 0.06);
+      padding: 1.75rem 1.5rem;
+      max-width: 40rem;
+    }
+
+    .whatsnew h3 {
+      margin: 0 0 1rem;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .whatsnew ul {
+      margin: 0;
+      padding-left: 1.2rem;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .whatsnew li {
+      margin-bottom: 0.5rem;
+    }
+
+    .whatsnew li:last-child {
+      margin-bottom: 0;
+    }
+
     .why-list {
       display: grid;
       gap: 1rem;
@@ -378,7 +416,6 @@
       margin-top: 0.2rem;
     }
 
-    /* Docs */
     details.doc {
       border: 1px solid var(--border);
       border-radius: 10px;
@@ -422,7 +459,6 @@
       padding-left: 1.2rem;
     }
 
-    /* Download strip */
     .download-strip {
       border-radius: var(--radius);
       border: 1px solid rgba(56, 189, 248, 0.3);
@@ -443,6 +479,14 @@
       margin-right: auto;
     }
 
+    .download-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      justify-content: center;
+      align-items: center;
+    }
+
     footer {
       padding: 3rem 1.5rem;
       text-align: center;
@@ -455,10 +499,18 @@
       color: var(--accent);
       text-decoration: none;
     }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
   </style>
-  <!-- Configure your shipped installer URL (GitHub Releases direct link or CDN) -->
   <script>
-    const INSTALLER_URL = "https://github.com/shivin4/logiclens/releases/latest/download/LogicLens-Setup-1.1.0.exe";
+    const RELEASE_TAG = "v1.1.0";
+    const INSTALLER_NAME = "LogicLens-Setup-1.1.0.exe";
+    const INSTALLER_URL =
+      "https://github.com/shivin4/logiclens/releases/download/" + RELEASE_TAG + "/" + INSTALLER_NAME;
+    const RELEASE_NOTES_URL = "https://github.com/shivin4/logiclens/releases/tag/" + RELEASE_TAG;
+    const RELEASES_LATEST_URL = "https://github.com/shivin4/logiclens/releases/latest";
     const SOURCE_URL = "https://github.com/shivin4/logiclens";
   </script>
 </head>
@@ -475,25 +527,27 @@
       </a>
       <nav class="nav-links" aria-label="Primary">
         <a href="#features">Features</a>
+        <a href="#whatsnew">What’s new</a>
         <a href="#why">Why download</a>
         <a href="#docs">Docs</a>
         <a href="#download">Download</a>
       </nav>
-      <a class="btn btn-primary" id="nav-download" href="#download">Get the app</a>
+      <a class="btn btn-primary" id="nav-download" href="#download">Get v1.1.0</a>
     </div>
   </header>
 
   <main>
     <section class="hero wrap">
-      <div class="hero-badge">Desktop · Local-first · Windows</div>
+      <div class="hero-badge">v1.1.0 · Desktop · Local-first · Windows</div>
       <h1>Your codebase, <span>as a graph</span></h1>
       <p class="hero-lead">LogicLens parses your project, builds an interactive dependency map, and adds semantic search
         and AI-assisted impact analysis — without running a separate graph database.</p>
       <div class="hero-cta">
         <a class="btn btn-primary" id="hero-download" href="#download">Download for Windows</a>
-        <a class="btn btn-ghost" href="#docs">Read the docs</a>
+        <a class="btn btn-ghost" id="hero-release-notes" href="#" rel="noopener">Release notes</a>
+        <a class="btn btn-ghost" href="#docs">Docs</a>
       </div>
-      <p class="hero-meta">Installer includes desktop shell · Signed releases recommended for distribution</p>
+      <p class="hero-meta">Installer: LogicLens-Setup-1.1.0.exe · Code-signed builds recommended for distribution</p>
 
       <div class="preview" aria-hidden="true">
         <div class="preview-bar">
@@ -530,8 +584,8 @@
         <article class="card">
           <div class="icon">◇</div>
           <h3>Interactive graph</h3>
-          <p>Pan, zoom, and inspect nodes for files, classes, functions, and API routes. Trace callers and callees in
-            one click.</p>
+          <p>Hierarchical and physics layouts: pan, zoom, and inspect nodes for files, classes, functions, and API
+            routes. Trace callers and callees in one click.</p>
         </article>
         <article class="card">
           <div class="icon">◎</div>
@@ -545,8 +599,9 @@
         </article>
         <article class="card">
           <div class="icon">⚡</div>
-          <h3>AI explanations</h3>
-          <p>Optional Groq-powered summaries for selected functions, plus a multi-agent “what-if” blast-radius report.</p>
+          <h3>AI explanations &amp; what-if</h3>
+          <p>Optional Groq-powered summaries for selected functions, plus a CrewAI “what-if” blast-radius report streamed
+            over SSE.</p>
         </article>
         <article class="card">
           <div class="icon">⎇</div>
@@ -556,15 +611,36 @@
         <article class="card">
           <div class="icon">▣</div>
           <h3>IDE-style workflow</h3>
-          <p>File menu, recent projects, native folder picker, and optional side-by-side windows.</p>
+          <p>Onboarding wizard, file menu, recent projects, in-app updates check, native folder picker, and optional
+            side-by-side windows.</p>
         </article>
+      </div>
+    </section>
+
+    <section class="block wrap" id="whatsnew">
+      <h2>What’s new in v1.1.0</h2>
+      <p class="sub">This release tightens the desktop experience, incremental analysis, and AI plumbing for packaged
+        builds.</p>
+      <div class="whatsnew">
+        <h3>Highlights</h3>
+        <ul>
+          <li><strong style="color:var(--text)">First-run onboarding</strong> — configure Groq (and optional keys),
+            then pick a folder and analyze.</li>
+          <li><strong style="color:var(--text)">Incremental analyze</strong> — fingerprints and SQLite/Chroma sync skip
+            unchanged files when you re-run Analyze on the same project.</li>
+          <li><strong style="color:var(--text)">Graph UX</strong> — hierarchy and physics modes, clearer label contrast,
+            and smoother navigation on large graphs.</li>
+          <li><strong style="color:var(--text)">Updates</strong> — Settings checks GitHub Releases for a newer version.</li>
+          <li><strong style="color:var(--text)">Accessibility &amp; packaging</strong> — focus-visible styles, settings
+            dialog semantics, PyInstaller bundle fixes for what-if and embeddings.</li>
+        </ul>
       </div>
     </section>
 
     <section class="block wrap" id="why">
       <h2>Why download LogicLens?</h2>
-      <p class="sub">If you onboard to unfamiliar codebases, review refactors, or need interview-worthy portfolio
-        software, LogicLens is built to shorten the “where does this call go?” loop.</p>
+      <p class="sub">If you onboard to unfamiliar codebases, review refactors, or want interview-worthy portfolio
+        software, LogicLens shortens the “where does this call go?” loop.</p>
       <div class="why-list">
         <div class="why-item">
           <strong>01</strong>
@@ -591,27 +667,30 @@
 
     <section class="block wrap" id="docs">
       <h2>Documentation</h2>
-      <p class="sub">Quick answers for installers and first-time users. Full developer docs live in the repository
+      <p class="sub">Quick answers for installers and first-time users. Full developer docs are in the repository
         README.</p>
 
       <details class="doc" open>
         <summary>Install (Windows)</summary>
         <div class="doc-body">
           <ol style="margin:0;padding-left:1.2rem">
-            <li>Download <code>LogicLens-Setup-x.y.z.exe</code> from the releases page.</li>
+            <li>Download <code>LogicLens-Setup-1.1.0.exe</code> from the <a href="#" id="doc-release-link" rel="noopener"
+                style="color:var(--accent)">v1.1.0 release</a> (or <a id="doc-releases-link" href="#" rel="noopener"
+                style="color:var(--accent)">all releases</a>).</li>
             <li>Run the installer (per-user install, no admin required by default).</li>
             <li>Launch <strong>LogicLens</strong> from the Start Menu or desktop shortcut.</li>
-            <li>Use <strong>File → Open project</strong> or the welcome screen to pick a repository folder, then analyze.
-            </li>
+            <li>Use <strong>File → Open project</strong> or the welcome screen to pick a repository folder, then
+              analyze.</li>
           </ol>
         </div>
       </details>
       <details class="doc">
         <summary>API keys (Groq)</summary>
         <div class="doc-body">
-          AI explanations and what-if reports need a <strong>Groq API key</strong>. After install, open
-          <strong>Settings</strong> in the app and follow the link to the setup page, or create
-          <code>%LOCALAPPDATA%\LogicLens\.env</code> with <code>GROQ_API_KEY=...</code>.
+          AI explanations and what-if reports need a <strong>Groq API key</strong>. After install, complete onboarding
+          or open <strong>Settings</strong> in the app, or create
+          <code>%LOCALAPPDATA%\LogicLens\.env</code> with <code>GROQ_API_KEY=...</code>. See <code>.env.example</code> in
+          the repo for all options.
         </div>
       </details>
       <details class="doc">
@@ -632,10 +711,13 @@
 
     <section class="block wrap" id="download">
       <div class="download-strip">
-        <h2>Download LogicLens for Windows</h2>
-        <p>Get the latest <strong>setup.exe</strong> from your release pipeline. This button uses the URL configured at
-          the top of this HTML file.</p>
-        <a class="btn btn-primary" id="download-btn" href="#" rel="noopener">Download LogicLens Setup</a>
+        <h2>Download LogicLens v1.1.0 for Windows</h2>
+        <p>Grab the signed or unsigned <strong>setup.exe</strong> from GitHub Releases. After you publish the release,
+          this button downloads the v1.1.0 asset by name.</p>
+        <div class="download-actions">
+          <a class="btn btn-primary" id="download-btn" href="#" rel="noopener">Download LogicLens-Setup-1.1.0.exe</a>
+          <a class="btn btn-ghost" id="download-all-releases" href="#" rel="noopener">All releases</a>
+        </div>
         <p style="margin-top:1.25rem;font-size:0.8rem;color:var(--muted)">Windows 10/11 · x64 · ~300MB+ installed
           (includes ML/embeddings dependencies)</p>
       </div>
@@ -643,9 +725,14 @@
   </main>
 
   <footer>
-    <p>LogicLens — local-first code intelligence · <a id="footer-source" href="#">Source on GitHub</a></p>
-    <p style="margin-top:0.5rem;opacity:0.75">Replace placeholder GitHub URLs in the &lt;script&gt; block before going
-      live.</p>
+    <p>LogicLens — local-first code intelligence</p>
+    <p style="margin-top:0.75rem">
+      <a id="footer-source" href="#" rel="noopener">Source on GitHub</a>
+      ·
+      <a id="footer-releases" href="#" rel="noopener">Releases</a>
+    </p>
+    <p style="margin-top:1rem;opacity:0.8;font-size:0.8rem">If you use GitHub Pages, set the canonical and Open Graph
+      URL in <code>&lt;head&gt;</code> to match your live site.</p>
   </footer>
 
   <script>
@@ -653,15 +740,25 @@
       const dl = document.getElementById("download-btn");
       const hero = document.getElementById("hero-download");
       const nav = document.getElementById("nav-download");
+      const heroNotes = document.getElementById("hero-release-notes");
       const src = document.getElementById("footer-source");
+      const rel = document.getElementById("footer-releases");
+      const docRel = document.getElementById("doc-release-link");
+      const docAll = document.getElementById("doc-releases-link");
+      const dlAll = document.getElementById("download-all-releases");
       if (typeof INSTALLER_URL !== "undefined") {
         dl.href = INSTALLER_URL;
         hero.href = INSTALLER_URL;
         nav.href = INSTALLER_URL;
       }
-      if (typeof SOURCE_URL !== "undefined") {
-        src.href = SOURCE_URL;
+      if (typeof RELEASE_NOTES_URL !== "undefined") heroNotes.href = RELEASE_NOTES_URL;
+      if (typeof SOURCE_URL !== "undefined") src.href = SOURCE_URL;
+      if (typeof RELEASES_LATEST_URL !== "undefined") {
+        rel.href = RELEASES_LATEST_URL;
+        docAll.href = RELEASES_LATEST_URL;
+        dlAll.href = RELEASES_LATEST_URL;
       }
+      if (typeof RELEASE_NOTES_URL !== "undefined") docRel.href = RELEASE_NOTES_URL;
     })();
   </script>
 </body>

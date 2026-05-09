@@ -12,6 +12,10 @@ pyinstaller
 crewai==1.14.1
 langchain-openai
 google-generativeai
+# CrewAI Groq models use LiteLLM; instructor may import the Groq SDK.
+litellm>=1.0.0
+tiktoken>=0.7.0
+groq>=0.4.0
 
 # Additional parsers
 tree-sitter-javascript

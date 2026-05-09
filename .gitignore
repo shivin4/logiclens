@@ -10,6 +10,7 @@ dist/
 .env
 chroma_data/
 logiclens_graph.db
+recent_folders.json
 dist_installer/
 
 # Local experiments / one-off tests (kept locally, not shipped in repo)
@@ -22,3 +23,4 @@ neo_test2.py
 .pytest_cache/
 .coverage
 htmlcov/
+_tmp_chroma_smoke/

@@ -40,6 +40,22 @@ def load_app_env() -> None:
     if env_in_data.is_file():
         load_dotenv(env_in_data)
     load_dotenv()
+    _apply_packaged_chroma_defaults()
+
+
+def _apply_packaged_chroma_defaults() -> None:
+    """PyInstaller: Chroma's default telemetry loads PostHog, which is easy to miss in
+    the frozen bundle. Rust bindings still need ``chromadb_rust_bindings`` in the spec.
+
+    Override with ``CHROMA_PRODUCT_TELEMETRY_IMPL`` in .env if needed.
+    """
+    if not is_packaged():
+        return
+    os.environ.setdefault(
+        "CHROMA_PRODUCT_TELEMETRY_IMPL",
+        "logiclens.chroma_noop_telemetry.NoopProductTelemetry",
+    )
+    os.environ.setdefault("ANONYMIZED_TELEMETRY", "false")
 
 
 def graph_db_path() -> Path:

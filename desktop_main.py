@@ -58,7 +58,29 @@ def _spawn_second_desktop_instance() -> None:
 
 
 class DesktopApi:
-    """JS API for pywebview (File → New Window)."""
+    """JS API for pywebview (folder picker, File → New Window)."""
+
+    def pick_folder(self) -> str | None:
+        """Native folder dialog (required when frozen: sys.executable is the .exe, not Python)."""
+        win = webview.active_window()
+        if win is None and webview.windows:
+            win = webview.windows[0]
+        if win is None:
+            return None
+        try:
+            selected = win.create_file_dialog(
+                webview.FOLDER_DIALOG,
+                directory="",
+                allow_multiple=False,
+            )
+        except Exception:
+            return None
+        if not selected:
+            return None
+        path = selected[0]
+        if path and os.path.isdir(path):
+            return path
+        return None
 
     def new_window(self) -> bool:
         _spawn_second_desktop_instance()
@@ -76,8 +98,9 @@ def main() -> None:
     webview.create_window(
         "LogicLens",
         url,
-        width=1320,
-        height=860,
+        width=1440,
+        height=920,
+        min_size=(1000, 680),
         js_api=DesktopApi(),
     )
     webview.start()

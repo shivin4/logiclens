@@ -402,8 +402,6 @@ def analyze_project(directory_path):
 
     store = _graph_store()
     chroma_path = str(chroma_dir())
-    chroma_client = chromadb.PersistentClient(path=chroma_path)
-    coll_name = project_key
 
     target_files = []
     for root, dirs, files in os.walk(directory_path):
@@ -429,6 +427,40 @@ def analyze_project(directory_path):
 
     file_keys = [normalize_project_file_path(fp) for fp in target_files]
     key_to_fp = dict(zip(file_keys, target_files))
+
+    if (
+        not force_full
+        and manifest_ok
+        and not project_switched
+        and manifest.get("root") == norm_root
+    ):
+        old_files = manifest.get("files") or {}
+        if (
+            prev_graph_root == norm_root
+            and set(file_keys) == set(old_files.keys())
+            and all(
+                _file_fingerprint(key_to_fp[nk]) == old_files.get(nk)
+                for nk in file_keys
+            )
+            and store.node_count() > 0
+        ):
+            graph_fn_count = len(store.list_function_names())
+            print(
+                "[Analyze] No file changes — reusing cached graph "
+                f"({graph_fn_count} functions).\n"
+            )
+            return {
+                "files": len(target_files),
+                "functions": graph_fn_count,
+                "functions_parsed_this_run": 0,
+                "incremental": True,
+                "skipped_unchanged": True,
+                "updated_files": 0,
+                "skipped_files": len(target_files),
+            }
+
+    chroma_client = chromadb.PersistentClient(path=chroma_path)
+    coll_name = project_key
 
     do_full = force_full or not manifest_ok or project_switched
     if project_switched and not force_full:
