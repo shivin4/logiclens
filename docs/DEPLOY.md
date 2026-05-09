@@ -2,6 +2,8 @@
 
 The site is **`docs/index.html`** (static). Host it anywhere that serves static files.
 
+**Logo:** `docs/logo.svg` is a copy of **`logo/logo.svg`** so GitHub Pages can serve it (only the `docs/` tree is published). After changing the master logo, copy it here again.
+
 ## GitHub Pages (recommended)
 
 **Important:** “Deploy from a branch” only supports folder **`/ (root)`** or **`/docs`** — not `/landing`. This repo keeps the site under **`docs/`** so you can pick **`/docs`** in the UI.
