@@ -9,6 +9,8 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
+from logiclens.config import normalize_project_file_path
+
 
 def _stable_id(label: str, **keys: str | int | float | None) -> str:
     payload = json.dumps({"label": label, **keys}, sort_keys=True, default=str)
@@ -58,6 +60,42 @@ class SqliteGraphStore:
         with self._connect() as conn:
             conn.execute("DELETE FROM edges")
             conn.execute("DELETE FROM nodes")
+
+    def delete_file_subgraph(self, norm_path: str) -> int:
+        """
+        Remove all nodes with file == norm_path and any incident edges.
+        Returns the number of nodes removed.
+        """
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT id FROM nodes WHERE file = ?", (norm_path,)
+            ).fetchall()
+            ids = [r["id"] for r in rows]
+            if not ids:
+                return 0
+            placeholders = ",".join("?" * len(ids))
+            conn.execute(
+                f"DELETE FROM edges WHERE src IN ({placeholders}) OR dst IN ({placeholders})",
+                ids + ids,
+            )
+            conn.execute(
+                f"DELETE FROM nodes WHERE id IN ({placeholders})",
+                ids,
+            )
+        return len(ids)
+
+    def prune_orphan_api_routes(self) -> int:
+        """Remove APIRoute nodes that have no edges (e.g. after incremental file removal)."""
+        with self._connect() as conn:
+            cur = conn.execute(
+                """
+                DELETE FROM nodes
+                WHERE label = 'APIRoute'
+                  AND id NOT IN (SELECT src FROM edges)
+                  AND id NOT IN (SELECT dst FROM edges)
+                """
+            )
+            return int(cur.rowcount) if cur.rowcount is not None else 0
 
     def node_count(self) -> int:
         with self._connect() as conn:
@@ -223,7 +261,7 @@ class SqliteGraphStore:
 
 def apply_entities_to_store(store: SqliteGraphStore, entities: dict[str, Any], file_path: str) -> None:
     """Mirror get_neo4j_ops semantics using SqliteGraphStore."""
-    norm_path = file_path.replace("\\", "/")
+    norm_path = normalize_project_file_path(file_path)
     classes = entities["classes"]
     functions = entities["functions"]
 

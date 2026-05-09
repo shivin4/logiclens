@@ -43,12 +43,8 @@ The extractor currently scans these extensions:
 
 1. User submits a target folder path via `POST /api/analyze`.
 2. `extractor.analyze_project()`:
-   - clears existing SQLite graph data,
-   - resets Chroma collection `codebase_nodes`,
-   - walks supported files (skipping common build/env folders),
-   - parses classes/functions/calls/API-route patterns,
-   - writes nodes/edges to SQLite,
-   - upserts source code blocks + metadata into ChromaDB.
+   - **Incremental (default):** for the same project root, compares each file’s `mtime + size` to a manifest in the app data dir; only **added, changed, or deleted** files are re-parsed; vectors for removed files are dropped from Chroma and nodes are removed from SQLite. Set `LOGICLENS_FULL_ANALYZE=1` to wipe the graph and Chroma collection and re-index everything.
+   - **Full:** when switching projects, the manifest does not match, or you force a full run — clears SQLite, recreates the per-project Chroma collection, walks all supported files (skipping common build/env folders), parses classes/functions/calls/API-route patterns, writes nodes/edges to SQLite, and upserts source into ChromaDB.
 3. UI calls APIs to render graph and details.
 
 ### 2) Data Stores
@@ -61,7 +57,7 @@ The extractor currently scans these extensions:
   - `CALLS_API`
 - ChromaDB:
   - persistent path defaults to the app data directory (`%LOCALAPPDATA%\\LogicLens\\chroma_data` on Windows when packaged; project root in dev)
-  - collection name defaults to `codebase_nodes`
+  - one **collection per project folder** (`ll_proj_<hash>`), with stable vector ids per file + symbol (no basename collisions)
 
 ### 3) What-If Engine
 
