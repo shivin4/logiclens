@@ -12,6 +12,8 @@ from logiclens.config import (
 load_app_env()
 
 import os
+import subprocess
+import sys
 import git
 
 from flask import Flask, request, jsonify, render_template, Response, send_from_directory
@@ -91,6 +93,59 @@ def api_health():
         return jsonify({"status": "error", "error": str(e)}), 500
 
 
+def _is_localhost_request() -> bool:
+    addr = (request.remote_addr or "").replace("::ffff:", "")
+    return addr in ("127.0.0.1", "::1", "localhost")
+
+
+# Runs in a subprocess so tkinter is on the main thread of that process (Waitress-safe).
+_PICK_FOLDER_PY = (
+    "import tkinter as tk\n"
+    "from tkinter import filedialog\n"
+    "r = tk.Tk()\n"
+    "r.withdraw()\n"
+    "try:\n"
+    "    r.attributes('-topmost', True)\n"
+    "except tk.TclError:\n"
+    "    pass\n"
+    "p = filedialog.askdirectory(mustexist=True) or ''\n"
+    "print(p, end='')\n"
+    "r.destroy()\n"
+)
+
+
+@app.route("/api/pick_folder", methods=["POST"])
+def api_pick_folder():
+    """Open the OS folder picker on the machine running Flask (this PC). Localhost only."""
+    if not _is_localhost_request():
+        return jsonify(
+            {
+                "error": "Folder picker only works when you open LogicLens on this computer "
+                "(not over the network).",
+            }
+        ), 403
+    try:
+        proc = subprocess.run(
+            [sys.executable, "-c", _PICK_FOLDER_PY],
+            capture_output=True,
+            text=True,
+            timeout=300,
+        )
+        path = (proc.stdout or "").strip()
+        if proc.returncode != 0:
+            err = (proc.stderr or "").strip() or "folder dialog failed"
+            return jsonify({"error": err}), 500
+        if not path:
+            return jsonify({"cancelled": True})
+        if not os.path.isdir(path):
+            return jsonify({"error": "Invalid folder selected."}), 400
+        return jsonify({"path": path})
+    except subprocess.TimeoutExpired:
+        return jsonify({"error": "Folder dialog timed out."}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/analyze", methods=["POST"])
 def api_analyze():
     global current_repo_path
@@ -122,7 +177,13 @@ def api_graph():
 
 
 def get_dir_tree(path):
-    ignores = {'.git', '__pycache__', '.venv', 'venv', 'node_modules', 'chroma_data', '.idea', '.vscode'}
+    from logiclens.scan_ignore import SKIP_DIR_NAMES
+
+    ignores = {
+        '.idea',
+        '.vscode',
+        *SKIP_DIR_NAMES,
+    }
     try:
         if not os.path.isdir(path):
             return None
@@ -253,7 +314,11 @@ def api_explain():
         import urllib.error
         import json
 
-        prompt = f"Explain exactly what this Python {node_type} does. Be concise, use a maximum of 2 sentences. Write it in plain English suitable for a developer overview. At the very end of your response, add a new line with exactly 'CONFIDENCE: X' where X is a score from 1-100 indicating how certain you are of this explanation.\n\n```python\n{code_segment[:8000]}\n```"
+        prompt = (
+            f"Explain exactly what this {node_type} does. Be concise: at most 2 sentences. "
+            f"Plain English for a developer overview. Do not include scores, ratings, or confidence labels.\n\n"
+            f"```python\n{code_segment[:8000]}\n```"
+        )
 
         url = "https://api.groq.com/openai/v1/chat/completions"
         headers = {
@@ -271,13 +336,9 @@ def api_explain():
         req = urllib.request.Request(url, data=json.dumps(data).encode('utf-8'), headers=headers, method="POST")
         with urllib.request.urlopen(req) as response:
             res_body = response.read()
-            text = json.loads(res_body)["choices"][0]["message"]["content"]
+            text = json.loads(res_body)["choices"][0]["message"]["content"].strip()
 
-        parts = text.split("CONFIDENCE:")
-        explanation = parts[0].strip()
-        confidence = parts[1].strip() if len(parts) > 1 else "N/A"
-
-        return jsonify({"status": "success", "explanation": explanation, "confidence": confidence})
+        return jsonify({"status": "success", "explanation": text})
     except Exception as e:
         return jsonify({"error": f"AI Generation Failed: {e}"}), 500
 

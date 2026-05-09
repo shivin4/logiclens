@@ -58,5 +58,29 @@ def flask_port() -> int:
     return int(os.environ.get("FLASK_PORT", "5000"))
 
 
+def ensure_flask_port_allocated() -> int:
+    """
+    First free TCP port from FLASK_PORT (default 5000), up to 64 tries.
+    Sets os.environ['FLASK_PORT'] for Waitress and the webview URL.
+    Avoids port clashes when opening multiple desktop windows.
+    """
+    import socket
+
+    host = flask_host()
+    base = int(os.environ.get("FLASK_PORT", "5000"))
+    for port in range(base, base + 64):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            try:
+                sock.bind((host, port))
+            except OSError:
+                continue
+            os.environ["FLASK_PORT"] = str(port)
+            return port
+    hi = base + 63
+    raise RuntimeError(
+        f"Could not bind LogicLens server on {host} ports {base}-{hi}."
+    )
+
+
 def use_debug_server() -> bool:
     return os.environ.get("LOGICLENS_DEBUG", "").lower() in ("1", "true", "yes")

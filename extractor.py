@@ -7,6 +7,7 @@ import chromadb
 import re
 
 from logiclens.config import chroma_collection_name, chroma_dir, graph_db_path, load_app_env
+from logiclens.scan_ignore import prune_walk_dirs, should_skip_parsed_file
 
 load_app_env()
 from logiclens.sqlite_graph import SqliteGraphStore, apply_entities_to_store
@@ -310,19 +311,17 @@ def analyze_project(directory_path):
     print(f"[Chroma] Created fresh '{coll_name}' collection.")
 
     # -- Walk directory and process all supported files --------------------------
-    # Directories to never recurse into
-    SKIP_DIRS = {'.venv', 'venv', 'env', '__pycache__', '.git',
-                 'node_modules', '.tox', 'dist', 'build', '.eggs',
-                 '.mypy_cache', '.pytest_cache', 'site-packages'}
-
     target_files = []
     for root, dirs, files in os.walk(directory_path):
-        # Prune dirs in-place so os.walk won't descend into them
-        dirs[:] = [d for d in dirs if d not in SKIP_DIRS and not d.startswith('.')]
+        prune_walk_dirs(dirs)
         for fname in files:
             ext = os.path.splitext(fname)[1].lower()
-            if ext in LANGUAGES:
-                target_files.append(os.path.join(root, fname))
+            if ext not in LANGUAGES:
+                continue
+            fp = os.path.join(root, fname)
+            if should_skip_parsed_file(fp):
+                continue
+            target_files.append(fp)
 
     if not target_files:
         print(f"No supported code files found in {directory_path}")

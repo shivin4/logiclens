@@ -2,6 +2,7 @@
 __pycache__/
 *.pyc
 .DS_Store
+Thumbs.db
 node_modules/
 build/
 dist/
@@ -10,3 +11,14 @@ dist/
 chroma_data/
 logiclens_graph.db
 dist_installer/
+
+# Local experiments / one-off tests (kept locally, not shipped in repo)
+test_java_debug.py
+test_chroma.py
+test_java.java
+neo_test.py
+neo_test2.py
+
+.pytest_cache/
+.coverage
+htmlcov/

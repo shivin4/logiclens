@@ -131,6 +131,8 @@ python app.py
 python desktop_main.py
 ```
 
+Each desktop instance picks a free port (5000, then 5001, …) so **File → New Window** can spawn a second native window without port clashes. In a normal browser (no pywebview), New Window still opens a new tab.
+
 Open:
 
 - UI: `http://127.0.0.1:5000`
@@ -138,9 +140,18 @@ Open:
 
 ## Packaging (Windows)
 
+See **[packaging/BUILD_INSTALLER.md](packaging/BUILD_INSTALLER.md)** for the full pipeline.
+
 1. `pip install pyinstaller`
 2. From the repo root: `pyinstaller packaging/logiclens.spec`
-3. Output: `dist/LogicLens/` (folder build). Install [Inno Setup](https://jrsoftware.org/isinfo.php) and open `packaging/installer.iss` to build `LogicLens-Setup-x.y.z.exe` (adjust paths and version as needed).
+3. Output: `dist/LogicLens/` (folder build).
+4. Install [Inno Setup 6](https://jrsoftware.org/isinfo.php), open `packaging/installer.iss`, generate a **unique AppId** (Tools → Generate GUID), update version/publisher URL, then compile → `dist_installer/LogicLens-Setup-x.y.z.exe`.
+
+The installer uses a **per-user** path (`%LocalAppData%\Programs\LogicLens`), **Start Menu** shortcuts with `AppUserModelID`, and **HKCU App Paths** so Windows Search and Run can resolve `LogicLens.exe` after indexing.
+
+## Landing page (downloads & docs)
+
+The marketing site lives in **[landing/index.html](landing/index.html)**. Edit the `INSTALLER_URL` and `SOURCE_URL` script constants, then host the folder on [GitHub Pages](https://pages.github.com/), Netlify, or Vercel — see **[landing/DEPLOY.md](landing/DEPLOY.md)**.
 
 Optional direct CLI runs:
 
@@ -158,11 +169,12 @@ python whatif_engine.py --function function_name
 
 - `GET /` - UI page
 - `POST /api/analyze` - Analyze a repository path
+- `POST /api/pick_folder` - Open a native folder dialog on the PC running the server (localhost only); returns `{"path": "..."}` or `{"cancelled": true}`
 - `GET /api/graph` - Fetch all graph nodes/edges
 - `GET /api/explorer?path=...` - Directory tree explorer
 - `GET /api/trace?node_id=...` - Incoming/outgoing dependencies
 - `GET /api/source?file=...&name=...&type=...` - Extract source block
-- `GET /api/explain?file=...&name=...&type=...` - Groq short explanation + confidence
+- `GET /api/explain?file=...&name=...&type=...` - Groq short explanation
 
 ### Insights & AI
 
@@ -184,6 +196,7 @@ python whatif_engine.py --function function_name
 
 ## Current Limitations
 
+- Analysis skips common dependency and build folders (`vendor`, `node_modules`, `.next`, `dist`, `build`, etc.), minified `*.min.js`, and very large JS/TS files (see `LOGICLENS_MAX_JS_BYTES` in `.env.example`). A Go `vendor/` tree is therefore excluded from the graph by design.
 - Re-analysis is destructive: it clears existing SQLite graph and Chroma data before indexing.
 - `CALLS` edges are currently linked only when callee names are defined in the same file (cross-file resolution is limited).
 - The what-if Chroma lookup may miss source blocks because extractor IDs include a file/type prefix while retrieval uses plain function names.
@@ -202,6 +215,8 @@ python whatif_engine.py --function function_name
   - install all requirements, and ensure CrewAI-related dependencies resolve correctly in your environment.
 - AI explanation unavailable:
   - set `GROQ_API_KEY` in `.env` and restart the server.
+- Graph is a dense “hairball” or counts thousands of functions from a small file set:
+  - you are likely indexing bundled assets; `vendor/` and similar dirs are skipped by default. For stray huge `.js` files, lower `LOGICLENS_MAX_JS_BYTES` in `.env` so they are skipped.
 
 ## Security Notes
 
