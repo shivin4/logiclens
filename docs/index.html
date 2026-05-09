@@ -9,6 +9,7 @@
     content="LogicLens 1.1.0: local-first Windows desktop app for dependency graphs, semantic search, git context, and AI impact analysis. SQLite + ChromaDB — no separate database server." />
   <meta name="theme-color" content="#05080f" />
   <link rel="canonical" href="https://shivin4.github.io/logiclens/" />
+  <link rel="icon" href="logo.svg" type="image/svg+xml" />
 
   <meta property="og:type" content="website" />
   <meta property="og:title" content="LogicLens 1.1.0 — Code dependency analyzer" />
@@ -114,8 +115,9 @@
       width: 2rem;
       height: 2rem;
       border-radius: 8px;
-      background: linear-gradient(135deg, var(--accent), #6366f1);
-      opacity: 0.95;
+      display: block;
+      object-fit: contain;
+      flex-shrink: 0;
     }
 
     .nav-links {
@@ -522,7 +524,7 @@
   <header class="nav">
     <div class="nav-inner">
       <a class="brand" href="#">
-        <span class="brand-mark" aria-hidden="true"></span>
+        <img class="brand-mark" src="logo.svg" width="32" height="32" alt="" decoding="async" />
         LogicLens
       </a>
       <nav class="nav-links" aria-label="Primary">
