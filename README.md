@@ -128,7 +128,7 @@ All paths are under the **app data directory** unless you set `LOGICLENS_DATA_DI
 | **[packaging/BUILD_INSTALLER.md](packaging/BUILD_INSTALLER.md)** | PyInstaller → Inno Setup pipeline |
 | **[packaging/SIGNING.md](packaging/SIGNING.md)** | Code-sign `LogicLens.exe` and the installer for fewer SmartScreen warnings |
 
-**Version bump checklist:** sync `logiclens/version.py` (`_DEFAULT_VERSION`), `packaging/installer.iss` (`MyAppVersion`), `landing/index.html` (`INSTALLER_URL` asset name), and your GitHub Release asset filename.
+**Version bump checklist:** sync `logiclens/version.py` (`_DEFAULT_VERSION`), `packaging/installer.iss` (`MyAppVersion`), `docs/index.html` (`INSTALLER_URL` asset name), and your GitHub Release asset filename.
 
 ```powershell
 pyinstaller packaging\logiclens.spec
@@ -140,7 +140,7 @@ pyinstaller packaging\logiclens.spec
 
 ## Landing page
 
-Static site: **[landing/index.html](landing/index.html)** — set `INSTALLER_URL` / `SOURCE_URL`, host on GitHub Pages / Netlify / Vercel — **[landing/DEPLOY.md](landing/DEPLOY.md)**.
+Static site: **[docs/index.html](docs/index.html)** — set `INSTALLER_URL` / `SOURCE_URL`, host on GitHub Pages / Netlify / Vercel — **[docs/DEPLOY.md](docs/DEPLOY.md)** (Pages: branch `main`, folder **`/docs`**).
 
 ---
 
