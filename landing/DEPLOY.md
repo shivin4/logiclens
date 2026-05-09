@@ -4,10 +4,20 @@ The site is a **static** `index.html` (plus this file). Host it anywhere that se
 
 ## GitHub Pages
 
-1. Push the `landing` folder on branch `main`.
-2. Repository **Settings → Pages** → Source: branch `main`, folder **`/landing`** (or copy `index.html` into `/docs` and use `/docs`).
-3. URLs in `index.html` are preset for **`shivin4/logiclens`**: installer download, releases, and source. Adjust the `canonical` and `og:url` meta tags if you use a **custom domain**.
-4. After each release, bump **`RELEASE_TAG`**, **`INSTALLER_NAME`**, titles, and hero copy in `index.html` (keep them aligned with `logiclens/version.py` and `packaging/installer.iss`).
+Use this when the site files live in **`landing/`** on **`main`** (already pushed).
+
+1. Open **Settings → Pages** for the repo:  
+   `https://github.com/shivin4/logiclens/settings/pages`
+2. Under **Build and deployment**, set **Source** to **Deploy from a branch**.
+3. **Branch**: `main` / **`/landing`** (the `/landing` folder option in the second dropdown), then **Save**.
+4. Wait one to three minutes. The site URL is:  
+   **`https://shivin4.github.io/logiclens/`**  
+   If you see 404, hard-refresh or wait for the first build to finish; confirm **Pages** shows a green “last deployed” state.
+5. **`index.html`** is already wired for **`shivin4/logiclens`**: installer URL, releases, and source links. **`canonical`** and **`og:url`** point at the GitHub Pages URL above; change both only if you add a **custom domain** (to that domain’s `https://…` URL).
+6. **Naming**: user-facing copy uses **LogicLens 1.1.0** (release title style). The Git **tag** for downloads stays **`v1.1.0`** — that value is `RELEASE_TAG` in the `<script>` block and must match the tag on the GitHub Release.
+7. After each release, bump **`RELEASE_TAG`**, **`INSTALLER_NAME`**, titles, and hero copy in `landing/index.html` (keep them aligned with `logiclens/version.py` and `packaging/installer.iss`).
+
+**Alternative:** copy `landing/index.html` into **`docs/`** on `main`, then in Pages choose branch `main` / folder **`/docs`**.
 
 ## Netlify / Vercel
 
