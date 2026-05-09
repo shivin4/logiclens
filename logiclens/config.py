@@ -14,6 +14,11 @@ def is_packaged() -> bool:
     return bool(getattr(sys, "frozen", False))
 
 
+def normalize_project_file_path(path: str) -> str:
+    """Stable key for manifests, Chroma metadata filepath, and SQLite node.file."""
+    return os.path.normcase(os.path.normpath(os.path.abspath(path))).replace("\\", "/")
+
+
 def get_data_dir() -> Path:
     """User-writable directory for graph DB, Chroma, and local .env."""
     override = os.environ.get("LOGICLENS_DATA_DIR")

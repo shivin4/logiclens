@@ -1,12 +1,23 @@
+import hashlib
+import json
 import os
+import re
+from pathlib import Path
+
+import chromadb
 import git
 import tree_sitter
-from tree_sitter import Language, Parser, Query
 import tree_sitter_python as tspython
-import chromadb
-import re
+from tree_sitter import Language, Parser, Query
 
-from logiclens.config import chroma_collection_for_project, chroma_dir, graph_db_path, load_app_env
+from logiclens.config import (
+    chroma_collection_for_project,
+    chroma_dir,
+    get_data_dir,
+    graph_db_path,
+    load_app_env,
+    normalize_project_file_path,
+)
 from logiclens.scan_ignore import prune_walk_dirs, should_skip_parsed_file
 
 load_app_env()
@@ -79,6 +90,79 @@ def _graph_store() -> SqliteGraphStore:
     return SqliteGraphStore(graph_db_path())
 
 
+ANALYSIS_MANIFEST_VERSION = 2
+
+
+def _chroma_entity_id(norm_path: str, kind: str, name: str) -> str:
+    """Stable Chroma id per file + kind + symbol (avoids basename collisions)."""
+    payload = f"{norm_path}\0{kind}\0{name}".encode("utf-8")
+    return "e" + hashlib.sha256(payload).hexdigest()[:31]
+
+
+def _file_fingerprint(path: str) -> str:
+    """Fast change detection: size + mtime (nanoseconds)."""
+    st = os.stat(path)
+    return f"{st.st_mtime_ns}:{st.st_size}"
+
+
+def _manifest_path_for_project(project_key: str) -> Path:
+    return get_data_dir() / f"analysis_manifest_{project_key}.json"
+
+
+def _last_graph_root_path() -> Path:
+    return get_data_dir() / "last_graph_project_root.txt"
+
+
+def _read_last_graph_root() -> str:
+    p = _last_graph_root_path()
+    if not p.is_file():
+        return ""
+    try:
+        return p.read_text(encoding="utf-8").strip()
+    except OSError:
+        return ""
+
+
+def _write_last_graph_root(norm_root: str) -> None:
+    p = _last_graph_root_path()
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(norm_root, encoding="utf-8")
+
+
+def _load_analysis_manifest(path: Path) -> dict | None:
+    if not path.is_file():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
+def _save_analysis_manifest(path: Path, data: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, indent=2, sort_keys=True), encoding="utf-8")
+
+
+def _get_or_create_chroma_collection(chroma_client: chromadb.PersistentClient, coll_name: str):
+    try:
+        return chroma_client.get_collection(coll_name)
+    except Exception:
+        return chroma_client.create_collection(
+            name=coll_name,
+            metadata={"hnsw:space": "cosine"},
+        )
+
+
+def _chroma_delete_vectors_for_file(collection, norm_path: str) -> None:
+    try:
+        res = collection.get(where={"filepath": norm_path}, include=[])
+        ids = res.get("ids") or []
+        if ids:
+            collection.delete(ids=ids)
+    except Exception as exc:
+        print(f"  [Chroma] Could not purge vectors for {norm_path}: {exc}")
+
+
 def get_author(file_path, line_number):
     try:
         repo = git.Repo(os.path.dirname(file_path), search_parent_directories=True)
@@ -113,7 +197,9 @@ def scan_vulnerabilities(raw_code):
 def extract_entities_from_file(file_path, chroma_collection):
     """Parse a single file and return lists of class and function dicts,
     upserting each entity into ChromaDB. Also returns basic file metadata."""
-    
+
+    norm_meta = normalize_project_file_path(file_path)
+
     ext = os.path.splitext(file_path)[1].lower()
     if ext not in LANGUAGES or ext not in CONFIGS:
         return {'functions': [], 'classes': [], 'file_path': file_path}
@@ -166,15 +252,18 @@ def extract_entities_from_file(file_path, chroma_collection):
         author = get_author(file_path, start_line)
         vulns = scan_vulnerabilities(raw_code)
         
-        chroma_id = f"{os.path.basename(file_path)}::class::{name}"
+        chroma_id = _chroma_entity_id(norm_meta, "class", name)
         try:
             chroma_collection.upsert(
                 documents=[raw_code],
                 metadatas=[{
-                    "filepath": file_path, "start_line": start_line, 
-                    "author": author, "name": name, "type": "class"
+                    "filepath": norm_meta,
+                    "start_line": start_line,
+                    "author": author,
+                    "name": name,
+                    "type": "class",
                 }],
-                ids=[chroma_id]
+                ids=[chroma_id],
             )
         except Exception:
             pass
@@ -242,18 +331,18 @@ def extract_entities_from_file(file_path, chroma_collection):
         
         parent_class_name = parent_class['name'] if parent_class else None
 
-        chroma_id = f"{os.path.basename(file_path)}::func::{name}"
+        chroma_id = _chroma_entity_id(norm_meta, "function", name)
         try:
             chroma_collection.upsert(
                 documents=[raw_code],
                 metadatas=[{
-                    "filepath":   file_path,
+                    "filepath": norm_meta,
                     "start_line": start_line,
-                    "author":     author,
-                    "name":       name,
-                    "type":       "function"
+                    "author": author,
+                    "name": name,
+                    "type": "function",
                 }],
-                ids=[chroma_id]
+                ids=[chroma_id],
             )
         except Exception as e:
             pass
@@ -279,38 +368,43 @@ def extract_entities_from_file(file_path, chroma_collection):
 
 def analyze_project(directory_path):
     """
-    Main entry point.
-    1. Wipes embedded graph (SQLite) and ChromaDB.
-    2. Walks directory_path for supported source files.
-    3. Extracts functions and pushes to both stores.
+    Index a project into SQLite + Chroma.
+
+    By default uses **incremental** updates when re-analyzing the same root: only
+    added/changed/removed files are processed (fingerprint = mtime_ns + size).
+
+    Set ``LOGICLENS_FULL_ANALYZE=1`` to force a full graph + vector rebuild.
     """
     print(f"\n=== Analyzing project: {directory_path} ===\n")
 
-    store = _graph_store()
-    print("[Graph] Clearing embedded SQLite graph...")
-    try:
-        store.clear()
-        print("[Graph] Graph cleared.")
-    except Exception as e:
-        print(f"[Graph] Error clearing graph: {e}")
-        raise
+    norm_root = normalize_project_file_path(directory_path)
+    if not os.path.isdir(directory_path):
+        print(f"Invalid directory: {directory_path}")
+        return {"files": 0, "functions": 0, "error": "invalid_directory"}
 
-    coll_name = chroma_collection_for_project(directory_path)
-    chroma_path = str(chroma_dir())
-    print(f"[Chroma] Resetting '{coll_name}' collection in {chroma_path}...")
-    chroma_client = chromadb.PersistentClient(path=chroma_path)
-    try:
-        chroma_client.delete_collection(coll_name)
-        print("[Chroma] Deleted existing collection.")
-    except Exception:
-        print("[Chroma] No existing collection — starting fresh.")
-    collection = chroma_client.create_collection(
-        name=coll_name,
-        metadata={"hnsw:space": "cosine"}
+    force_full = os.environ.get("LOGICLENS_FULL_ANALYZE", "").lower() in (
+        "1",
+        "true",
+        "yes",
     )
-    print(f"[Chroma] Created fresh '{coll_name}' collection.")
+    project_key = chroma_collection_for_project(directory_path)
+    manifest_path = _manifest_path_for_project(project_key)
+    manifest = _load_analysis_manifest(manifest_path)
 
-    # -- Walk directory and process all supported files --------------------------
+    manifest_ok = (
+        bool(manifest)
+        and manifest.get("version") == ANALYSIS_MANIFEST_VERSION
+        and manifest.get("root") == norm_root
+    )
+
+    prev_graph_root = _read_last_graph_root()
+    project_switched = bool(prev_graph_root) and prev_graph_root != norm_root
+
+    store = _graph_store()
+    chroma_path = str(chroma_dir())
+    chroma_client = chromadb.PersistentClient(path=chroma_path)
+    coll_name = project_key
+
     target_files = []
     for root, dirs, files in os.walk(directory_path):
         prune_walk_dirs(dirs)
@@ -325,25 +419,140 @@ def analyze_project(directory_path):
 
     if not target_files:
         print(f"No supported code files found in {directory_path}")
+        if manifest_ok:
+            _save_analysis_manifest(
+                manifest_path,
+                {"version": ANALYSIS_MANIFEST_VERSION, "root": norm_root, "files": {}},
+            )
+            _write_last_graph_root(norm_root)
         return {"files": 0, "functions": 0}
 
-    print(f"\nFound {len(target_files)} supported file(s). Extracting...\n")
+    file_keys = [normalize_project_file_path(fp) for fp in target_files]
+    key_to_fp = dict(zip(file_keys, target_files))
+
+    do_full = force_full or not manifest_ok or project_switched
+    if project_switched and not force_full:
+        print(
+            f"[Analyze] Project root changed (graph was for another folder) — full rebuild.\n"
+        )
+    collection = None
+
+    if not do_full:
+        collection = _get_or_create_chroma_collection(chroma_client, coll_name)
+        try:
+            ch_cnt = int(collection.count())
+        except Exception:
+            ch_cnt = 0
+        old_files = manifest.get("files") or {}
+        if ch_cnt == 0 and old_files:
+            print(
+                "[Analyze] Chroma collection empty but manifest present — full re-index."
+            )
+            do_full = True
+
+    if do_full:
+        print("[Graph] Full rebuild: clearing SQLite graph...")
+        try:
+            store.clear()
+            print("[Graph] Graph cleared.")
+        except Exception as e:
+            print(f"[Graph] Error clearing graph: {e}")
+            raise
+
+        print(f"[Chroma] Resetting '{coll_name}' in {chroma_path}...")
+        try:
+            chroma_client.delete_collection(coll_name)
+            print("[Chroma] Deleted existing collection.")
+        except Exception:
+            print("[Chroma] No existing collection — starting fresh.")
+        collection = chroma_client.create_collection(
+            name=coll_name,
+            metadata={"hnsw:space": "cosine"},
+        )
+        print(f"[Chroma] Created fresh '{coll_name}' collection.")
+
+        files_to_process = list(target_files)
+        keys_removed = []
+        incremental = False
+    else:
+        old_files = manifest.get("files") or {}
+        fingerprints = {nk: _file_fingerprint(key_to_fp[nk]) for nk in file_keys}
+        keys_removed = [k for k in old_files if k not in key_to_fp]
+        files_to_process = [
+            key_to_fp[nk]
+            for nk in file_keys
+            if fingerprints[nk] != old_files.get(nk)
+        ]
+        incremental = True
+        skipped = len(target_files) - len(files_to_process)
+        print(
+            f"[Analyze] Incremental: {len(files_to_process)} file(s) to update, "
+            f"{skipped} unchanged, {len(keys_removed)} removed (tracked).\n"
+        )
 
     total_functions = 0
+    updated_manifest = {}
 
-    for fp in target_files:
-        print(f"  Parsing: {fp}")
+    if incremental:
+        for nk in keys_removed:
+            print(f"  Removing (deleted): {nk}")
+            _chroma_delete_vectors_for_file(collection, nk)
+            store.delete_file_subgraph(nk)
+        store.prune_orphan_api_routes()
+
+    for fp in files_to_process:
+        nk = normalize_project_file_path(fp)
+        if incremental:
+            print(f"  Updating: {fp}")
+            _chroma_delete_vectors_for_file(collection, nk)
+            store.delete_file_subgraph(nk)
+        else:
+            print(f"  Parsing: {fp}")
+
         entities = extract_entities_from_file(fp, collection)
-        funcs_len = len(entities['functions'])
-        cls_len = len(entities['classes'])
+        funcs_len = len(entities["functions"])
+        cls_len = len(entities["classes"])
         print(f"    -> {funcs_len} function(s), {cls_len} class(es) found")
         total_functions += funcs_len
         apply_entities_to_store(store, entities, fp)
 
+    if incremental:
+        store.prune_orphan_api_routes()
+
+    for nk in file_keys:
+        updated_manifest[nk] = _file_fingerprint(key_to_fp[nk])
+
+    _save_analysis_manifest(
+        manifest_path,
+        {
+            "version": ANALYSIS_MANIFEST_VERSION,
+            "root": norm_root,
+            "files": updated_manifest,
+        },
+    )
+    _write_last_graph_root(norm_root)
+
     print(f"\n[Graph] SQLite write complete ({graph_db_path()}).")
 
-    print(f"\n=== Complete: {len(target_files)} file(s), {total_functions} function(s) ===\n")
-    return {"files": len(target_files), "functions": total_functions}
+    graph_fn_count = len(store.list_function_names())
+    mode = "incremental" if incremental else "full"
+    print(
+        f"\n=== Complete: {len(target_files)} file(s), "
+        f"{graph_fn_count} function node(s) in graph, "
+        f"{total_functions} parsed this run ({mode}) ===\n"
+    )
+
+    result = {
+        "files": len(target_files),
+        "functions": graph_fn_count,
+        "functions_parsed_this_run": total_functions,
+        "incremental": incremental,
+    }
+    if incremental:
+        result["updated_files"] = len(files_to_process)
+        result["skipped_files"] = len(target_files) - len(files_to_process)
+        result["removed_files"] = len(keys_removed)
+    return result
 
 
 # -- Allow direct CLI usage -------------------------------------------------
