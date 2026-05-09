@@ -40,7 +40,13 @@ except ImportError as e:
 # 0.  Configuration (read from .env)
 # ──────────────────────────────────────────────────────────────────────────────
 
-from logiclens.config import chroma_collection_name, chroma_dir, graph_db_path, load_app_env
+from logiclens.config import (
+    chroma_collection_for_project,
+    chroma_collection_name,
+    chroma_dir,
+    graph_db_path,
+    load_app_env,
+)
 from logiclens.sqlite_graph import SqliteGraphStore
 
 load_app_env()
@@ -124,7 +130,13 @@ class ChromaDBSourceCodeTool(BaseTool):
 
         try:
             client = chromadb.PersistentClient(path=str(chroma_dir()))
-            collection = client.get_collection(name=chroma_collection_name())
+            active = os.environ.get("LOGICLENS_ACTIVE_PROJECT") or ""
+            coll_name = (
+                chroma_collection_for_project(active)
+                if active.strip()
+                else chroma_collection_name()
+            )
+            collection = client.get_collection(name=coll_name)
         except Exception as exc:  # noqa: BLE001
             return f"[ChromaDB ERROR] Could not connect to collection: {exc}"
 

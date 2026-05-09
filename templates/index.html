@@ -213,6 +213,57 @@
             background: radial-gradient(ellipse 80% 60% at 50% 20%, rgba(30, 58, 138, 0.12), transparent 55%),
                 #09090b;
         }
+
+        .welcome-tiles {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(9.75rem, 1fr));
+            gap: 1rem;
+            justify-items: stretch;
+            width: 100%;
+            max-width: 42rem;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .welcome-tiles .welcome-tile {
+            width: 100%;
+            max-width: 15rem;
+            justify-self: center;
+        }
+
+        @media (max-width: 1024px) {
+            body>header {
+                flex-wrap: wrap;
+                height: auto !important;
+                min-height: 4rem;
+                padding-top: 0.5rem;
+                padding-bottom: 0.65rem;
+                row-gap: 0.5rem;
+            }
+
+            body>header>div:nth-child(2) {
+                order: 3;
+                flex: 1 1 100%;
+                max-width: none !important;
+                margin-left: 0 !important;
+                margin-right: 0 !important;
+            }
+        }
+
+        @media (max-width: 640px) {
+            #empty-state .max-w-3xl {
+                max-width: 100%;
+            }
+
+            #empty-state .px-6 {
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+
+            .welcome-tiles .welcome-tile {
+                max-width: none;
+            }
+        }
     </style>
 </head>
 
@@ -368,12 +419,11 @@
                             <button type="button" id="welcome-link-settings"
                                 class="hover:text-sky-400 transition-colors">Settings</button>
                             <span class="text-slate-700">·</span>
-                            <a href="/setup" target="_blank" rel="noopener"
-                                class="hover:text-sky-400 transition-colors">API setup</a>
+                            <a href="/setup" class="hover:text-sky-400 transition-colors">API setup</a>
                         </div>
                     </div>
 
-                    <div class="flex flex-wrap justify-center gap-4 w-full mb-10">
+                    <div class="welcome-tiles mb-10">
                         <button type="button" id="welcome-open-project" class="welcome-tile">
                             <span class="material-symbols-outlined text-3xl text-sky-400 mb-1"
                                 data-icon="folder_open">folder_open</span>
@@ -765,8 +815,7 @@
                     <div class="flex flex-wrap gap-2 items-center">
                         <span id="settings-groq-badge"
                             class="text-[10px] font-mono px-2 py-0.5 rounded border border-slate-600/50 text-slate-400">—</span>
-                        <a href="/setup" target="_blank" rel="noopener"
-                            class="text-sky-400 hover:underline text-xs font-medium">Open setup page</a>
+                        <a href="/setup" class="text-sky-400 hover:underline text-xs font-medium">Open setup page</a>
                     </div>
                 </section>
                 <section class="space-y-2">

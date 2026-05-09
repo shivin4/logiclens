@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import os
 import sys
 from pathlib import Path
@@ -47,7 +48,20 @@ def chroma_dir() -> Path:
 
 
 def chroma_collection_name() -> str:
+    """Legacy default / env override (CLI tools). Prefer chroma_collection_for_project for app flows."""
     return os.environ.get("CHROMA_COLLECTION_NAME", "codebase_nodes")
+
+
+def chroma_collection_for_project(project_root: str | None) -> str:
+    """
+    One Chroma collection per analyzed folder so embeddings survive re-opening a project
+    and different projects do not overwrite each other.
+    """
+    if not project_root or not str(project_root).strip():
+        return chroma_collection_name()
+    norm = os.path.normcase(os.path.abspath(os.path.normpath(str(project_root))))
+    digest = hashlib.sha256(norm.encode("utf-8")).hexdigest()[:16]
+    return f"ll_proj_{digest}"
 
 
 def flask_host() -> str:

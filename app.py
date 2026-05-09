@@ -1,5 +1,5 @@
 from logiclens.config import (
-    chroma_collection_name,
+    chroma_collection_for_project,
     chroma_dir,
     flask_host,
     flask_port,
@@ -61,7 +61,6 @@ def setup_save():
         f"GROQ_API_KEY={groq}",
         f"GEMINI_API_KEY={gemini}",
         f"CHROMA_PERSIST_PATH={chroma_dir().resolve()}",
-        f"CHROMA_COLLECTION_NAME={chroma_collection_name()}",
         "",
     ]
     env_path.write_text("\n".join(lines), encoding="utf-8")
@@ -363,10 +362,27 @@ def api_whatif():
         return jsonify({"error": "Missing 'function' in request body."}), 400
 
     target = data["function"].strip()
-    from whatif_engine import run_whatif_engine
+    global current_repo_path
+    proj = current_repo_path or ""
+
+    def stream():
+        old = os.environ.get("LOGICLENS_ACTIVE_PROJECT")
+        try:
+            if proj:
+                os.environ["LOGICLENS_ACTIVE_PROJECT"] = proj
+            else:
+                os.environ.pop("LOGICLENS_ACTIVE_PROJECT", None)
+            from whatif_engine import run_whatif_engine
+
+            yield from run_whatif_engine(target)
+        finally:
+            if old is None:
+                os.environ.pop("LOGICLENS_ACTIVE_PROJECT", None)
+            else:
+                os.environ["LOGICLENS_ACTIVE_PROJECT"] = old
 
     return Response(
-        run_whatif_engine(target),
+        stream(),
         mimetype='text/event-stream',
         headers={
             'Cache-Control': 'no-cache',
@@ -420,9 +436,15 @@ def api_search():
     if not q:
         return jsonify({"error": "Missing 'q' parameter."}), 400
 
+    global current_repo_path
+    if not current_repo_path:
+        return jsonify(
+            {"error": "Open and analyze a project first so semantic search uses the right index."}
+        ), 400
+
     try:
         chroma_client = chromadb.PersistentClient(path=str(chroma_dir()))
-        coll = chroma_collection_name()
+        coll = chroma_collection_for_project(current_repo_path)
         try:
             collection = chroma_client.get_collection(name=coll)
         except Exception:
@@ -452,8 +474,14 @@ def create_app():
 
 
 if __name__ == "__main__":
-    if use_debug_server():
-        app.run(debug=True, host=flask_host(), port=flask_port())
-    else:
-        from waitress import serve
-        serve(app, host=flask_host(), port=flask_port())
+    if not use_debug_server():
+        print(
+            "LogicLens is meant to run as a desktop app:\n"
+            "  python desktop_main.py\n\n"
+            "To use a browser against localhost (development only), set:\n"
+            "  LOGICLENS_DEBUG=1\n"
+            "then run python app.py again.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    app.run(debug=True, host=flask_host(), port=flask_port())

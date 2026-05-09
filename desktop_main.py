@@ -7,6 +7,11 @@ Build: packaging/logiclens.spec (PyInstaller).
 
 from __future__ import annotations
 
+import os
+
+# Mark desktop shell so packaging/docs can distinguish from raw `python app.py`.
+os.environ.setdefault("LOGICLENS_DESKTOP", "1")
+
 import subprocess
 import sys
 import threading
