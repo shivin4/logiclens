@@ -6,6 +6,7 @@ chromadb==1.1.1
 tree-sitter==0.25.2
 tree-sitter-python==0.25.0
 python-dotenv~=1.1.1
+pyinstaller
 
 # Transitive deps (pinned from the shipped venv) can be added if needed.
 crewai==1.14.1

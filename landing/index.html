@@ -1,42 +1,669 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>LogicLens — Code dependency analyzer</title>
-  <meta name="description" content="Local-first code intelligence: parse, graph, and explore dependencies with AI-assisted insights." />
+  <title>LogicLens — See your codebase as a graph</title>
+  <meta name="description"
+    content="Local-first desktop app: dependency graphs, semantic search, git insights, and AI-powered impact analysis. No separate database server." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&display=swap"
+    rel="stylesheet" />
   <style>
-    :root { color-scheme: dark; --bg: #0b1326; --fg: #dae2fd; --accent: #38bdf8; }
-    * { box-sizing: border-box; }
-    body { margin: 0; font-family: system-ui, Segoe UI, sans-serif; background: var(--bg); color: var(--fg); line-height: 1.6; }
-    header { padding: 3rem 1.5rem; text-align: center; max-width: 42rem; margin: 0 auto; }
-    h1 { font-size: 2rem; font-weight: 700; margin: 0 0 0.5rem; }
-    p.lead { opacity: 0.9; margin: 0 0 1.5rem; }
-    .cta { display: inline-block; background: var(--accent); color: #0b1326; padding: 0.75rem 1.5rem; border-radius: 0.5rem; font-weight: 600; text-decoration: none; }
-    .cta:hover { filter: brightness(1.05); }
-    section { max-width: 40rem; margin: 0 auto; padding: 1.5rem; }
-    ul { padding-left: 1.25rem; }
-    footer { text-align: center; padding: 2rem; font-size: 0.875rem; opacity: 0.7; }
+    :root {
+      --bg-deep: #05080f;
+      --bg-card: rgba(15, 23, 42, 0.72);
+      --border: rgba(148, 163, 184, 0.12);
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-dim: rgba(56, 189, 248, 0.15);
+      --glow: rgba(56, 189, 248, 0.35);
+      --radius: 14px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+      background: var(--bg-deep);
+      color: var(--text);
+      line-height: 1.65;
+      overflow-x: hidden;
+    }
+
+    .mesh {
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      background:
+        radial-gradient(ellipse 90% 60% at 10% -10%, rgba(56, 189, 248, 0.18), transparent 50%),
+        radial-gradient(ellipse 70% 50% at 90% 20%, rgba(99, 102, 241, 0.12), transparent 45%),
+        radial-gradient(ellipse 60% 40% at 50% 100%, rgba(14, 165, 233, 0.08), transparent 50%),
+        var(--bg-deep);
+    }
+
+    .grid-noise {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      opacity: 0.04;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    .wrap {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    /* Nav */
+    header.nav {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      border-bottom: 1px solid var(--border);
+      background: rgba(5, 8, 15, 0.75);
+      backdrop-filter: blur(16px);
+    }
+
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 4rem;
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-weight: 800;
+      font-size: 1.1rem;
+      letter-spacing: -0.03em;
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .brand-mark {
+      width: 2rem;
+      height: 2rem;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent), #6366f1);
+      opacity: 0.95;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 1.75rem;
+    }
+
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: color 0.15s;
+    }
+
+    .nav-links a:hover {
+      color: var(--text);
+    }
+
+    @media (max-width: 768px) {
+      .nav-links {
+        display: none;
+      }
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      padding: 0.65rem 1.25rem;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.12s, box-shadow 0.15s, background 0.15s;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #0ea5e9, #38bdf8);
+      color: #0f172a;
+      box-shadow: 0 4px 24px var(--glow);
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 6px 32px var(--glow);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+
+    .btn-ghost:hover {
+      color: var(--text);
+      border-color: rgba(148, 163, 184, 0.25);
+    }
+
+    /* Hero */
+    .hero {
+      padding: 4.5rem 0 5rem;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.35rem 0.85rem;
+      border-radius: 999px;
+      background: var(--accent-dim);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      color: var(--accent);
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.25rem, 5vw, 3.35rem);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1.1;
+      margin: 0 0 1.25rem;
+      max-width: 18ch;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .hero h1 span {
+      background: linear-gradient(90deg, #7dd3fc, #a5b4fc);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .hero-lead {
+      font-size: 1.125rem;
+      color: var(--muted);
+      max-width: 42rem;
+      margin: 0 auto 2rem;
+    }
+
+    .hero-cta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      justify-content: center;
+      margin-bottom: 3rem;
+    }
+
+    .hero-meta {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.75rem;
+      color: var(--muted);
+      opacity: 0.85;
+    }
+
+    /* Preview card */
+    .preview {
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      backdrop-filter: blur(12px);
+      overflow: hidden;
+      max-width: 900px;
+      margin: 0 auto;
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+    }
+
+    .preview-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.65rem 1rem;
+      background: rgba(0, 0, 0, 0.35);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #475569;
+    }
+
+    .dot:nth-child(1) {
+      background: #f87171;
+    }
+
+    .dot:nth-child(2) {
+      background: #fbbf24;
+    }
+
+    .dot:nth-child(3) {
+      background: #4ade80;
+    }
+
+    .preview-body {
+      padding: 2rem 1.5rem 2.5rem;
+      min-height: 220px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+    }
+
+    .preview-graph {
+      width: 100%;
+      max-width: 420px;
+      height: 120px;
+      position: relative;
+    }
+
+    .preview-graph svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Sections */
+    section.block {
+      padding: 4.5rem 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .block h2 {
+      font-size: 1.75rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin: 0 0 0.5rem;
+    }
+
+    .block .sub {
+      color: var(--muted);
+      max-width: 36rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .card {
+      padding: 1.5rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: rgba(15, 23, 42, 0.5);
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .card:hover {
+      border-color: rgba(56, 189, 248, 0.25);
+      background: rgba(15, 23, 42, 0.75);
+    }
+
+    .card h3 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin: 0 0 0.5rem;
+    }
+
+    .card p {
+      margin: 0;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .card .icon {
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: 10px;
+      background: var(--accent-dim);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      margin-bottom: 1rem;
+    }
+
+    /* Why download */
+    .why-list {
+      display: grid;
+      gap: 1rem;
+      max-width: 40rem;
+    }
+
+    .why-item {
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+    }
+
+    .why-item strong {
+      color: var(--accent);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.8rem;
+      flex-shrink: 0;
+      margin-top: 0.2rem;
+    }
+
+    /* Docs */
+    details.doc {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 0.65rem;
+      background: rgba(15, 23, 42, 0.4);
+      overflow: hidden;
+    }
+
+    details.doc summary {
+      padding: 1rem 1.15rem;
+      cursor: pointer;
+      font-weight: 600;
+      list-style: none;
+    }
+
+    details.doc summary::-webkit-details-marker {
+      display: none;
+    }
+
+    details.doc[open] summary {
+      border-bottom: 1px solid var(--border);
+    }
+
+    .doc-body {
+      padding: 1rem 1.15rem 1.25rem;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .doc-body code {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.82rem;
+      background: rgba(0, 0, 0, 0.35);
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      color: #7dd3fc;
+    }
+
+    .doc-body ul {
+      margin: 0.5rem 0 0;
+      padding-left: 1.2rem;
+    }
+
+    /* Download strip */
+    .download-strip {
+      border-radius: var(--radius);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      background: linear-gradient(135deg, rgba(14, 165, 233, 0.12), rgba(99, 102, 241, 0.08));
+      padding: 2.5rem 2rem;
+      text-align: center;
+    }
+
+    .download-strip h2 {
+      margin: 0 0 0.5rem;
+    }
+
+    .download-strip p {
+      color: var(--muted);
+      margin: 0 0 1.5rem;
+      max-width: 36rem;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    footer {
+      padding: 3rem 1.5rem;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.85rem;
+      border-top: 1px solid var(--border);
+    }
+
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
   </style>
+  <!-- Configure your shipped installer URL (GitHub Releases direct link or CDN) -->
+  <script>
+    const INSTALLER_URL = "https://github.com/shivin4/logiclens/releases/latest/download/LogicLens-Setup-1.0.0.exe";
+    const SOURCE_URL = "https://github.com/shivin4/logiclens";
+  </script>
 </head>
+
 <body>
-  <header>
-    <h1>LogicLens</h1>
-    <p class="lead">Turn a repository into an interactive dependency graph. Explore structure, trace calls, and run AI-powered &ldquo;what-if&rdquo; impact analysis — all with an embedded local graph store (no separate database server).</p>
-    <a class="cta" href="https://github.com/YOUR_USERNAME/logiclens/releases/latest">Download for Windows</a>
-    <p style="margin-top:1rem;font-size:0.875rem;opacity:0.8">Replace the link with your new repo&rsquo;s GitHub Releases URL.</p>
+  <div class="mesh" aria-hidden="true"></div>
+  <div class="grid-noise" aria-hidden="true"></div>
+
+  <header class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="#">
+        <span class="brand-mark" aria-hidden="true"></span>
+        LogicLens
+      </a>
+      <nav class="nav-links" aria-label="Primary">
+        <a href="#features">Features</a>
+        <a href="#why">Why download</a>
+        <a href="#docs">Docs</a>
+        <a href="#download">Download</a>
+      </nav>
+      <a class="btn btn-primary" id="nav-download" href="#download">Get the app</a>
+    </div>
   </header>
-  <section>
-    <h2>Highlights</h2>
-    <ul>
-      <li>Tree-sitter parsing for Python, JS/TS, Java, Go, C++</li>
-      <li>SQLite-backed graph: files, classes, functions, API routes</li>
-      <li>ChromaDB semantic search and CrewAI blast-radius reports (Groq)</li>
-      <li>Single installer: desktop shell + local web UI</li>
-    </ul>
-  </section>
+
+  <main>
+    <section class="hero wrap">
+      <div class="hero-badge">Desktop · Local-first · Windows</div>
+      <h1>Your codebase, <span>as a graph</span></h1>
+      <p class="hero-lead">LogicLens parses your project, builds an interactive dependency map, and adds semantic search
+        and AI-assisted impact analysis — without running a separate graph database.</p>
+      <div class="hero-cta">
+        <a class="btn btn-primary" id="hero-download" href="#download">Download for Windows</a>
+        <a class="btn btn-ghost" href="#docs">Read the docs</a>
+      </div>
+      <p class="hero-meta">Installer includes desktop shell · Signed releases recommended for distribution</p>
+
+      <div class="preview" aria-hidden="true">
+        <div class="preview-bar">
+          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+          <span style="margin-left:0.75rem;font-size:0.75rem;color:var(--muted);font-family:IBM Plex Mono,monospace">LogicLens</span>
+        </div>
+        <div class="preview-body">
+          <div class="preview-graph">
+            <svg viewBox="0 0 400 120" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M40 60 L120 30 L200 60 L280 25 L360 60" stroke="url(#g)" stroke-width="2" stroke-linecap="round" />
+              <circle cx="40" cy="60" r="10" fill="#38bdf8" opacity="0.9" />
+              <circle cx="120" cy="30" r="8" fill="#6366f1" opacity="0.9" />
+              <circle cx="200" cy="60" r="9" fill="#22d3ee" opacity="0.9" />
+              <circle cx="280" cy="25" r="7" fill="#a78bfa" opacity="0.9" />
+              <circle cx="360" cy="60" r="10" fill="#38bdf8" opacity="0.9" />
+              <defs>
+                <linearGradient id="g" x1="0" y1="0" x2="400" y2="0">
+                  <stop stop-color="#38bdf8" />
+                  <stop offset="1" stop-color="#6366f1" />
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <p style="margin:0;font-size:0.85rem;color:var(--muted)">Files · classes · functions · calls · API routes</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="block wrap" id="features">
+      <h2>What you get</h2>
+      <p class="sub">Everything runs on your machine. Point LogicLens at a repo folder and explore structure the way
+        architects do — visually.</p>
+      <div class="grid-3">
+        <article class="card">
+          <div class="icon">◇</div>
+          <h3>Interactive graph</h3>
+          <p>Pan, zoom, and inspect nodes for files, classes, functions, and API routes. Trace callers and callees in
+            one click.</p>
+        </article>
+        <article class="card">
+          <div class="icon">◎</div>
+          <h3>Embedded graph store</h3>
+          <p>No Neo4j or Docker. A local SQLite database backs the graph so setup stays a single installer.</p>
+        </article>
+        <article class="card">
+          <div class="icon">⌕</div>
+          <h3>Semantic search</h3>
+          <p>ChromaDB indexes code chunks so you can search by meaning, not just text.</p>
+        </article>
+        <article class="card">
+          <div class="icon">⚡</div>
+          <h3>AI explanations</h3>
+          <p>Optional Groq-powered summaries for selected functions, plus a multi-agent “what-if” blast-radius report.</p>
+        </article>
+        <article class="card">
+          <div class="icon">⎇</div>
+          <h3>Git awareness</h3>
+          <p>Recent commits and churn hotspots help you see where the code has been moving.</p>
+        </article>
+        <article class="card">
+          <div class="icon">▣</div>
+          <h3>IDE-style workflow</h3>
+          <p>File menu, recent projects, native folder picker, and optional side-by-side windows.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="block wrap" id="why">
+      <h2>Why download LogicLens?</h2>
+      <p class="sub">If you onboard to unfamiliar codebases, review refactors, or need interview-worthy portfolio
+        software, LogicLens is built to shorten the “where does this call go?” loop.</p>
+      <div class="why-list">
+        <div class="why-item">
+          <strong>01</strong>
+          <div><strong style="color:var(--text)">Faster orientation</strong><br />See cross-file relationships that text
+            search alone won’t surface.</div>
+        </div>
+        <div class="why-item">
+          <strong>02</strong>
+          <div><strong style="color:var(--text)">Safer refactors</strong><br />Impact analysis and call tracing reduce
+            guesswork before you change signatures.</div>
+        </div>
+        <div class="why-item">
+          <strong>03</strong>
+          <div><strong style="color:var(--text)">Real desktop app</strong><br />Windows installer, Start Menu entry, and
+            search-friendly registration — not just a zip of scripts.</div>
+        </div>
+        <div class="why-item">
+          <strong>04</strong>
+          <div><strong style="color:var(--text)">Your keys, your data</strong><br />API keys stay in local config; the
+            graph and index live on disk under your user profile.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="block wrap" id="docs">
+      <h2>Documentation</h2>
+      <p class="sub">Quick answers for installers and first-time users. Full developer docs live in the repository
+        README.</p>
+
+      <details class="doc" open>
+        <summary>Install (Windows)</summary>
+        <div class="doc-body">
+          <ol style="margin:0;padding-left:1.2rem">
+            <li>Download <code>LogicLens-Setup-x.y.z.exe</code> from the releases page.</li>
+            <li>Run the installer (per-user install, no admin required by default).</li>
+            <li>Launch <strong>LogicLens</strong> from the Start Menu or desktop shortcut.</li>
+            <li>Use <strong>File → Open project</strong> or the welcome screen to pick a repository folder, then analyze.
+            </li>
+          </ol>
+        </div>
+      </details>
+      <details class="doc">
+        <summary>API keys (Groq)</summary>
+        <div class="doc-body">
+          AI explanations and what-if reports need a <strong>Groq API key</strong>. After install, open
+          <strong>Settings</strong> in the app and follow the link to the setup page, or create
+          <code>%LOCALAPPDATA%\LogicLens\.env</code> with <code>GROQ_API_KEY=...</code>.
+        </div>
+      </details>
+      <details class="doc">
+        <summary>Supported languages</summary>
+        <div class="doc-body">
+          Tree-sitter parsers cover Python, JavaScript/TypeScript (incl. JSX/TSX), Java, Go, and C/C++ headers. Vendor
+          and build folders are skipped by default for sane graphs.
+        </div>
+      </details>
+      <details class="doc">
+        <summary>Build from source</summary>
+        <div class="doc-body">
+          Developers can run <code>python desktop_main.py</code> or build with PyInstaller and Inno Setup — see
+          <code>packaging/BUILD_INSTALLER.md</code> in the repo.
+        </div>
+      </details>
+    </section>
+
+    <section class="block wrap" id="download">
+      <div class="download-strip">
+        <h2>Download LogicLens for Windows</h2>
+        <p>Get the latest <strong>setup.exe</strong> from your release pipeline. This button uses the URL configured at
+          the top of this HTML file.</p>
+        <a class="btn btn-primary" id="download-btn" href="#" rel="noopener">Download LogicLens Setup</a>
+        <p style="margin-top:1.25rem;font-size:0.8rem;color:var(--muted)">Windows 10/11 · x64 · ~300MB+ installed
+          (includes ML/embeddings dependencies)</p>
+      </div>
+    </section>
+  </main>
+
   <footer>
-    Open source — host this folder on GitHub Pages, Netlify, or Vercel.
+    <p>LogicLens — local-first code intelligence · <a id="footer-source" href="#">Source on GitHub</a></p>
+    <p style="margin-top:0.5rem;opacity:0.75">Replace placeholder GitHub URLs in the &lt;script&gt; block before going
+      live.</p>
   </footer>
+
+  <script>
+    (function () {
+      const dl = document.getElementById("download-btn");
+      const hero = document.getElementById("hero-download");
+      const nav = document.getElementById("nav-download");
+      const src = document.getElementById("footer-source");
+      if (typeof INSTALLER_URL !== "undefined") {
+        dl.href = INSTALLER_URL;
+        hero.href = INSTALLER_URL;
+        nav.href = INSTALLER_URL;
+      }
+      if (typeof SOURCE_URL !== "undefined") {
+        src.href = SOURCE_URL;
+      }
+    })();
+  </script>
 </body>
+
 </html>
