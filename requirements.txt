@@ -26,3 +26,6 @@ tree-sitter-cpp
 
 # Optional crash reporting (only active when LOGICLENS_TELEMETRY=1 and SENTRY_DSN is set)
 sentry-sdk>=2.0.0
+# testing additional parsers
+tree-sitter-ruby
+tree-sitter-rust
