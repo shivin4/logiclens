@@ -5,7 +5,8 @@ from __future__ import annotations
 import os
 
 # Bump for each shipped build; keep in sync with packaging/installer.iss (#define MyAppVersion).
-_DEFAULT_VERSION = "1.1.0"
+_DEFAULT_VERSION = "1.1.1-dev"
+# exploring additional tree-sitter language parsers
 
 __version__ = (os.environ.get("LOGICLENS_APP_VERSION") or _DEFAULT_VERSION).strip() or _DEFAULT_VERSION
 
