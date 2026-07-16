@@ -594,3 +594,10 @@ if __name__ == "__main__":
     import sys
     target = sys.argv[1] if len(sys.argv) > 1 else "."
     analyze_project(target)
+
+if '.rs' in LANGUAGES:
+    CONFIGS[".rs"] = {
+        "func": "(function_item name: (identifier) @function.name) @function.def",
+        "cls": "(struct_item name: (type_identifier) @class.name) @class.def\n(impl_item name: (type_identifier) @class.name) @class.def",
+        "call": "(call_expression function: (identifier) @callee)",
+    }
