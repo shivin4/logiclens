@@ -45,6 +45,8 @@ load_lang('.cpp', 'tree_sitter_cpp')
 load_lang('.cc', 'tree_sitter_cpp')
 load_lang('.h', 'tree_sitter_cpp')
 load_lang('.hpp', 'tree_sitter_cpp')
+load_lang('.rb', 'tree_sitter_ruby')
+load_lang('.rs', 'tree_sitter_rust')
 
 # AST Query Configurations
 CONFIGS = {
