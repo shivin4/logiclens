@@ -598,6 +598,6 @@ if __name__ == "__main__":
 if '.rs' in LANGUAGES:
     CONFIGS[".rs"] = {
         "func": "(function_item name: (identifier) @function.name) @function.def",
-        "cls": "(struct_item name: (type_identifier) @class.name) @class.def\n(impl_item name: (type_identifier) @class.name) @class.def",
+        "cls": "(struct_item name: (type_identifier) @class.name) @class.def\n(impl_item) @class.def",
         "call": "(call_expression function: (identifier) @callee)",
     }
