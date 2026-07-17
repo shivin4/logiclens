@@ -601,3 +601,10 @@ if '.rs' in LANGUAGES:
         "cls": "(struct_item name: (type_identifier) @class.name) @class.def\n(impl_item) @class.def",
         "call": "(call_expression function: (identifier) @callee)",
     }
+
+if '.rb' in LANGUAGES:
+    CONFIGS[".rb"] = {
+        "func": "(method name: (identifier) @function.name) @function.def\n(singleton_method name: (identifier) @function.name) @function.def",
+        "cls": "(class name: (constant) @class.name) @class.def",
+        "call": "(call method: (identifier) @callee)",
+    }
