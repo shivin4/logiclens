@@ -29,3 +29,4 @@ sentry-sdk>=2.0.0
 # testing additional parsers
 tree-sitter-ruby
 tree-sitter-rust
+tree-sitter-php
