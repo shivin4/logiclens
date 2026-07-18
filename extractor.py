@@ -47,6 +47,7 @@ load_lang('.h', 'tree_sitter_cpp')
 load_lang('.hpp', 'tree_sitter_cpp')
 load_lang('.rb', 'tree_sitter_ruby')
 load_lang('.rs', 'tree_sitter_rust')
+load_lang('.php', 'tree_sitter_php')
 
 # AST Query Configurations
 CONFIGS = {
@@ -607,4 +608,11 @@ if '.rb' in LANGUAGES:
         "func": "(method name: (identifier) @function.name) @function.def\n(singleton_method name: (identifier) @function.name) @function.def",
         "cls": "(class name: (constant) @class.name) @class.def",
         "call": "(call method: (identifier) @callee)",
+    }
+
+if '.php' in LANGUAGES:
+    CONFIGS[".php"] = {
+        "func": "(function_definition name: (name) @function.name) @function.def",
+        "cls": "(class_declaration name: (name) @class.name) @class.def",
+        "call": "(function_call name: (name) @callee)",
     }
