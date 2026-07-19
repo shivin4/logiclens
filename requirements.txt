@@ -30,3 +30,5 @@ sentry-sdk>=2.0.0
 tree-sitter-ruby
 tree-sitter-rust
 tree-sitter-php
+tree-sitter-swift
+tree-sitter-kotlin
