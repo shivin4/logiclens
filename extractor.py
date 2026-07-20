@@ -620,7 +620,7 @@ if '.php' in LANGUAGES:
 
 if '.swift' in LANGUAGES:
     CONFIGS[".swift"] = {
-        "func": "(function_declaration name: (identifier) @function.name) @function.def",
+        "func": "(function_declaration name: (simple_identifier) @function.name) @function.def",
         "cls": "(class_declaration name: (type_identifier) @class.name) @class.def",
-        "call": "(call_expression (identifier) @callee)",
+        "call": "(call_expression (simple_identifier) @callee)",
     }
