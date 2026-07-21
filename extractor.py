@@ -49,6 +49,7 @@ load_lang('.rb', 'tree_sitter_ruby')
 load_lang('.rs', 'tree_sitter_rust')
 load_lang('.php', 'tree_sitter_php')
 load_lang('.swift', 'tree_sitter_swift')
+load_lang('.kt', 'tree_sitter_kotlin')
 
 # AST Query Configurations
 CONFIGS = {
@@ -622,5 +623,12 @@ if '.swift' in LANGUAGES:
     CONFIGS[".swift"] = {
         "func": "(function_declaration name: (simple_identifier) @function.name) @function.def",
         "cls": "(class_declaration name: (type_identifier) @class.name) @class.def",
+        "call": "(call_expression (simple_identifier) @callee)",
+    }
+
+if '.kt' in LANGUAGES:
+    CONFIGS[".kt"] = {
+        "func": "(function_declaration (simple_identifier) @function.name) @function.def",
+        "cls": "(class_declaration (type_identifier) @class.name) @class.def",
         "call": "(call_expression (simple_identifier) @callee)",
     }
