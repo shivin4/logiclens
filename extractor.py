@@ -50,6 +50,7 @@ load_lang('.rs', 'tree_sitter_rust')
 load_lang('.php', 'tree_sitter_php')
 load_lang('.swift', 'tree_sitter_swift')
 load_lang('.kt', 'tree_sitter_kotlin')
+load_lang('.kts', 'tree_sitter_kotlin')
 
 # AST Query Configurations
 CONFIGS = {
@@ -83,6 +84,8 @@ CONFIGS = {
         "cls": "(class_specifier name: (type_identifier) @class.name) @class.def",
         "call": "(call_expression function: (identifier) @callee)"
     }
+    CONFIGS[".kt"] = _kt
+    CONFIGS[".kts"] = _kt
 }
 CONFIGS[".jsx"] = CONFIGS[".js"]
 CONFIGS[".tsx"] = CONFIGS[".ts"]
@@ -281,6 +284,8 @@ def extract_entities_from_file(file_path, chroma_collection):
             'start_byte': def_node.start_byte,
             'end_byte': def_node.end_byte
         }
+    CONFIGS[".kt"] = _kt
+    CONFIGS[".kts"] = _kt
         classes.append(cls_data)
         class_scopes.append(cls_data)
 
@@ -368,6 +373,8 @@ def extract_entities_from_file(file_path, chroma_collection):
         'classes': classes,
         'functions': functions
     }
+    CONFIGS[".kt"] = _kt
+    CONFIGS[".kts"] = _kt
 
 
 
@@ -463,6 +470,8 @@ def analyze_project(directory_path):
                 "updated_files": 0,
                 "skipped_files": len(target_files),
             }
+    CONFIGS[".kt"] = _kt
+    CONFIGS[".kts"] = _kt
 
     chroma_client = chromadb.PersistentClient(path=chroma_path)
     coll_name = project_key
@@ -585,6 +594,8 @@ def analyze_project(directory_path):
         "functions_parsed_this_run": total_functions,
         "incremental": incremental,
     }
+    CONFIGS[".kt"] = _kt
+    CONFIGS[".kts"] = _kt
     if incremental:
         result["updated_files"] = len(files_to_process)
         result["skipped_files"] = len(target_files) - len(files_to_process)
@@ -604,6 +615,8 @@ if '.rs' in LANGUAGES:
         "cls": "(struct_item name: (type_identifier) @class.name) @class.def\n(impl_item) @class.def",
         "call": "(call_expression function: (identifier) @callee)",
     }
+    CONFIGS[".kt"] = _kt
+    CONFIGS[".kts"] = _kt
 
 if '.rb' in LANGUAGES:
     CONFIGS[".rb"] = {
@@ -611,6 +624,8 @@ if '.rb' in LANGUAGES:
         "cls": "(class name: (constant) @class.name) @class.def",
         "call": "(call method: (identifier) @callee)",
     }
+    CONFIGS[".kt"] = _kt
+    CONFIGS[".kts"] = _kt
 
 if '.php' in LANGUAGES:
     CONFIGS[".php"] = {
@@ -618,6 +633,8 @@ if '.php' in LANGUAGES:
         "cls": "(class_declaration name: (name) @class.name) @class.def",
         "call": "(function_call name: (name) @callee)",
     }
+    CONFIGS[".kt"] = _kt
+    CONFIGS[".kts"] = _kt
 
 if '.swift' in LANGUAGES:
     CONFIGS[".swift"] = {
@@ -625,10 +642,14 @@ if '.swift' in LANGUAGES:
         "cls": "(class_declaration name: (type_identifier) @class.name) @class.def",
         "call": "(call_expression (simple_identifier) @callee)",
     }
+    CONFIGS[".kt"] = _kt
+    CONFIGS[".kts"] = _kt
 
-if '.kt' in LANGUAGES:
-    CONFIGS[".kt"] = {
+if '.kt' in LANGUAGES or '.kts' in LANGUAGES:
+    _kt = {
         "func": "(function_declaration (simple_identifier) @function.name) @function.def",
         "cls": "(class_declaration (type_identifier) @class.name) @class.def",
         "call": "(call_expression (simple_identifier) @callee)",
     }
+    CONFIGS[".kt"] = _kt
+    CONFIGS[".kts"] = _kt
