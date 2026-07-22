@@ -32,3 +32,5 @@ tree-sitter-rust
 tree-sitter-php
 tree-sitter-swift
 tree-sitter-kotlin
+tree-sitter-c-sharp
+tree-sitter-dart
