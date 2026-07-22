@@ -51,6 +51,8 @@ load_lang('.php', 'tree_sitter_php')
 load_lang('.swift', 'tree_sitter_swift')
 load_lang('.kt', 'tree_sitter_kotlin')
 load_lang('.kts', 'tree_sitter_kotlin')
+load_lang('.cs', 'tree_sitter_c_sharp')
+load_lang('.dart', 'tree_sitter_dart')
 
 # AST Query Configurations
 CONFIGS = {
@@ -653,3 +655,16 @@ if '.kt' in LANGUAGES or '.kts' in LANGUAGES:
     }
     CONFIGS[".kt"] = _kt
     CONFIGS[".kts"] = _kt
+
+if '.cs' in LANGUAGES:
+    CONFIGS[".cs"] = {
+        "func": "(method_declaration name: (identifier) @function.name) @function.def",
+        "cls": "(class_declaration name: (identifier) @class.name) @class.def",
+        "call": "(invocation_expression function: (identifier) @callee)",
+    }
+if '.dart' in LANGUAGES:
+    CONFIGS[".dart"] = {
+        "func": "(function_signature name: (identifier) @function.name) @function.def",
+        "cls": "(class_definition name: (identifier) @class.name) @class.def",
+        "call": "(function_expression (identifier) @callee)",
+    }
