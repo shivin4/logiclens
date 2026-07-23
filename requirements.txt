@@ -34,3 +34,6 @@ tree-sitter-swift
 tree-sitter-kotlin
 tree-sitter-c-sharp
 tree-sitter-dart
+tree-sitter-scala
+tree-sitter-r
+tree-sitter-julia
