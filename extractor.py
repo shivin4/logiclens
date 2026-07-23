@@ -664,7 +664,7 @@ if '.cs' in LANGUAGES:
     }
 if '.dart' in LANGUAGES:
     CONFIGS[".dart"] = {
-        "func": "(function_signature name: (identifier) @function.name) @function.def",
+        "func": "(function_signature name: (identifier) @function.name) @function.def\n(method_signature name: (identifier) @function.name) @function.def",
         "cls": "(class_definition name: (identifier) @class.name) @class.def",
         "call": "(function_expression (identifier) @callee)",
     }
