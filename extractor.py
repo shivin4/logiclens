@@ -53,6 +53,9 @@ load_lang('.kt', 'tree_sitter_kotlin')
 load_lang('.kts', 'tree_sitter_kotlin')
 load_lang('.cs', 'tree_sitter_c_sharp')
 load_lang('.dart', 'tree_sitter_dart')
+load_lang('.scala', 'tree_sitter_scala')
+load_lang('.r', 'tree_sitter_r')
+load_lang('.jl', 'tree_sitter_julia')
 
 # AST Query Configurations
 CONFIGS = {
@@ -667,4 +670,23 @@ if '.dart' in LANGUAGES:
         "func": "(function_signature name: (identifier) @function.name) @function.def\n(method_signature name: (identifier) @function.name) @function.def",
         "cls": "(class_definition name: (identifier) @class.name) @class.def",
         "call": "(function_expression (identifier) @callee)",
+    }
+
+if '.scala' in LANGUAGES:
+    CONFIGS[".scala"] = {
+        "func": "(function_definition name: (identifier) @function.name) @function.def",
+        "cls": "(class_definition name: (identifier) @class.name) @class.def",
+        "call": "(call_expression function: (identifier) @callee)",
+    }
+if '.r' in LANGUAGES:
+    CONFIGS[".r"] = {
+        "func": "(function_definition name: (identifier) @function.name) @function.def",
+        "cls": "(class_definition name: (identifier) @class.name) @class.def",
+        "call": "(call function: (identifier) @callee)",
+    }
+if '.jl' in LANGUAGES:
+    CONFIGS[".jl"] = {
+        "func": "(function_definition name: (identifier) @function.name) @function.def",
+        "cls": "(struct_definition name: (type_identifier) @class.name) @class.def",
+        "call": "(call_expression (identifier) @callee)",
     }
