@@ -82,3 +82,8 @@ def should_skip_parsed_file(file_path: str) -> bool:
             return True
 
     return False
+
+import re
+
+_VUE_SCRIPT_RE = re.compile(r"<script[^>]*>(.*?)</script>", re.DOTALL | re.IGNORECASE)
+_SVELTE_SCRIPT_RE = re.compile(r"<script[^>]*>(.*?)</script>", re.DOTALL | re.IGNORECASE)
