@@ -87,3 +87,13 @@ import re
 
 _VUE_SCRIPT_RE = re.compile(r"<script[^>]*>(.*?)</script>", re.DOTALL | re.IGNORECASE)
 _SVELTE_SCRIPT_RE = re.compile(r"<script[^>]*>(.*?)</script>", re.DOTALL | re.IGNORECASE)
+
+def extract_embedded_script(source: str, ext: str) -> str | None:
+    """Pull <script> body from Vue/Svelte SFCs for JS/TS parsing."""
+    if ext == ".vue":
+        m = _VUE_SCRIPT_RE.search(source)
+        return m.group(1).strip() if m else None
+    if ext == ".svelte":
+        m = _SVELTE_SCRIPT_RE.search(source)
+        return m.group(1).strip() if m else None
+    return None
