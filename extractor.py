@@ -690,3 +690,6 @@ if '.jl' in LANGUAGES:
         "cls": "(struct_definition name: (type_identifier) @class.name) @class.def",
         "call": "(call_expression (identifier) @callee)",
     }
+
+CONFIGS[".vue"] = CONFIGS[".js"]
+CONFIGS[".svelte"] = CONFIGS[".js"]
