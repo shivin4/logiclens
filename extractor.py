@@ -693,3 +693,5 @@ if '.jl' in LANGUAGES:
 
 CONFIGS[".vue"] = CONFIGS[".js"]
 CONFIGS[".svelte"] = CONFIGS[".js"]
+
+CONFIGS[".ipynb"] = CONFIGS[".py"]
