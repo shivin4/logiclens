@@ -92,8 +92,14 @@ def extract_embedded_script(source: str, ext: str) -> str | None:
     """Pull <script> body from Vue/Svelte SFCs for JS/TS parsing."""
     if ext == ".vue":
         m = _VUE_SCRIPT_RE.search(source)
-        return m.group(1).strip() if m else None
+        if m and m.group(1):
+            s = m.group(1).strip()
+            return s if s else None
+        return None
     if ext == ".svelte":
         m = _SVELTE_SCRIPT_RE.search(source)
-        return m.group(1).strip() if m else None
+        if m and m.group(1):
+            s = m.group(1).strip()
+            return s if s else None
+        return None
     return None
