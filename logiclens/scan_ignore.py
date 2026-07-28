@@ -103,3 +103,5 @@ def extract_embedded_script(source: str, ext: str) -> str | None:
             return s if s else None
         return None
     return None
+
+# TODO: app freezes when opening large node_modules or build folders. Expanding ignore sets.
