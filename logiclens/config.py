@@ -33,6 +33,14 @@ def get_data_dir() -> Path:
     return Path(__file__).resolve().parent.parent
 
 
+def apply_data_dir_override(path: str | Path) -> Path:
+    """Switch active storage folder for this process (no restart required)."""
+    resolved = Path(path).resolve()
+    resolved.mkdir(parents=True, exist_ok=True)
+    os.environ["LOGICLENS_DATA_DIR"] = str(resolved)
+    return resolved
+
+
 def load_app_env() -> None:
     """Load secrets from data dir first, then process cwd (dev)."""
     data = get_data_dir()
@@ -119,3 +127,45 @@ def ensure_flask_port_allocated() -> int:
 
 def use_debug_server() -> bool:
     return os.environ.get("LOGICLENS_DEBUG", "").lower() in ("1", "true", "yes")
+
+
+def llm_provider() -> str:
+    return os.environ.get("LLM_PROVIDER", "gemini").lower()
+
+
+def gemini_model() -> str:
+    return os.environ.get("GEMINI_MODEL", "gemini-3.5-flash-lite")
+
+
+def gemini_api_key() -> str:
+    return os.environ.get("GEMINI_API_KEY", "")
+
+
+def groq_api_key() -> str:
+    return os.environ.get("GROQ_API_KEY", "")
+
+
+def ollama_model() -> str:
+    return os.environ.get("OLLAMA_MODEL", "llama3:latest")
+
+
+def ollama_host() -> str:
+    return os.environ.get("OLLAMA_HOST", "http://localhost:11434").rstrip("/")
+
+
+def active_ai_provider() -> str:
+    prov = llm_provider()
+    if prov in ("ollama", "local"):
+        return "ollama"
+    if prov == "gemini":
+        return "gemini"
+    if prov == "groq":
+        return "groq"
+    # Fallback logic for legacy 'cloud' setting
+    if gemini_api_key():
+        return "gemini"
+    if groq_api_key():
+        return "groq"
+    return "gemini"
+
+
