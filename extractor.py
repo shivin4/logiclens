@@ -18,7 +18,12 @@ from logiclens.config import (
     load_app_env,
     normalize_project_file_path,
 )
-from logiclens.scan_ignore import prune_walk_dirs, should_skip_parsed_file
+from logiclens.scan_ignore import (
+    CANDIDATE_SOURCE_EXTENSIONS,
+    extract_embedded_script,
+    prune_walk_dirs,
+    should_skip_parsed_file,
+)
 
 load_app_env()
 from logiclens.sqlite_graph import SqliteGraphStore, apply_entities_to_store
@@ -37,14 +42,19 @@ def load_lang(ext, module_name, lang_attr="language"):
 load_lang('.py', 'tree_sitter_python')
 load_lang('.js', 'tree_sitter_javascript')
 load_lang('.jsx', 'tree_sitter_javascript')
+load_lang('.mjs', 'tree_sitter_javascript')
+load_lang('.cjs', 'tree_sitter_javascript')
 load_lang('.ts', 'tree_sitter_typescript', 'language_typescript')
 load_lang('.tsx', 'tree_sitter_typescript', 'language_typescript')
+load_lang('.mts', 'tree_sitter_typescript', 'language_typescript')
+load_lang('.cts', 'tree_sitter_typescript', 'language_typescript')
 load_lang('.java', 'tree_sitter_java')
 load_lang('.go', 'tree_sitter_go')
 load_lang('.cpp', 'tree_sitter_cpp')
 load_lang('.cc', 'tree_sitter_cpp')
 load_lang('.h', 'tree_sitter_cpp')
 load_lang('.hpp', 'tree_sitter_cpp')
+# Optional parsers (web / systems / ML-adjacent stacks)
 load_lang('.rb', 'tree_sitter_ruby')
 load_lang('.rs', 'tree_sitter_rust')
 load_lang('.php', 'tree_sitter_php')
@@ -56,6 +66,13 @@ load_lang('.dart', 'tree_sitter_dart')
 load_lang('.scala', 'tree_sitter_scala')
 load_lang('.r', 'tree_sitter_r')
 load_lang('.jl', 'tree_sitter_julia')
+
+# Vue / Svelte / notebooks reuse JS or Python parsers after preprocessing.
+if '.js' in LANGUAGES:
+    for _ext in ('.vue', '.svelte'):
+        LANGUAGES[_ext] = LANGUAGES['.js']
+if '.py' in LANGUAGES:
+    LANGUAGES['.ipynb'] = LANGUAGES['.py']
 
 # AST Query Configurations
 CONFIGS = {
@@ -89,14 +106,82 @@ CONFIGS = {
         "cls": "(class_specifier name: (type_identifier) @class.name) @class.def",
         "call": "(call_expression function: (identifier) @callee)"
     }
-    CONFIGS[".kt"] = _kt
-    CONFIGS[".kts"] = _kt
 }
 CONFIGS[".jsx"] = CONFIGS[".js"]
+CONFIGS[".mjs"] = CONFIGS[".js"]
+CONFIGS[".cjs"] = CONFIGS[".js"]
 CONFIGS[".tsx"] = CONFIGS[".ts"]
+CONFIGS[".mts"] = CONFIGS[".ts"]
+CONFIGS[".cts"] = CONFIGS[".ts"]
+CONFIGS[".vue"] = CONFIGS[".js"]
+CONFIGS[".svelte"] = CONFIGS[".js"]
+CONFIGS[".ipynb"] = CONFIGS[".py"]
 CONFIGS[".cc"] = CONFIGS[".cpp"]
 CONFIGS[".h"] = CONFIGS[".cpp"]
 CONFIGS[".hpp"] = CONFIGS[".cpp"]
+
+if '.rb' in LANGUAGES:
+    CONFIGS[".rb"] = {
+        "func": "(method name: (identifier) @function.name) @function.def\n(singleton_method name: (identifier) @function.name) @function.def",
+        "cls": "(class name: (constant) @class.name) @class.def",
+        "call": "(call method: (identifier) @callee)",
+    }
+if '.rs' in LANGUAGES:
+    CONFIGS[".rs"] = {
+        "func": "(function_item name: (identifier) @function.name) @function.def",
+        "cls": "(struct_item name: (type_identifier) @class.name) @class.def\n(impl_item) @class.def",
+        "call": "(call_expression function: (identifier) @callee)",
+    }
+if '.php' in LANGUAGES:
+    CONFIGS[".php"] = {
+        "func": "(function_definition name: (name) @function.name) @function.def",
+        "cls": "(class_declaration name: (name) @class.name) @class.def",
+        "call": "(function_call name: (name) @callee)",
+    }
+if '.swift' in LANGUAGES:
+    CONFIGS[".swift"] = {
+        "func": "(function_declaration name: (simple_identifier) @function.name) @function.def",
+        "cls": "(class_declaration name: (type_identifier) @class.name) @class.def",
+        "call": "(call_expression (simple_identifier) @callee)",
+    }
+if '.kt' in LANGUAGES or '.kts' in LANGUAGES:
+    _kt = {
+        "func": "(function_declaration (simple_identifier) @function.name) @function.def",
+        "cls": "(class_declaration (type_identifier) @class.name) @class.def",
+        "call": "(call_expression (simple_identifier) @callee)",
+    }
+    CONFIGS[".kt"] = _kt
+    CONFIGS[".kts"] = _kt
+if '.cs' in LANGUAGES:
+    CONFIGS[".cs"] = {
+        "func": "(method_declaration name: (identifier) @function.name) @function.def",
+        "cls": "(class_declaration name: (identifier) @class.name) @class.def",
+        "call": "(invocation_expression function: (identifier) @callee)",
+    }
+if '.dart' in LANGUAGES:
+    CONFIGS[".dart"] = {
+        "func": "(function_signature name: (identifier) @function.name) @function.def\n(method_signature name: (identifier) @function.name) @function.def",
+        "cls": "(class_definition name: (identifier) @class.name) @class.def",
+        "call": "(function_expression (identifier) @callee)",
+    }
+if '.scala' in LANGUAGES:
+    CONFIGS[".scala"] = {
+        "func": "(function_definition name: (identifier) @function.name) @function.def",
+        "cls": "(class_definition name: (identifier) @class.name) @class.def",
+        "call": "(call_expression function: (identifier) @callee)",
+    }
+if '.r' in LANGUAGES:
+    CONFIGS[".r"] = {
+        "func": "(function_definition name: (identifier) @function.name) @function.def",
+        "cls": "(class_definition name: (identifier) @class.name) @class.def",
+        "call": "(call function: (identifier) @callee)",
+    }
+if '.jl' in LANGUAGES:
+    CONFIGS[".jl"] = {
+        "func": "(function_definition name: (identifier) @function.name) @function.def",
+        "cls": "(struct_definition name: (identifier) @class.name) @class.def",
+        "call": "(call_expression (identifier) @callee)",
+    }
 
 
 def _graph_store() -> SqliteGraphStore:
@@ -177,6 +262,8 @@ def _chroma_delete_vectors_for_file(collection, norm_path: str) -> None:
 
 
 def get_author(file_path, line_number):
+    if os.environ.get("LOGICLENS_SKIP_GIT_BLAME", "").lower() in ("1", "true", "yes"):
+        return "Unknown"
     try:
         repo = git.Repo(os.path.dirname(file_path), search_parent_directories=True)
         rel_path = os.path.relpath(file_path, repo.working_dir)
@@ -207,6 +294,39 @@ def scan_vulnerabilities(raw_code):
         vulns.append("Potential SQL Injection Risk")
     return vulns
 
+
+def _read_file_source(file_path: str, ext: str) -> str | None:
+    """Load parseable source; preprocess notebooks and SFCs."""
+    try:
+        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+            raw = f.read()
+    except Exception as e:
+        print(f"  [Skip] Cannot read {file_path}: {e}")
+        return None
+
+    if ext == '.ipynb':
+        try:
+            nb = json.loads(raw)
+        except json.JSONDecodeError:
+            return None
+        chunks: list[str] = []
+        for cell in nb.get('cells') or []:
+            if cell.get('cell_type') != 'code':
+                continue
+            src = cell.get('source', '')
+            if isinstance(src, list):
+                chunks.append(''.join(src))
+            else:
+                chunks.append(str(src))
+        return '\n\n'.join(chunks) if chunks else None
+
+    if ext in ('.vue', '.svelte'):
+        embedded = extract_embedded_script(raw, ext)
+        return embedded or None
+
+    return raw
+
+
 def extract_entities_from_file(file_path, chroma_collection):
     """Parse a single file and return lists of class and function dicts,
     upserting each entity into ChromaDB. Also returns basic file metadata."""
@@ -216,17 +336,14 @@ def extract_entities_from_file(file_path, chroma_collection):
     ext = os.path.splitext(file_path)[1].lower()
     if ext not in LANGUAGES or ext not in CONFIGS:
         return {'functions': [], 'classes': [], 'file_path': file_path}
-        
+
     lang = LANGUAGES[ext]
     conf = CONFIGS[ext]
-    
+
     parser = Parser(lang)
 
-    try:
-        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-            code = f.read()
-    except Exception as e:
-        print(f"  [Skip] Cannot read {file_path}: {e}")
+    code = _read_file_source(file_path, ext)
+    if not code or not code.strip():
         return {'functions': [], 'classes': [], 'file_path': file_path}
 
     tree = parser.parse(bytes(code, "utf8"))
@@ -289,8 +406,6 @@ def extract_entities_from_file(file_path, chroma_collection):
             'start_byte': def_node.start_byte,
             'end_byte': def_node.end_byte
         }
-    CONFIGS[".kt"] = _kt
-    CONFIGS[".kts"] = _kt
         classes.append(cls_data)
         class_scopes.append(cls_data)
 
@@ -378,8 +493,6 @@ def extract_entities_from_file(file_path, chroma_collection):
         'classes': classes,
         'functions': functions
     }
-    CONFIGS[".kt"] = _kt
-    CONFIGS[".kts"] = _kt
 
 
 
@@ -475,8 +588,6 @@ def analyze_project(directory_path):
                 "updated_files": 0,
                 "skipped_files": len(target_files),
             }
-    CONFIGS[".kt"] = _kt
-    CONFIGS[".kts"] = _kt
 
     chroma_client = chromadb.PersistentClient(path=chroma_path)
     coll_name = project_key
@@ -599,8 +710,6 @@ def analyze_project(directory_path):
         "functions_parsed_this_run": total_functions,
         "incremental": incremental,
     }
-    CONFIGS[".kt"] = _kt
-    CONFIGS[".kts"] = _kt
     if incremental:
         result["updated_files"] = len(files_to_process)
         result["skipped_files"] = len(target_files) - len(files_to_process)
@@ -613,85 +722,3 @@ if __name__ == "__main__":
     import sys
     target = sys.argv[1] if len(sys.argv) > 1 else "."
     analyze_project(target)
-
-if '.rs' in LANGUAGES:
-    CONFIGS[".rs"] = {
-        "func": "(function_item name: (identifier) @function.name) @function.def",
-        "cls": "(struct_item name: (type_identifier) @class.name) @class.def\n(impl_item) @class.def",
-        "call": "(call_expression function: (identifier) @callee)",
-    }
-    CONFIGS[".kt"] = _kt
-    CONFIGS[".kts"] = _kt
-
-if '.rb' in LANGUAGES:
-    CONFIGS[".rb"] = {
-        "func": "(method name: (identifier) @function.name) @function.def\n(singleton_method name: (identifier) @function.name) @function.def",
-        "cls": "(class name: (constant) @class.name) @class.def",
-        "call": "(call method: (identifier) @callee)",
-    }
-    CONFIGS[".kt"] = _kt
-    CONFIGS[".kts"] = _kt
-
-if '.php' in LANGUAGES:
-    CONFIGS[".php"] = {
-        "func": "(function_definition name: (name) @function.name) @function.def",
-        "cls": "(class_declaration name: (name) @class.name) @class.def",
-        "call": "(function_call name: (name) @callee)",
-    }
-    CONFIGS[".kt"] = _kt
-    CONFIGS[".kts"] = _kt
-
-if '.swift' in LANGUAGES:
-    CONFIGS[".swift"] = {
-        "func": "(function_declaration name: (simple_identifier) @function.name) @function.def",
-        "cls": "(class_declaration name: (type_identifier) @class.name) @class.def",
-        "call": "(call_expression (simple_identifier) @callee)",
-    }
-    CONFIGS[".kt"] = _kt
-    CONFIGS[".kts"] = _kt
-
-if '.kt' in LANGUAGES or '.kts' in LANGUAGES:
-    _kt = {
-        "func": "(function_declaration (simple_identifier) @function.name) @function.def",
-        "cls": "(class_declaration (type_identifier) @class.name) @class.def",
-        "call": "(call_expression (simple_identifier) @callee)",
-    }
-    CONFIGS[".kt"] = _kt
-    CONFIGS[".kts"] = _kt
-
-if '.cs' in LANGUAGES:
-    CONFIGS[".cs"] = {
-        "func": "(method_declaration name: (identifier) @function.name) @function.def",
-        "cls": "(class_declaration name: (identifier) @class.name) @class.def",
-        "call": "(invocation_expression function: (identifier) @callee)",
-    }
-if '.dart' in LANGUAGES:
-    CONFIGS[".dart"] = {
-        "func": "(function_signature name: (identifier) @function.name) @function.def\n(method_signature name: (identifier) @function.name) @function.def",
-        "cls": "(class_definition name: (identifier) @class.name) @class.def",
-        "call": "(function_expression (identifier) @callee)",
-    }
-
-if '.scala' in LANGUAGES:
-    CONFIGS[".scala"] = {
-        "func": "(function_definition name: (identifier) @function.name) @function.def",
-        "cls": "(class_definition name: (identifier) @class.name) @class.def",
-        "call": "(call_expression function: (identifier) @callee)",
-    }
-if '.r' in LANGUAGES:
-    CONFIGS[".r"] = {
-        "func": "(function_definition name: (identifier) @function.name) @function.def",
-        "cls": "(class_definition name: (identifier) @class.name) @class.def",
-        "call": "(call function: (identifier) @callee)",
-    }
-if '.jl' in LANGUAGES:
-    CONFIGS[".jl"] = {
-        "func": "(function_definition name: (identifier) @function.name) @function.def",
-        "cls": "(struct_definition name: (type_identifier) @class.name) @class.def",
-        "call": "(call_expression (identifier) @callee)",
-    }
-
-CONFIGS[".vue"] = CONFIGS[".js"]
-CONFIGS[".svelte"] = CONFIGS[".js"]
-
-CONFIGS[".ipynb"] = CONFIGS[".py"]
