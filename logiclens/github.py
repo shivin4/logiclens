@@ -24,4 +24,5 @@ def parse_github_url(url: str) -> dict[str, str] | None:
     m = _GITHUB_URL_RE.match(s)
     if not m:
         return None
-    return {"owner": m.group("owner"), "repo": m.group("repo").removesuffix(".git"), "ref": ""}
+    branch = (m.group("branch") or "").split("/")[0] if m.group("branch") else ""
+    return {"owner": m.group("owner"), "repo": m.group("repo").removesuffix(".git"), "ref": branch}
