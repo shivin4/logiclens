@@ -26,3 +26,8 @@ def parse_github_url(url: str) -> dict[str, str] | None:
         return None
     branch = (m.group("branch") or "").split("/")[0] if m.group("branch") else ""
     return {"owner": m.group("owner"), "repo": m.group("repo").removesuffix(".git"), "ref": branch}
+
+from logiclens.config import get_data_dir
+
+def auth_store_path() -> Path:
+    return get_data_dir() / "github_auth.json"
