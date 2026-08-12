@@ -31,3 +31,17 @@ from logiclens.config import get_data_dir
 
 def auth_store_path() -> Path:
     return get_data_dir() / "github_auth.json"
+
+GITHUB_API = "https://api.github.com"
+GITHUB_DEVICE_CODE_URL = "https://github.com/login/device/code"
+GITHUB_DEVICE_TOKEN_URL = "https://github.com/login/oauth/access_token"
+
+def start_device_flow(client_id: str | None = None) -> dict[str, Any]:
+    from logiclens.config import github_client_id
+    cid = (client_id or github_client_id()).strip()
+    if not cid:
+        raise ValueError("GitHub OAuth Client ID is not configured.")
+    data = urllib.parse.urlencode({"client_id": cid, "scope": "repo read:user"}).encode("utf-8")
+    req = urllib.request.Request(GITHUB_DEVICE_CODE_URL, data=data, headers={"Accept": "application/json", "User-Agent": "LogicLens-Desktop"})
+    with urllib.request.urlopen(req, timeout=15) as resp:
+        return json.loads(resp.read().decode("utf-8"))
