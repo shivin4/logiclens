@@ -45,3 +45,15 @@ def start_device_flow(client_id: str | None = None) -> dict[str, Any]:
     req = urllib.request.Request(GITHUB_DEVICE_CODE_URL, data=data, headers={"Accept": "application/json", "User-Agent": "LogicLens-Desktop"})
     with urllib.request.urlopen(req, timeout=15) as resp:
         return json.loads(resp.read().decode("utf-8"))
+
+def poll_device_flow(device_code: str, client_id: str | None = None) -> dict[str, Any]:
+    from logiclens.config import github_client_id
+    cid = (client_id or github_client_id()).strip()
+    data = urllib.parse.urlencode({
+        "client_id": cid,
+        "device_code": device_code.strip(),
+        "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+    }).encode("utf-8")
+    req = urllib.request.Request(GITHUB_DEVICE_TOKEN_URL, data=data, headers={"Accept": "application/json", "User-Agent": "LogicLens-Desktop"})
+    with urllib.request.urlopen(req, timeout=15) as resp:
+        return json.loads(resp.read().decode("utf-8"))
