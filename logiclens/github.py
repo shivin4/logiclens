@@ -57,3 +57,17 @@ def poll_device_flow(device_code: str, client_id: str | None = None) -> dict[str
     req = urllib.request.Request(GITHUB_DEVICE_TOKEN_URL, data=data, headers={"Accept": "application/json", "User-Agent": "LogicLens-Desktop"})
     with urllib.request.urlopen(req, timeout=15) as resp:
         return json.loads(resp.read().decode("utf-8"))
+
+def load_github_token() -> str | None:
+    p = auth_store_path()
+    if not p.is_file():
+        return None
+    try:
+        data = json.loads(p.read_text(encoding="utf-8"))
+        return (data.get("access_token") or "").strip() or None
+    except Exception:
+        return None
+
+def save_github_session(payload: dict[str, Any]) -> None:
+    p = auth_store_path()
+    p.write_text(json.dumps(payload, indent=2), encoding="utf-8")
