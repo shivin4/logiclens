@@ -70,4 +70,5 @@ def load_github_token() -> str | None:
 
 def save_github_session(payload: dict[str, Any]) -> None:
     p = auth_store_path()
+    p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(json.dumps(payload, indent=2), encoding="utf-8")
