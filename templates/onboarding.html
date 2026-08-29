@@ -7,6 +7,13 @@
     <title>Welcome — LogicLens</title>
     <script src="{{ url_for('static', filename='vendor/tailwindcdn.js') }}"></script>
     <script>
+        (function() {
+            const t = localStorage.getItem('logiclens_theme') || 'dark';
+            if (t === 'light') {
+                document.documentElement.classList.remove('dark');
+                document.documentElement.classList.add('light');
+            }
+        })();
         tailwind.config = {
             darkMode: "class",
             theme: {
@@ -21,6 +28,11 @@
             outline: 2px solid #38bdf8;
             outline-offset: 2px;
         }
+        html.light body { background-color: #f8fafc !important; color: #0f172a !important; }
+        html.light #step-1, html.light #step-2 { background-color: #ffffff !important; border-color: #cbd5e1 !important; color: #0f172a !important; }
+        html.light input { background-color: #f1f5f9 !important; border-color: #cbd5e1 !important; color: #0f172a !important; }
+        html.light code { background-color: #e2e8f0 !important; color: #0f172a !important; }
+        html.light img.mix-blend-screen, html.light img[src*="logo"] { mix-blend-mode: normal !important; filter: brightness(0) saturate(100%) invert(26%) sepia(89%) saturate(2145%) hue-rotate(235deg) brightness(93%) contrast(93%) !important; }
     </style>
 </head>
 
@@ -33,13 +45,11 @@
                 <p class="text-sm text-slate-400 max-w-md">Set up API keys and open a project in two steps.</p>
             </div>
 
-            <!-- Step indicator -->
             <div class="flex justify-center gap-2 mb-8" aria-hidden="true">
                 <span id="step-dot-1" class="h-2 w-8 rounded-full bg-sky-500 transition-colors"></span>
                 <span id="step-dot-2" class="h-2 w-8 rounded-full bg-slate-700 transition-colors"></span>
             </div>
 
-            <!-- Step 1 -->
             <div id="step-1" class="rounded-xl border border-slate-700/80 bg-[#0f172a]/90 p-6 shadow-xl">
                 <h2 class="text-sm font-semibold text-slate-200 mb-1">Step 1 — API keys</h2>
                 <p class="text-xs text-slate-500 mb-4">Stored only under <code class="text-slate-400">{{ data_dir }}</code></p>
@@ -69,12 +79,11 @@
                 <p id="keys-msg" class="mt-3 text-sm text-amber-400/90 min-h-[1.25rem]"></p>
             </div>
 
-            <!-- Step 2 -->
             <div id="step-2" class="hidden rounded-xl border border-slate-700/80 bg-[#0f172a]/90 p-6 shadow-xl">
                 <h2 class="text-sm font-semibold text-slate-200 mb-1">Step 2 — Project folder</h2>
-                <p class="text-xs text-slate-500 mb-4">Choose a repository root to analyze.</p>
+                <p class="text-xs text-slate-500 mb-4">Choose a repository root to analyze, or paste a GitHub URL.</p>
                 <div class="flex flex-col sm:flex-row gap-2 mb-3">
-                    <input id="project-path" type="text" placeholder="C:\path\to\your\repo"
+                    <input id="project-path" type="text" placeholder="C:\path\to\repo or https://github.com/owner/repo"
                         class="flex-1 rounded-lg bg-slate-900 border border-slate-600 px-3 py-2 text-sm font-mono" />
                     <button type="button" id="pick-folder"
                         class="px-4 py-2 rounded-lg border border-slate-600 text-slate-200 hover:bg-slate-800 text-sm whitespace-nowrap">
@@ -82,7 +91,7 @@
                     </button>
                 </div>
                 <button type="button" id="run-analyze"
-                    class="w-full py-2.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-sm font-medium">
+                    class="w-full py-2.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-sm font-medium disabled:opacity-60">
                     Analyze &amp; open app
                 </button>
                 <p id="analyze-msg" class="mt-3 text-sm text-amber-400/90 min-h-[1.25rem]"></p>
@@ -98,6 +107,7 @@
         const step2 = document.getElementById('step-2');
         const dot1 = document.getElementById('step-dot-1');
         const dot2 = document.getElementById('step-dot-2');
+        const runBtn = document.getElementById('run-analyze');
 
         function goStep2() {
             step1.classList.add('hidden');
@@ -107,6 +117,42 @@
             dot2.classList.remove('bg-slate-700');
             dot2.classList.add('bg-sky-500');
             document.getElementById('project-path').focus();
+        }
+
+        function isGithubUrl(v) {
+            return /github\.com\/[\w.-]+\/[\w.-]+/i.test(v || '');
+        }
+
+        async function pickFolderNative() {
+            const msg = document.getElementById('analyze-msg');
+            msg.textContent = '';
+            if (window.pywebview?.api?.pick_folder) {
+                const path = await window.pywebview.api.pick_folder();
+                if (path) document.getElementById('project-path').value = path;
+                return;
+            }
+            const r = await fetch('/api/pick_folder', { method: 'POST' });
+            const j = await r.json();
+            if (j.cancelled) return;
+            if (j.error) {
+                msg.textContent = j.error;
+                return;
+            }
+            if (j.path) document.getElementById('project-path').value = j.path;
+        }
+
+        async function pollAnalyzeJob(jobId) {
+            const msg = document.getElementById('analyze-msg');
+            for (let i = 0; i < 600; i++) {
+                await new Promise((r) => setTimeout(r, 1000));
+                const st = await fetch('/api/analyze/status/' + encodeURIComponent(jobId));
+                const j = await st.json();
+                if (!st.ok) throw new Error(j.error || 'Analyze status failed');
+                if (j.message) msg.textContent = j.message === 'Complete' ? 'Opening app…' : j.message;
+                if (j.status === 'done') return j;
+                if (j.status === 'error') throw new Error(j.error || 'Analyze failed');
+            }
+            throw new Error('Analyze timed out. Open the app and try again from the path bar.');
         }
 
         document.getElementById('keys-form').onsubmit = async (e) => {
@@ -132,42 +178,37 @@
             goStep2();
         };
 
-        document.getElementById('pick-folder').onclick = async () => {
-            const msg = document.getElementById('analyze-msg');
-            msg.textContent = '';
-            try {
-                const r = await fetch('/api/pick_folder', { method: 'POST' });
-                const j = await r.json();
-                if (j.cancelled) return;
-                if (j.error) {
-                    msg.textContent = j.error;
-                    return;
-                }
-                if (j.path) document.getElementById('project-path').value = j.path;
-            } catch (err) {
-                msg.textContent = err.message || 'Folder picker failed';
-            }
-        };
+        document.getElementById('pick-folder').onclick = () => pickFolderNative().catch((err) => {
+            document.getElementById('analyze-msg').textContent = err.message || 'Folder picker failed';
+        });
 
         document.getElementById('run-analyze').onclick = async () => {
-            const path = document.getElementById('project-path').value.trim();
+            const raw = document.getElementById('project-path').value.trim();
             const msg = document.getElementById('analyze-msg');
-            if (!path) {
-                msg.textContent = 'Enter or pick a folder path.';
+            if (!raw) {
+                msg.textContent = 'Enter a folder path or GitHub URL.';
                 return;
             }
-            msg.textContent = 'Analyzing…';
+            runBtn.disabled = true;
+            msg.textContent = 'Starting analysis…';
             try {
+                const body = isGithubUrl(raw)
+                    ? { github_url: raw, async: true, fast: true }
+                    : { path: raw, async: true, fast: true };
                 const r = await fetch('/api/analyze', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ path }),
+                    body: JSON.stringify(body),
                 });
                 const j = await r.json();
                 if (!r.ok) throw new Error(j.error || 'Analyze failed');
-                window.location.href = '/';
+                msg.textContent = 'Analyzing…';
+                await pollAnalyzeJob(j.job_id);
+                const dest = isGithubUrl(raw) ? '/?loaded=1' : '/?loaded=1&path=' + encodeURIComponent(raw);
+                window.location.href = dest;
             } catch (err) {
                 msg.textContent = err.message || 'Analyze failed';
+                runBtn.disabled = false;
             }
         };
     </script>
