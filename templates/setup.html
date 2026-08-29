@@ -3,53 +3,217 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>LogicLens — Setup</title>
+    <title>LogicLens — Setup & AI Model Config</title>
     <script src="{{ url_for('static', filename='vendor/tailwindcdn.js') }}"></script>
     <script>
+        (function() {
+            const t = localStorage.getItem('logiclens_theme') || 'dark';
+            if (t === 'light') {
+                document.documentElement.classList.remove('dark');
+                document.documentElement.classList.add('light');
+            }
+        })();
         tailwind.config = { darkMode: "class", theme: { extend: { colors: { background: "#0b1326", on_surface: "#dae2fd" } } } };
     </script>
+    <style>
+        html.light body { background-color: #f8fafc !important; color: #0f172a !important; }
+        html.light code { background-color: #e2e8f0 !important; color: #0f172a !important; }
+        html.light input, html.light select { background-color: #ffffff !important; border-color: #cbd5e1 !important; color: #0f172a !important; }
+        html.light img.mix-blend-screen, html.light img[src*="logo"] { mix-blend-mode: normal !important; filter: brightness(0) saturate(100%) invert(26%) sepia(89%) saturate(2145%) hue-rotate(235deg) brightness(93%) contrast(93%) !important; }
+    </style>
 </head>
 <body class="min-h-screen bg-[#0b1326] text-[#dae2fd] p-6 sm:p-8">
     <div class="max-w-lg mx-auto">
         <div class="flex flex-col items-center gap-3 mb-8 text-center">
             <img src="/logo/logo.svg" alt="" class="h-12 w-auto opacity-95 mix-blend-screen" />
-            <h1 class="text-2xl font-semibold tracking-tight">LogicLens setup</h1>
-            <p class="text-sm text-slate-400">API keys stay on this device only.</p>
+            <h1 class="text-2xl font-semibold tracking-tight">LogicLens Setup</h1>
+            <p class="text-sm text-slate-400">Configure AI provider and credentials.</p>
         </div>
         <p class="text-sm text-slate-400 mb-2">Stored under:</p>
         <code class="block text-xs bg-slate-800 p-3 rounded mb-6 break-all">{{ data_dir }}</code>
 
-        <form id="f" class="space-y-4">
+        <form id="f" class="space-y-6">
             <div>
-                <label class="block text-sm mb-1">Groq API key (required for AI)</label>
-                <input type="password" name="groq" class="w-full rounded bg-slate-800 border border-slate-600 px-3 py-2 text-sm" autocomplete="off" required />
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">AI Provider Mode</label>
+                <div class="grid grid-cols-3 gap-2">
+                    <label class="cursor-pointer border border-slate-700 bg-slate-800/60 rounded-lg p-3 flex flex-col items-center text-center gap-1 transition hover:border-sky-500">
+                        <input type="radio" name="provider" value="gemini" {% if current_provider == 'gemini' or current_provider == 'cloud' %}checked{% endif %} onchange="toggleProvider('gemini')" class="text-sky-500" />
+                        <div>
+                            <div class="text-sm font-medium">Gemini</div>
+                            <div class="text-[11px] text-slate-400">Google Cloud API</div>
+                        </div>
+                    </label>
+                    <label class="cursor-pointer border border-slate-700 bg-slate-800/60 rounded-lg p-3 flex flex-col items-center text-center gap-1 transition hover:border-sky-500">
+                        <input type="radio" name="provider" value="groq" {% if current_provider == 'groq' %}checked{% endif %} onchange="toggleProvider('groq')" class="text-sky-500" />
+                        <div>
+                            <div class="text-sm font-medium">Groq</div>
+                            <div class="text-[11px] text-slate-400">Fast Cloud API</div>
+                        </div>
+                    </label>
+                    <label class="cursor-pointer border border-slate-700 bg-slate-800/60 rounded-lg p-3 flex flex-col items-center text-center gap-1 transition hover:border-sky-500">
+                        <input type="radio" name="provider" value="ollama" {% if current_provider == 'ollama' %}checked{% endif %} onchange="toggleProvider('ollama')" class="text-sky-500" />
+                        <div>
+                            <div class="text-sm font-medium">Local Ollama</div>
+                            <div class="text-[11px] text-slate-400">Offline Mode</div>
+                        </div>
+                    </label>
+                </div>
             </div>
-            <div>
-                <label class="block text-sm mb-1">Gemini API key (optional)</label>
-                <input type="password" name="gemini" class="w-full rounded bg-slate-800 border border-slate-600 px-3 py-2 text-sm" autocomplete="off" />
+
+            <!-- Gemini Section -->
+            <div id="section-gemini" class="space-y-4">
+                <div>
+                    <label class="block text-sm mb-1">Gemini API key <span class="text-sky-400">*</span></label>
+                    <input type="password" name="gemini" class="w-full rounded bg-slate-800 border border-slate-600 px-3 py-2 text-sm" autocomplete="off" placeholder="AIzaSy..." />
+                </div>
+                <div>
+                    <label class="block text-sm mb-1">Gemini Model</label>
+                    <select name="gemini_model" class="w-full rounded bg-slate-800 border border-slate-600 px-3 py-2 text-sm">
+                        <option value="gemini-3.5-flash-lite" {% if gemini_model == 'gemini-3.5-flash-lite' %}selected{% endif %}>Gemini 3.5 Flash Lite (Recommended)</option>
+                        <option value="gemini-2.5-flash" {% if gemini_model == 'gemini-2.5-flash' %}selected{% endif %}>Gemini 2.5 Flash</option>
+                        <option value="gemini-1.5-flash" {% if gemini_model == 'gemini-1.5-flash' %}selected{% endif %}>Gemini 1.5 Flash</option>
+                    </select>
+                </div>
             </div>
-            <label class="flex items-start gap-2 text-xs text-slate-400 cursor-pointer">
+
+            <!-- Groq Section -->
+            <div id="section-groq" class="space-y-4 hidden">
+                <div>
+                    <label class="block text-sm mb-1">Groq API key <span class="text-sky-400">*</span></label>
+                    <input type="password" name="groq" class="w-full rounded bg-slate-800 border border-slate-600 px-3 py-2 text-sm" autocomplete="off" placeholder="gsk_..." />
+                </div>
+            </div>
+
+            <!-- Local Ollama Section -->
+            <div id="section-ollama" class="space-y-4 hidden">
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Ollama Host</label>
+                    <input type="text" id="ollama_host_input" name="ollama_host" value="{{ ollama_host }}" class="w-full rounded bg-slate-800 border border-slate-600 px-3 py-2 text-sm font-mono" placeholder="http://localhost:11434" />
+                </div>
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="text-sm">Select Local Ollama Model</label>
+                        <button type="button" onclick="fetchOllamaModels()" class="text-xs text-sky-400 hover:underline">Refresh models</button>
+                    </div>
+                    <select id="ollama_model_select" name="ollama_model" class="w-full rounded bg-slate-800 border border-slate-600 px-3 py-2 text-sm">
+                        <option value="{{ ollama_model }}">{{ ollama_model }} (Current)</option>
+                    </select>
+                    <p id="ollama-status" class="text-xs text-slate-400 mt-1">Choice between downloaded models on local system via OLLAMA_HOST</p>
+                </div>
+            </div>
+
+            <label class="flex items-start gap-2 text-xs text-slate-400 cursor-pointer pt-2 border-t border-slate-800">
                 <input type="checkbox" name="telemetry" class="mt-0.5 rounded border-slate-600" />
                 <span>Allow optional crash reporting (requires <code class="text-sky-400/80">SENTRY_DSN</code> in <code>.env</code>; off by default)</span>
             </label>
-            <button type="submit" class="w-full py-2 rounded bg-sky-600 hover:bg-sky-500 text-white text-sm font-medium">Save and continue</button>
+
+            <button type="submit" class="w-full py-2.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-sm font-semibold transition">Save and continue</button>
         </form>
-        <p id="msg" class="mt-4 text-sm"></p>
-        <p class="mt-8 text-center sm:text-left"><a href="/" class="text-sky-400 hover:underline">Back to app</a></p>
+
+        <p id="msg" class="mt-4 text-sm font-medium text-center"></p>
+        <p class="mt-8 text-center"><a href="/" class="text-sky-400 hover:underline text-sm">← Back to app</a></p>
     </div>
+
     <script>
+        function toggleProvider(prov) {
+            const geminiSec = document.getElementById('section-gemini');
+            const groqSec = document.getElementById('section-groq');
+            const ollamaSec = document.getElementById('section-ollama');
+            
+            geminiSec.classList.add('hidden');
+            groqSec.classList.add('hidden');
+            ollamaSec.classList.add('hidden');
+
+            if (prov === 'gemini') {
+                geminiSec.classList.remove('hidden');
+            } else if (prov === 'groq') {
+                groqSec.classList.remove('hidden');
+            } else if (prov === 'ollama') {
+                ollamaSec.classList.remove('hidden');
+                fetchOllamaModels();
+            }
+        }
+
+        async function fetchOllamaModels() {
+            const select = document.getElementById('ollama_model_select');
+            const status = document.getElementById('ollama-status');
+            status.textContent = 'Checking local Ollama daemon...';
+            status.className = 'text-xs text-slate-400 mt-1';
+
+            try {
+                const res = await fetch('/api/ollama/models');
+                const j = await res.json();
+                if (j.status === 'ok' && j.models && j.models.length > 0) {
+                    const curVal = select.value;
+                    select.innerHTML = '';
+                    j.models.forEach(m => {
+                        const opt = document.createElement('option');
+                        opt.value = m;
+                        opt.textContent = m;
+                        if (m === curVal) opt.selected = true;
+                        select.appendChild(opt);
+                    });
+                    status.textContent = `Found ${j.models.length} model(s) on ${j.host}`;
+                    status.className = 'text-xs text-emerald-400 mt-1';
+                } else if (j.status === 'offline') {
+                    status.textContent = `Ollama not detected at ${j.host}. Ensure 'ollama serve' is running.`;
+                    status.className = 'text-xs text-amber-400 mt-1';
+                } else {
+                    status.textContent = 'No local models found. Pull models using: ollama pull llama3';
+                    status.className = 'text-xs text-amber-400 mt-1';
+                }
+            } catch (err) {
+                status.textContent = 'Failed to connect to local Ollama API.';
+                status.className = 'text-xs text-rose-400 mt-1';
+            }
+        }
+
         document.getElementById('f').onsubmit = async (e) => {
             e.preventDefault();
             const msg = document.getElementById('msg');
-            msg.textContent = 'Saving…';
+            msg.textContent = 'Saving configuration…';
+            msg.className = 'mt-4 text-sm font-medium text-center text-slate-300';
+
+            const provider = document.querySelector('[name=provider]:checked')?.value || 'gemini';
             const groq = document.querySelector('[name=groq]').value;
             const gemini = document.querySelector('[name=gemini]').value;
+            const geminiModel = document.querySelector('[name=gemini_model]').value;
+            const ollamaModel = document.getElementById('ollama_model_select').value;
+            const ollamaHost = document.getElementById('ollama_host_input').value;
             const telemetry = document.querySelector('[name=telemetry]')?.checked || false;
-            const r = await fetch('/setup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ groq_api_key: groq, gemini_api_key: gemini, telemetry_opt_in: telemetry }) });
-            const j = await r.json();
-            if (r.ok) { msg.textContent = j.message || 'Saved.'; window.location.href = '/'; }
-            else { msg.textContent = j.error || 'Error'; }
+
+            try {
+                const r = await fetch('/setup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        llm_provider: provider,
+                        groq_api_key: groq,
+                        gemini_api_key: gemini,
+                        gemini_model: geminiModel,
+                        ollama_model: ollamaModel,
+                        ollama_host: ollamaHost,
+                        telemetry_opt_in: telemetry
+                    })
+                });
+                const j = await r.json();
+                if (r.ok) {
+                    msg.textContent = j.message || 'Saved successfully.';
+                    msg.className = 'mt-4 text-sm font-medium text-center text-emerald-400';
+                    setTimeout(() => window.location.href = '/', 1000);
+                } else {
+                    msg.textContent = j.error || 'Error saving settings.';
+                    msg.className = 'mt-4 text-sm font-medium text-center text-rose-400';
+                }
+            } catch (err) {
+                msg.textContent = 'Failed to submit settings.';
+                msg.className = 'mt-4 text-sm font-medium text-center text-rose-400';
+            }
         };
+
+        // Initial view state setup
+        const initProv = document.querySelector('[name=provider]:checked')?.value || 'gemini';
+        toggleProvider(initProv);
     </script>
 </body>
 </html>
