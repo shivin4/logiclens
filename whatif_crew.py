@@ -37,8 +37,11 @@ _bootstrap_tiktoken_encodings()
 
 # ── Third-party imports ────────────────────────────────────────────────────────
 try:
+    # pyrefly: ignore [missing-import]
     from crewai import Agent, Crew, Process, Task, LLM
+    # pyrefly: ignore [missing-import]
     from crewai.tools import BaseTool
+    # pyrefly: ignore [missing-import]
     import chromadb
 except ImportError as e:
     raise ImportError(
@@ -50,20 +53,35 @@ except ImportError as e:
 # ──────────────────────────────────────────────────────────────────────────────
 
 from logiclens.config import (
+    active_ai_provider,
     chroma_collection_for_project,
     chroma_collection_name,
     chroma_dir,
+    gemini_api_key,
+    gemini_model,
     graph_db_path,
+    groq_api_key,
     load_app_env,
+    llm_provider,
+    ollama_host,
+    ollama_model,
 )
 from logiclens.sqlite_graph import SqliteGraphStore
 
 load_app_env()
 
-GROQ_API_KEY: str = os.environ.get("GROQ_API_KEY", "")
-
-if not GROQ_API_KEY:
+_active_prov = active_ai_provider()
+if _active_prov == "gemini" and not gemini_api_key():
+    print("[WARNING] GEMINI_API_KEY is not set. What-If engine will report a system error if run.")
+elif _active_prov == "groq" and not groq_api_key():
     print("[WARNING] GROQ_API_KEY is not set. What-If engine will report a system error if run.")
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 1.  Custom CrewAI Tools  (BaseTool subclasses — required by CrewAI's validator)
+# ──────────────────────────────────────────────────────────────────────────────
+
+# (skipping tools down to build_llm)
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 1.  Custom CrewAI Tools  (BaseTool subclasses — required by CrewAI's validator)
@@ -202,15 +220,46 @@ chromadb_source_code_tool = ChromaDBSourceCodeTool()
 # ──────────────────────────────────────────────────────────────────────────────
 
 def build_llm() -> LLM:
-    """Initialise the Groq LLM used by all agents."""
-    api_key = os.getenv("GROQ_API_KEY")
-    if not api_key:
-        raise RuntimeError("GROQ_API_KEY is not set in the environment.")
-    return LLM(
-        model="groq/llama-3.3-70b-versatile",
-        temperature=0.2,
-        api_key=api_key,
-    )
+    """Initialise the LLM used by all agents (Gemini, Groq, or Local Ollama)."""
+    provider = active_ai_provider()
+    if provider == "ollama":
+        model_name = ollama_model()
+        host = ollama_host()
+        model_str = f"ollama/{model_name}" if not model_name.startswith("ollama/") else model_name
+        return LLM(
+            model=model_str,
+            base_url=host,
+            temperature=0.2,
+        )
+    elif provider == "gemini":
+        api_key = gemini_api_key()
+        if not api_key:
+            # Fallback to groq if set
+            if groq_api_key():
+                return LLM(model="groq/compound", temperature=0.2, api_key=groq_api_key())
+            raise RuntimeError("GEMINI_API_KEY is not set in the environment.")
+        model_name = gemini_model()
+        model_str = f"gemini/{model_name}" if not model_name.startswith("gemini/") else model_name
+        return LLM(
+            model=model_str,
+            temperature=0.2,
+            api_key=api_key,
+        )
+    else:  # groq
+        api_key = groq_api_key()
+        if not api_key:
+            # Fallback to gemini if set
+            if gemini_api_key():
+                model_name = gemini_model()
+                model_str = f"gemini/{model_name}" if not model_name.startswith("gemini/") else model_name
+                return LLM(model=model_str, temperature=0.2, api_key=gemini_api_key())
+            raise RuntimeError("GROQ_API_KEY is not set in the environment.")
+        return LLM(
+            model="groq/compound",
+            temperature=0.2,
+            api_key=api_key,
+        )
+
 
 
 def _format_sse(role: str, content: str, extra: dict[str, Any] | None = None) -> str:
@@ -358,35 +407,39 @@ def build_tasks(
     # --- Task 3: Blast Radius Report ------------------------------------------
     task_report = Task(
         description=(
-            f"Synthesise the outputs of Task 1 and Task 2 into a comprehensive "
-            f"**Blast Radius Report** for the function `{target_function}`.\n\n"
-            "The report MUST be valid Markdown and contain these exact sections:\n\n"
-            "## Target Function\n"
-            "Name, and a one-line description of its likely purpose "
-            "(infer from the callers if source is unavailable).\n\n"
-            "## Blast Radius Summary\n"
-            "Total number of callers, risk level (Low / Medium / High / Critical), "
-            "and a two-sentence executive summary.\n\n"
-            "## Affected Files & Functions\n"
-            "A table: | Function | File | Risk Level | Reason |\n\n"
-            "## Detailed Logic Risk Analysis\n"
-            "For each affected function: what specifically would break and why.\n\n"
-            "## Testing Recommendations\n"
-            "A prioritised checklist of unit/integration tests that must be written "
-            "or updated before changing the target function.\n\n"
-            "## Refactoring Suggestions (Optional)\n"
-            "Any architectural improvements that could reduce future blast radius.\n\n"
-            "Ensure the report is professional, precise, and directly actionable.\n"
-            "CRITICAL INSTRUCTION: DO NOT use any emojis whatsoever in the report. Keep the formatting completely professional, clean, and strictly structured."
+            f"Synthesise the outputs of Task 1 and Task 2 into a professional, beautifully formatted "
+            f"**Blast Radius Report** for the target function `{target_function}`.\n\n"
+            f"CRITICAL FORMATTING INSTRUCTIONS:\n"
+            f"- Always explicitly mention `{target_function}` in the report text. Never leave empty gaps or blank fields.\n"
+            f"- DO NOT output raw placeholder bullet points like '- Name:' or empty lines.\n"
+            f"- Format the report using the exact sections below:\n\n"
+            f"# Impact Analysis: `{target_function}`\n\n"
+            f"## Target Function Overview\n"
+            f"- **Name**: `{target_function}`\n"
+            f"- **Purpose**: Summary of its likely purpose based on source code or callers.\n"
+            f"- **Direct Callers Count**: (Number of callers identified in Task 1)\n"
+            f"- **Overall Risk Level**: **HIGH** / **MEDIUM** / **LOW** / **CRITICAL**\n\n"
+            f"## Executive Summary\n"
+            f"A concise 2-3 sentence executive summary explaining the architectural impact of modifying `{target_function}`.\n\n"
+            f"## Affected Files & Functions\n"
+            f"| Function | File Path | Risk Level | Reason & Breakage Risk |\n"
+            f"|---|---|---|---|\n"
+            f"(Provide a row for each caller function)\n\n"
+            f"## Detailed Logic Risk Analysis\n"
+            f"For each affected caller, explain how parameter changes, signature changes, or altered return values in `{target_function}` would break its logic.\n\n"
+            f"## Recommended Testing\n"
+            f"Prioritised checklist of unit/integration tests to execute before altering `{target_function}`.\n\n"
+            f"Keep the formatting completely professional, clean, and strictly structured."
         ),
         expected_output=(
-            "A complete, properly formatted Markdown Blast Radius Report with all "
-            "six required sections."
+            "A complete, properly formatted Markdown Blast Radius Report with clear headers, "
+            "table, and detailed logic risk analysis."
         ),
         agent=explainer,
         context=[task_graph, task_semantic],
         output_file="blast_radius_report.md",
     )
+
 
     return task_graph, task_semantic, task_report
 
