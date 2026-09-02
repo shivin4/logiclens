@@ -41,9 +41,9 @@ def _spawn_second_desktop_instance() -> None:
     """Spawn another LogicLens desktop (new window and HTTP port)."""
     cwd = Path(__file__).resolve().parent
     if getattr(sys, "frozen", False):
-        args: list[str] = [sys.executable]
+        args: list[str] = [sys.executable, "--fresh"]
     else:
-        args = [sys.executable, str(cwd / "desktop_main.py")]
+        args = [sys.executable, str(cwd / "desktop_main.py"), "--fresh"]
 
     kwargs: dict = {
         "cwd": str(cwd),
@@ -87,12 +87,27 @@ class DesktopApi:
         return True
 
 
+def is_ai_configured() -> bool:
+    prov = (os.environ.get("LLM_PROVIDER") or "").strip().lower()
+    if prov in ("ollama", "local"):
+        return True
+    if prov == "gemini":
+        return bool((os.environ.get("GEMINI_API_KEY") or "").strip())
+    if prov == "groq":
+        return bool((os.environ.get("GROQ_API_KEY") or "").strip())
+    return bool(
+        (os.environ.get("GEMINI_API_KEY") or "").strip()
+        or (os.environ.get("GROQ_API_KEY") or "").strip()
+    )
+
+
 def main() -> None:
     threading.Thread(target=_serve, daemon=True).start()
+    is_fresh = "--fresh" in sys.argv
     start_path = (
-        "/onboarding"
-        if not (os.environ.get("GROQ_API_KEY") or "").strip()
-        else "/"
+        ("/?fresh=1" if is_fresh else "/")
+        if is_ai_configured()
+        else "/onboarding"
     )
     url = f"http://{flask_host()}:{flask_port()}{start_path}"
     webview.create_window(
