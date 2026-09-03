@@ -7,6 +7,11 @@
 ;
 ; Output: dist_installer\LogicLens-Setup-x.y.z.exe
 ;
+; If compile fails with "EndUpdateResource failed" / error 110: antivirus often locks the
+; output .exe while Inno updates icons. Exclude dist_installer (or the repo) in Defender,
+; delete any half-written Setup exe in dist_installer, close Explorer if it is previewing
+; that folder, and compile again. You can temporarily set OutputDir below to e.g. C:\dev\ll-out.
+;
 ; Before shipping: replace AppId with a NEW unique GUID (Tools → Generate GUID in Inno,
 ; or: https://www.guidgen.com — keep braces in the AppId line).
 
@@ -41,7 +46,9 @@ Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
 ArchitecturesInstallIn64BitMode=x64
-CloseApplications=no
+CloseApplications=yes
+CloseApplicationsFilter=*LogicLens*
+RestartApplications=no
 UninstallDisplayIcon={app}\{#MyAppExeName}
 UninstallDisplayName={#MyAppName}
 VersionInfoVersion={#MyAppVersion}
