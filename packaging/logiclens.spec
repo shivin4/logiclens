@@ -49,6 +49,23 @@ def _safe_subs(package: str, skip_prefixes: tuple[str, ...]):
         return []
 
 
+def _trim_litellm_proxy_datas(entries: list) -> list:
+    """Omit litellm's *proxy server* data tree (deep paths, YAML/i18n). CrewAI uses the
+    LiteLLM client only — not the proxy — and those files blow past Windows MAX_PATH when
+    combined with a long repo path, breaking Inno Setup compression."""
+    out: list = []
+    for item in entries:
+        if len(item) != 2:
+            out.append(item)
+            continue
+        _src, dest = item
+        d = str(dest).replace("\\", "/")
+        if d == "litellm/proxy" or d.startswith("litellm/proxy/"):
+            continue
+        out.append(item)
+    return out
+
+
 # ChromaDB 1.x: native ``chromadb_rust_bindings`` + deep imports are often missed.
 _rb_datas, _rb_binaries, _rb_hidden = _safe_collect_all("chromadb_rust_bindings")
 _chroma_hidden = collect_submodules(
@@ -63,9 +80,14 @@ _chroma_hidden = collect_submodules(
 _onnx_d, _onnx_b, _onnx_h = _safe_collect_all("onnxruntime")
 _k8s_d, _k8s_b, _k8s_h = _safe_collect_all("kubernetes")
 _tok_d, _tok_b, _tok_h = _safe_collect_all("tokenizers")
+_st_d, _st_b, _st_h = _safe_collect_all("setuptools")
+_pr_d, _pr_b, _pr_h = _safe_collect_all("pkg_resources")
 
 # LiteLLM: CrewAI Groq routing; PyInstaller often under-collects lazy re-exports.
-_lit_d, _lit_b, _lit_h = _safe_collect_all("litellm")
+_lit_d_raw, _lit_b, _lit_h = _safe_collect_all("litellm")
+_lit_d = _trim_litellm_proxy_datas(list(_lit_d_raw))
+
+_genai_d, _genai_b, _genai_h = _safe_collect_all("google.genai")
 
 # What-if / LLM stack (lazy-imported but must be present in the frozen app).
 _pkg_subs: list[str] = []
@@ -75,9 +97,11 @@ for _pkg, _skips in (
     ("langchain_openai", ("langchain_openai.test",)),
     ("langchain_core", ("langchain_core.test",)),
     ("langsmith", ("langsmith.test",)),
-    ("litellm", ("litellm.tests", "litellm.test")),
+    ("litellm", ("litellm.tests", "litellm.test", "litellm.proxy")),
     ("groq", ("groq.test",)),
     ("openai", ("openai.test",)),
+    ("google.genai", ("google.genai.test",)),
+    ("google.generativeai", ("google.generativeai.test",)),
     ("uvicorn", ("uvicorn.test",)),
     ("grpc", ("grpc.test",)),
 ):
@@ -89,14 +113,20 @@ datas = (
     + list(_onnx_d)
     + list(_k8s_d)
     + list(_tok_d)
+    + list(_st_d)
+    + list(_pr_d)
     + list(_lit_d)
+    + list(_genai_d)
 )
 binaries = (
     list(_rb_binaries)
     + list(_onnx_b)
     + list(_k8s_b)
     + list(_tok_b)
+    + list(_st_b)
+    + list(_pr_b)
     + list(_lit_b)
+    + list(_genai_b)
 )
 
 a = Analysis(
@@ -118,6 +148,7 @@ a = Analysis(
             "chromadb.api.rust",
             "chromadb_rust_bindings",
             "crewai",
+            "crewai.llms.providers.gemini.completion",
             "instructor",
             "langchain_openai",
             "langchain_core",
@@ -127,6 +158,8 @@ a = Analysis(
             "tiktoken_ext.openai_public",
             "groq",
             "openai",
+            "google.genai",
+            "google.generativeai",
             "tree_sitter",
             "tree_sitter_python",
             "tree_sitter_javascript",
@@ -144,7 +177,10 @@ a = Analysis(
         + list(_onnx_h)
         + list(_k8s_h)
         + list(_tok_h)
+        + list(_st_h)
+        + list(_pr_h)
         + list(_lit_h)
+        + list(_genai_h)
         + list(_chroma_hidden)
         + list(_pkg_subs)
     ),
@@ -157,6 +193,14 @@ a = Analysis(
     cipher=block_cipher,
     noarchive=False,
 )
+
+# Filter out deep stubs and test data to avoid Windows MAX_PATH (260 char) errors in Inno Setup
+a.datas = [
+    x for x in a.datas
+    if "jedi/third_party" not in x[1].replace("\\", "/")
+    and "pkg_resources/tests" not in x[1].replace("\\", "/")
+    and "setuptools/tests" not in x[1].replace("\\", "/")
+]
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
