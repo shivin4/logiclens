@@ -24,3 +24,7 @@ neo_test2.py
 .coverage
 htmlcov/
 _tmp_chroma_smoke/
+
+# GitHub integration caches and auth tokens
+github_auth.json
+github_cache/
