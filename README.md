@@ -11,6 +11,7 @@
 - **Incremental analyze:** Re-running **Analyze** on the same project only re-processes files whose **mtime + size** changed (plus adds/removes). Switching to another repo forces a **full** graph rebuild (single shared `logiclens_graph.db`).
 - **Per-project Chroma:** Each analyzed folder gets its own collection (`ll_proj_<hash>`); vectors for other projects stay on disk.
 - **Updates:** Settings → **Check for updates** calls GitHub Releases (`shivin4/logiclens` by default; overridable via env).
+- **GitHub remote analysis:** Analyze public or private repos directly via GitHub URL or OAuth Device Flow without manual cloning.
 - **Optional telemetry:** Opt-in via UI; requires `SENTRY_DSN` in `.env` and `sentry-sdk`. **Nothing is sent** without a DSN.
 - **Accessibility:** Visible **focus rings** on interactive controls; Settings dialog has **ARIA** labels, **Escape** closes, focus moves into the dialog when opened.
 
@@ -31,7 +32,9 @@
 
 ## Supported languages
 
-`.py` · `.js` / `.jsx` · `.ts` / `.tsx` · `.java` · `.go` · `.cpp` / `.cc` / `.h` / `.hpp`
+- **Core & Web:** Python (`.py`), JavaScript / TypeScript (`.js`, `.jsx`, `.ts`, `.tsx`, `.mjs`, `.cjs`), Vue & Svelte SFCs
+- **Backend & Systems:** Go (`.go`), Java (`.java`), C / C++ (`.c`, `.cc`, `.cpp`, `.h`, `.hpp`), Rust (`.rs`), C# (`.cs`), Ruby (`.rb`), PHP (`.php`)
+- **Mobile & Scripting:** Kotlin (`.kt`, `.kts`), Swift (`.swift`), Dart (`.dart`), Scala (`.scala`), R (`.r`), Julia (`.jl`), Jupyter Notebooks (`.ipynb`)
 
 ---
 
