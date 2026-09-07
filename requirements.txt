@@ -12,21 +12,19 @@ pyinstaller
 crewai==1.14.1
 langchain-openai
 google-generativeai
+google-genai
 # CrewAI Groq models use LiteLLM; instructor may import the Groq SDK.
 litellm>=1.0.0
 tiktoken>=0.7.0
 groq>=0.4.0
 
-# Additional parsers
+# Additional parsers (core web + systems)
 tree-sitter-javascript
 tree-sitter-typescript
 tree-sitter-java
 tree-sitter-go
 tree-sitter-cpp
-
-# Optional crash reporting (only active when LOGICLENS_TELEMETRY=1 and SENTRY_DSN is set)
-sentry-sdk>=2.0.0
-# testing additional parsers
+# Optional: mobile, ML notebooks, backend stacks (loaded best-effort if installed)
 tree-sitter-ruby
 tree-sitter-rust
 tree-sitter-php
@@ -37,3 +35,6 @@ tree-sitter-dart
 tree-sitter-scala
 tree-sitter-r
 tree-sitter-julia
+
+# Optional crash reporting (only active when LOGICLENS_TELEMETRY=1 and SENTRY_DSN is set)
+sentry-sdk>=2.0.0
