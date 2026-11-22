@@ -16,7 +16,7 @@
 ; or: https://www.guidgen.com — keep braces in the AppId line).
 
 #define MyAppName "LogicLens"
-#define MyAppVersion "1.1.0"
+#define MyAppVersion "1.2.0"
 #define MyAppPublisher "LogicLens"
 #define MyAppExeName "LogicLens.exe"
 ; Public homepage / source (shown in Programs and Features)
