@@ -760,6 +760,37 @@ html.light #settings-dialog-panel,
             border: 0;
         }
 
+        /* Right-hand panels: shared, user-resizable width */
+        .rpanel { width: var(--rpanel-w, 420px) !important; max-width: 92vw; }
+        html.rp-collapsed .rpanel { transform: translateX(100%) !important; }
+        #graph-legend, #view-bar { transition: right .3s cubic-bezier(.4,0,.2,1); }
+        #graph-legend { right: calc(1.5rem + var(--rp-offset, 0px)) !important; }
+        #view-bar { right: calc(1.5rem + var(--rp-offset, 0px)) !important; }
+        #rpanel-ctl { position: absolute; top: 50%; z-index: 90; right: var(--rp-offset, 0px); transform: translateY(-50%);
+            display: none; flex-direction: column; align-items: center; gap: 2px; padding: 4px 3px; border-radius: 10px 0 0 10px;
+            background: rgba(15,23,42,.92); border: 1px solid rgba(148,163,184,.25); border-right: 0; transition: right .3s cubic-bezier(.4,0,.2,1); }
+        #rpanel-ctl.on { display: flex; }
+        #rpanel-ctl button { width: 24px; height: 24px; border-radius: 6px; color: #94a3b8; display: inline-flex; align-items: center; justify-content: center; }
+        #rpanel-ctl button:hover { background: rgba(148,163,184,.18); color: #e2e8f0; }
+        #rpanel-grip { position: absolute; top: 0; bottom: 0; width: 8px; z-index: 89; cursor: col-resize; right: calc(var(--rp-offset, 0px) - 4px); display: none; }
+        #rpanel-grip.on { display: block; }
+        #rpanel-grip:hover, #rpanel-grip.drag { background: linear-gradient(to right, transparent 3px, rgba(56,189,248,.7) 3px, rgba(56,189,248,.7) 5px, transparent 5px); }
+        html.light #rpanel-ctl { background: #ffffff; border-color: #cbd5e1; }
+
+        /* Graph options bar */
+        #view-bar .view-tab { padding: 7px 13px; }
+        #view-bar .opt-group { display: flex; align-items: center; gap: 4px; padding: 4px 6px; }
+        #view-bar .opt-title { font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase; color: #64748b; font-weight: 700; padding: 0 6px 0 4px; }
+        #view-bar .flt { padding: 5px 10px; border-radius: 999px; border: 1px solid transparent; position: relative; font-weight: 600; transition: background .15s, color .15s, border-color .15s; }
+        #view-bar .flt input { position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0; }
+        #view-bar .flt .material-symbols-outlined { font-size: 15px; opacity: .8; }
+        #view-bar .flt:hover { background: rgba(148,163,184,.12); }
+        #view-bar .flt:has(input:checked) { background: rgba(56,189,248,.14); color: #38bdf8; border-color: rgba(56,189,248,.35); }
+        #view-bar .flt:has(input:checked) .material-symbols-outlined { opacity: 1; font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        #view-bar .flt:has(input:focus-visible) { outline: 2px solid #38bdf8; outline-offset: 1px; }
+        html.light #view-bar .flt:has(input:checked) { background: #eef2ff; color: #4f46e5; border-color: #c7d2fe; }
+        html.light #view-bar .flt:hover { background: #f1f5f9; }
+
         /* Graph legend */
         #legend-body { width: 280px; max-height: 60vh; overflow-y: auto; font-size: 11.5px; color: #cbd5e1; }
         html.light #legend-body { color: #334155; }
@@ -1952,7 +1983,7 @@ html.light #settings-dialog-panel,
                     <button id="nav-explorer"
                         class="nav-item w-full flex items-center justify-between px-3 py-3 text-slate-500 hover:text-slate-200 border-l-[3px] border-transparent transition-all duration-150 ease-in-out font-inter text-xs font-medium cursor-pointer rounded-lg"
                         onclick="setActiveNav('nav-explorer')"
-                        title="Explorer — click again to collapse sidebar">
+                        title="Explorer">
                         <div class="flex items-center gap-3 min-w-0 flex-1">
                             <span class="material-symbols-outlined text-[22px] shrink-0"
                                 data-icon="folder_open">folder_open</span>
@@ -1989,21 +2020,21 @@ html.light #settings-dialog-panel,
                 <a id="nav-semantic-search"
                     class="nav-item flex w-full min-w-0 items-center gap-3 px-3 py-3 text-slate-500 hover:text-slate-300 border-l-[3px] border-transparent transition-all duration-150 ease-in-out font-inter text-xs font-medium cursor-pointer rounded-lg"
                     onclick="setActiveNav('nav-semantic-search')"
-                    title="Semantic Search — click again to collapse sidebar">
+                    title="Semantic Search">
                     <span class="material-symbols-outlined text-[22px] shrink-0" data-icon="manage_search">manage_search</span>
                     <span class="sidebar-text text-sm truncate">Semantic Search</span>
                 </a>
                 <a id="nav-source"
                     class="nav-item flex w-full min-w-0 items-center gap-3 px-3 py-3 text-slate-500 hover:text-slate-300 border-l-[3px] border-transparent transition-all duration-150 ease-in-out font-inter text-xs font-medium cursor-pointer rounded-lg"
                     onclick="setActiveNav('nav-source')"
-                    title="Source Control — click again to collapse sidebar">
+                    title="Source Control">
                     <span class="material-symbols-outlined text-[22px] shrink-0" data-icon="account_tree">account_tree</span>
                     <span class="sidebar-text text-sm truncate">Source Control</span>
                 </a>
                 <a id="nav-impact"
                     class="nav-item flex w-full min-w-0 items-center gap-3 px-3 py-3 text-slate-500 hover:text-slate-300 border-l-[3px] border-transparent transition-all duration-150 ease-in-out font-inter text-xs font-medium cursor-pointer rounded-lg"
                     onclick="setActiveNav('nav-impact')"
-                    title="Impact Analysis — click again to collapse sidebar">
+                    title="Impact Analysis">
                     <span class="material-symbols-outlined text-[22px] shrink-0" data-icon="crisis_alert">crisis_alert</span>
                     <span class="sidebar-text text-sm truncate">Impact Analysis</span>
                 </a>
@@ -2133,15 +2164,23 @@ html.light #settings-dialog-panel,
                     </button>
                 </div>
                 <select id="view-file-select" class="view-select hidden pointer-events-auto" aria-label="Choose file"></select>
-                <div id="view-filters" class="flex glass-panel rounded-xl border border-outline-variant/15 shadow-xl items-center gap-3 px-3 py-2 pointer-events-auto">
-                    <label class="flt" id="flt-classes-wrap"><input type="checkbox" id="flt-classes" checked>Classes</label>
-                    <label class="flt" id="flt-api-wrap"><input type="checkbox" id="flt-api" checked>API routes</label>
-                    <label class="flt" id="flt-structure-wrap" title="Show File nodes and containment links"><input type="checkbox" id="flt-structure">Structure</label>
-                    <label class="flt" id="flt-isolated-wrap" title="Show nodes that have no connections"><input type="checkbox" id="flt-isolated">Unlinked</label>
-                    <label class="flt" id="flt-external-wrap" title="In single-file view, show callers/callees that live in other files"><input type="checkbox" id="flt-external" checked>Other files</label>
+                <div id="view-filters" class="opt-group glass-panel rounded-xl border border-outline-variant/15 shadow-xl pointer-events-auto">
+                    <span class="opt-title">Show</span>
+                    <label class="flt" id="flt-classes-wrap" title="Classes (diamonds) and their methods"><input type="checkbox" id="flt-classes" checked><span class="material-symbols-outlined">deployed_code</span>Classes</label>
+                    <label class="flt" id="flt-api-wrap" title="API routes (endpoints) and the code that calls them"><input type="checkbox" id="flt-api" checked><span class="material-symbols-outlined">api</span>API routes</label>
+                    <label class="flt" id="flt-xfile-wrap" title="Calls that cross from one file into another. Turn off to see each file on its own."><input type="checkbox" id="flt-xfile" checked><span class="material-symbols-outlined">swap_horiz</span>Cross-file links</label>
+                    <label class="flt" id="flt-structure-wrap" title="Add file nodes, file imports and file-to-function containment lines"><input type="checkbox" id="flt-structure"><span class="material-symbols-outlined">folder_open</span>Files &amp; imports</label>
+                    <label class="flt" id="flt-isolated-wrap" title="Also show items that have no connections to anything"><input type="checkbox" id="flt-isolated"><span class="material-symbols-outlined">link_off</span>Unconnected</label>
+                    <label class="flt" id="flt-external-wrap" title="Show callers and callees that live in other files (dashed)"><input type="checkbox" id="flt-external" checked><span class="material-symbols-outlined">open_in_new</span>Other files</label>
                 </div>
             </div>
 
+            <div id="rpanel-grip" title="Drag to resize the side panel"></div>
+            <div id="rpanel-ctl">
+                <button type="button" id="rp-wider" title="Wider panel"><span class="material-symbols-outlined text-[16px]">chevron_left</span></button>
+                <button type="button" id="rp-narrower" title="Narrower panel"><span class="material-symbols-outlined text-[16px]">chevron_right</span></button>
+                <button type="button" id="rp-collapse" title="Hide / show panel"><span class="material-symbols-outlined text-[16px]" id="rp-collapse-icon">last_page</span></button>
+            </div>
             <!-- Graph legend (content is built per view by renderLegend) -->
             <div id="graph-legend" class="absolute bottom-6 right-6 z-30 hidden flex-col items-end gap-2 pointer-events-none">
                 <div id="legend-body" class="glass-panel rounded-xl border border-outline-variant/15 shadow-xl p-3 pointer-events-auto hidden"></div>
@@ -2195,7 +2234,7 @@ html.light #settings-dialog-panel,
 
             <!-- Right-Side Details Drawer -->
             <aside id="side-panel"
-                class="absolute top-0 right-0 h-full w-[400px] glass-panel border-l border-outline-variant/15 z-[70] transform translate-x-full transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] shadow-2xl overflow-y-auto flex flex-col">
+                class="rpanel absolute top-0 right-0 h-full w-[400px] glass-panel border-l border-outline-variant/15 z-[70] transform translate-x-full transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] shadow-2xl overflow-y-auto flex flex-col">
                 <div class="p-5 space-y-5 flex-1 flex flex-col">
                     <!-- Drawer Header -->
                     <div class="flex justify-between items-start">
@@ -2311,7 +2350,7 @@ html.light #settings-dialog-panel,
 
             <!-- View Source Overlay Drawer -->
             <aside id="source-panel"
-                class="absolute top-0 right-0 h-full w-[400px] glass-panel border-l border-outline-variant/15 z-50 transform translate-x-full transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] shadow-2xl overflow-hidden flex flex-col hidden">
+                class="rpanel absolute top-0 right-0 h-full w-[400px] glass-panel border-l border-outline-variant/15 z-[80] transform translate-x-full transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] shadow-2xl overflow-hidden flex flex-col hidden">
                 <div
                     class="p-6 border-b border-outline-variant/15 flex justify-between items-center bg-surface-container-low shrink-0">
                     <div class="flex items-center gap-2 text-primary">
@@ -2345,7 +2384,7 @@ html.light #settings-dialog-panel,
 
             <!-- Impact Analysis Drawer -->
             <aside id="impact-panel"
-                class="absolute top-0 right-0 h-full w-[450px] glass-panel border-l border-outline-variant/15 z-50 transform translate-x-full transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] shadow-2xl flex flex-col hidden bg-[#0b1326]/95">
+                class="rpanel absolute top-0 right-0 h-full w-[450px] glass-panel border-l border-outline-variant/15 z-50 transform translate-x-full transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] shadow-2xl flex flex-col hidden bg-[#0b1326]/95">
                 <div class="p-5 border-b border-outline-variant/15 flex justify-between items-center bg-surface-container-low shrink-0">
                     <div class="flex items-center gap-2 text-[#38bdf8]">
                         <span class="material-symbols-outlined text-lg" data-icon="crisis_alert">crisis_alert</span>
@@ -2399,7 +2438,7 @@ html.light #settings-dialog-panel,
 
             <!-- Source Control / Git Drawer -->
             <aside id="git-panel"
-                class="absolute top-0 right-0 h-full w-[450px] glass-panel border-l border-outline-variant/15 z-50 transform translate-x-full transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] shadow-2xl flex flex-col hidden bg-[#0b1326]/95">
+                class="rpanel absolute top-0 right-0 h-full w-[450px] glass-panel border-l border-outline-variant/15 z-50 transform translate-x-full transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] shadow-2xl flex flex-col hidden bg-[#0b1326]/95">
                 <div class="p-5 border-b border-outline-variant/15 flex justify-between items-center bg-surface-container-low shrink-0">
                     <div class="flex items-center gap-2 text-[#38bdf8]">
                         <span class="material-symbols-outlined text-lg" data-icon="account_tree">account_tree</span>
@@ -2944,7 +2983,7 @@ html.light #settings-dialog-panel,
         // ── State ─────────────────────────────────────────────────────────────────
         let network = null;
         let traceNetwork = null;
-        let layoutMode = 'hierarchy'; // 'hierarchy' | 'cluster' | 'physics'
+        let layoutMode = 'cluster'; // 'hierarchy' | 'cluster' | 'physics'
         let layoutUserChosen = false; // once true, never auto-switch the layout
         let fileColorMap = {};
         let currentPanelRaw = null;
@@ -4821,7 +4860,7 @@ html.light #settings-dialog-panel,
         // ── Graph views (Files overview · Functions · Single file) ─────────────────
         let viewMode = 'files';     // 'files' | 'functions' | 'file'
         let viewFile = '';          // normalized path used by the single-file view
-        const viewFlags = { classes: true, api: true, structure: false, isolated: false, external: true };
+        const viewFlags = { classes: true, api: true, structure: false, isolated: false, external: true, xfile: true };
         let lastViewInfo = null;
         // Leave room for the floating view bar (top) and zoom/layout toolbar (bottom).
         const FIT_PADDING = { top: 130, bottom: 90, left: 50, right: 50 };
@@ -4927,7 +4966,7 @@ html.light #settings-dialog-panel,
             }).map(e => {
                 const a = nodeSet.get(e.from), b = nodeSet.get(e.to);
                 return { ...e, _cross: e.label === 'CALLS' && a.file && b.file && a.file !== b.file };
-            });
+            }).filter(e => viewFlags.xfile || !e._cross);
             const deg = new Map();
             edges.forEach(e => { deg.set(e.from, (deg.get(e.from) || 0) + 1); deg.set(e.to, (deg.get(e.to) || 0) + 1); });
             const nodes = [...nodeSet.values()].filter(n => viewFlags.isolated || deg.get(n.id));
@@ -5013,8 +5052,73 @@ html.light #settings-dialog-panel,
             show('flt-structure-wrap', viewMode === 'functions');
             show('flt-isolated-wrap', viewMode !== 'file');
             show('flt-external-wrap', viewMode === 'file');
+            show('flt-xfile-wrap', viewMode === 'functions');
         }
 
+
+
+        // ── Right-hand panels: resize, collapse, and keep legend / view bar clear of them ──
+        (function initRightPanels() {
+            const ids = ['side-panel', 'source-panel', 'impact-panel', 'git-panel'];
+            const panels = ids.map(i => document.getElementById(i)).filter(Boolean);
+            const grip = document.getElementById('rpanel-grip');
+            const ctl = document.getElementById('rpanel-ctl');
+            const root = document.documentElement;
+            const KEY = 'll_rpanel_w';
+            const MIN = 320, DEF = 420;
+            let width = DEF, collapsed = false;
+            try { width = parseInt(localStorage.getItem(KEY), 10) || DEF; } catch (e) {}
+            const maxW = () => Math.max(MIN, Math.min(900, Math.floor(window.innerWidth * 0.7)));
+            const isOpen = (p) => !p.classList.contains('hidden') && !p.classList.contains('translate-x-full');
+            const anyOpen = () => panels.some(isOpen);
+
+            function sync() {
+                width = Math.max(MIN, Math.min(maxW(), width));
+                root.style.setProperty('--rpanel-w', width + 'px');
+                const open = anyOpen();
+                if (!open) { collapsed = false; }
+                root.classList.toggle('rp-collapsed', collapsed && open);
+                root.style.setProperty('--rp-offset', open && !collapsed ? width + 'px' : '0px');
+                grip.classList.toggle('on', open && !collapsed);
+                ctl.classList.toggle('on', open);
+                const ic = document.getElementById('rp-collapse-icon');
+                if (ic) ic.textContent = collapsed ? 'first_page' : 'last_page';
+                document.getElementById('rp-collapse').title = collapsed ? 'Show panel' : 'Hide panel';
+            }
+            const save = () => { try { localStorage.setItem(KEY, String(width)); } catch (e) {} };
+            const nudge = (d) => { collapsed = false; width += d; sync(); save(); };
+
+            document.getElementById('rp-wider').addEventListener('click', () => nudge(60));
+            document.getElementById('rp-narrower').addEventListener('click', () => nudge(-60));
+            document.getElementById('rp-collapse').addEventListener('click', () => { collapsed = !collapsed; sync(); });
+            grip.addEventListener('dblclick', () => { width = DEF; sync(); save(); });
+            grip.addEventListener('pointerdown', (ev) => {
+                ev.preventDefault();
+                grip.setPointerCapture(ev.pointerId);
+                grip.classList.add('drag');
+                const right = grip.parentElement.getBoundingClientRect().right;
+                const move = (e) => { width = right - e.clientX; sync(); };
+                const up = () => {
+                    grip.classList.remove('drag');
+                    grip.removeEventListener('pointermove', move);
+                    grip.removeEventListener('pointerup', up);
+                    save();
+                };
+                grip.addEventListener('pointermove', move);
+                grip.addEventListener('pointerup', up);
+            });
+            // Opening any panel un-collapses; any open/close re-syncs the offsets.
+            const mo = new MutationObserver(() => {
+                if (collapsed && anyOpen()) {
+                    // keep collapsed only while the same panel stays open; a newly opened panel shows itself
+                }
+                sync();
+            });
+            panels.forEach(p => mo.observe(p, { attributes: true, attributeFilter: ['class'] }));
+            panels.forEach(p => new MutationObserver(() => { if (isOpen(p)) { collapsed = false; sync(); } }).observe(p, { attributes: true, attributeFilter: ['class'] }));
+            window.addEventListener('resize', sync);
+            sync();
+        })();
 
         // ── Legend ────────────────────────────────────────────────────────────────
         function renderLegend() {
@@ -5038,7 +5142,7 @@ html.light #settings-dialog-panel,
 
             let h = '<h4>Nodes</h4>';
             if (viewMode === 'files') {
-                h += row(box(fileCol), '<b>A source file.</b> Border colour is the file\'s identity colour; the number is how many functions/classes it defines.');
+                h += row(box(fileCol), '<b>A source file.</b> The line under the name counts the functions and classes defined in it. Border colour is just that file\'s identity colour.');
             } else {
                 h += row(box(fileCol), '<b>Function / method.</b> Border colour = the file it lives in.');
                 if (viewFlags.classes)
@@ -5088,14 +5192,6 @@ html.light #settings-dialog-panel,
             }
             if (!opts.keepPanel && sidePanel.classList.contains('translate-x-0')) closePanel();
             const v = buildCurrentView();
-            // A tree of 60+ call-graph nodes becomes one huge flat row: group by file instead.
-            if (!layoutUserChosen && v.nodes.length > 60 && layoutMode === 'hierarchy' && viewMode !== 'files') {
-                layoutMode = 'cluster';
-                syncLayoutButtons();
-            } else if (!layoutUserChosen && layoutMode === 'cluster' && (viewMode === 'files' || v.nodes.length <= 60)) {
-                layoutMode = 'hierarchy';
-                syncLayoutButtons();
-            }
             lastViewInfo = v;
             syncViewBar();
             renderGraph(v.nodes, v.edges);
@@ -5105,7 +5201,7 @@ html.light #settings-dialog-panel,
             const nFns = globalRawNodes.filter(n => n.type === 'Function').length;
             let msg;
             if (viewMode === 'files') msg = `🗂 ${v.nodes.length} files · ${v.edges.length} file links`;
-            else if (viewMode === 'file') msg = `📄 ${basename(viewFile)} · ${v.coreCount} symbols · ${v.extCount} linked from other files`;
+            else if (viewMode === 'file') msg = `📄 ${basename(viewFile)} · ${v.coreCount} functions/classes · ${v.extCount} linked from other files`;
             else msg = `🔭 ${v.nodes.length} nodes · ${v.edges.length} links (${nFns} functions in ${nFiles} files)`;
             setStatus(v.fallback ? `${v.fallback} ${msg}` : msg);
         }
@@ -5218,7 +5314,7 @@ html.light #settings-dialog-panel,
                     fontStroke = 'transparent';
                     fontStrokeW = 0;
                     fontSize = 14 + Math.min(4, Math.floor(Math.sqrt(n._count || 0) / 2));
-                    label = `<b>${escLabel(shortLabel(n.label, 24))}</b>\n${n._count || 0} symbol${n._count === 1 ? '' : 's'}`;
+                    label = `<b>${escLabel(shortLabel(n.label, 24))}</b>\n${n._count || 0} ${n._count === 1 ? 'function/class' : 'functions/classes'}`;
                     fontExtra = { multi: 'html', bold: { color: fontColor, size: fontSize + 1, face: 'Plus Jakarta Sans, Inter, sans-serif' } };
                 } else if (n.type === 'File') {
                     shape = 'hexagon';
@@ -5497,13 +5593,14 @@ html.light #settings-dialog-panel,
         btnHierarchy.addEventListener('click', () => setLayout('hierarchy'));
         btnCluster?.addEventListener('click', () => setLayout('cluster'));
         btnPhysics.addEventListener('click', () => setLayout('physics'));
+        syncLayoutButtons();
 
         // View bar wiring
         document.getElementById('view-files')?.addEventListener('click', () => setViewMode('files'));
         document.getElementById('view-functions')?.addEventListener('click', () => setViewMode('functions'));
         document.getElementById('view-file')?.addEventListener('click', () => setViewMode('file'));
         document.getElementById('view-file-select')?.addEventListener('change', (ev) => setViewMode('file', ev.target.value));
-        [['flt-classes', 'classes'], ['flt-api', 'api'], ['flt-structure', 'structure'], ['flt-isolated', 'isolated'], ['flt-external', 'external']]
+        [['flt-classes', 'classes'], ['flt-api', 'api'], ['flt-structure', 'structure'], ['flt-isolated', 'isolated'], ['flt-external', 'external'], ['flt-xfile', 'xfile']]
             .forEach(([id, key]) => {
                 document.getElementById(id)?.addEventListener('change', (ev) => {
                     viewFlags[key] = ev.target.checked;
@@ -5681,6 +5778,8 @@ html.light #settings-dialog-panel,
                 })
                 .catch(err => console.error("Trace error:", err));
 
+            closeImpactPanel(false);
+            closeGitPanel(false);
             sidePanel.classList.remove('translate-x-full');
             sidePanel.classList.add('translate-x-0');
         }
@@ -6005,10 +6104,16 @@ html.light #settings-dialog-panel,
 
         function setActiveNav(activeId) {
             if (activeSidebarId === activeId) {
-                if (isSidebarExpanded) {
-                    collapseSidebar();
+                // Re-click never collapses the sidebar (that is what the dedicated button is for).
+                if (activeId === 'nav-explorer') {
+                    if (!isSidebarExpanded) { expandSidebar(); }
+                    else {
+                        const ec = document.getElementById('explorer-content');
+                        const open = ec?.classList.toggle('is-open');
+                        const chev = document.getElementById('explorer-chevron');
+                        if (chev) chev.style.transform = open ? 'rotate(180deg)' : 'rotate(0deg)';
+                    }
                 } else {
-                    expandSidebar();
                     applyNavItemStyles(activeId);
                     openSidebarPanel(activeId);
                 }
@@ -6048,6 +6153,8 @@ html.light #settings-dialog-panel,
             if (!searchView) return;
             closeImpactPanel(false);
             closeGitPanel(false);
+            closePanel();
+            closeSourcePanel(false);
             searchView.classList.remove('hidden');
             searchView.classList.add('flex');
             ssInput?.focus();
@@ -6075,17 +6182,27 @@ html.light #settings-dialog-panel,
             }
         }
 
+        function closeSourcePanel(animate = true) {
+            const sp = document.getElementById('source-panel');
+            if (!sp) return;
+            sp.classList.add('translate-x-full');
+            if (animate) setTimeout(() => sp.classList.add('hidden'), 300); else sp.classList.add('hidden');
+        }
+
         function openImpactPanel() {
             const impactPanel = document.getElementById('impact-panel');
             if (!impactPanel) return;
+            const pickedNode = currentPanelRaw;
             closeSemanticSearchView();
             closeGitPanel(false);
+            closePanel();
+            closeSourcePanel(false);
             impactPanel.classList.remove('hidden');
             setTimeout(() => impactPanel.classList.remove('translate-x-full'), 20);
-            if (currentPanelRaw && currentPanelRaw.label) {
+            if (pickedNode && pickedNode.label) {
                 const wiSelect = document.getElementById('wi-func-select');
                 for (let i = 0; i < wiSelect.options.length; i++) {
-                    if (wiSelect.options[i].value === currentPanelRaw.label) {
+                    if (wiSelect.options[i].value === pickedNode.label) {
                         wiSelect.selectedIndex = i;
                         break;
                     }
@@ -6098,6 +6215,8 @@ html.light #settings-dialog-panel,
             if (!gitPanel) return;
             closeSemanticSearchView();
             closeImpactPanel(false);
+            closePanel();
+            closeSourcePanel(false);
             gitPanel.classList.remove('hidden');
             setTimeout(() => gitPanel.classList.remove('translate-x-full'), 20);
             if (typeof loadGitSummary === 'function') loadGitSummary();
