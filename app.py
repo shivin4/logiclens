@@ -1196,7 +1196,7 @@ def get_dir_tree(path):
             return None
 
         name = os.path.basename(os.path.abspath(path))
-        tree = {"name": name, "type": "directory", "children": []}
+        tree = {"name": name, "type": "directory", "path": os.path.abspath(path), "children": []}
 
         for entry in sorted(os.scandir(path), key=lambda e: (not e.is_dir(), e.name.lower())):
             if entry.name in ignores or should_skip_dir(entry.name):
@@ -1206,7 +1206,7 @@ def get_dir_tree(path):
                 if sub_tree:
                     tree["children"].append(sub_tree)
             else:
-                tree["children"].append({"name": entry.name, "type": "file"})
+                tree["children"].append({"name": entry.name, "type": "file", "path": os.path.abspath(entry.path)})
         return tree
     except Exception as e:
         print(f"Error scanning directory: {e}")

@@ -86,12 +86,8 @@
         }
     </script>
 
-    <!-- Fonts & Icons -->
-    <link
-        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono&display=swap"
-        rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
-        rel="stylesheet" />
+    <!-- Fonts & Icons (bundled locally; works offline) -->
+    <link href="{{ url_for('static', filename='fonts/fonts.css') }}" rel="stylesheet" />
 
     <!-- Vis-Network -->
     <script src="{{ url_for('static', filename='vendor/vis-network.min.js') }}"></script>
@@ -555,6 +551,7 @@ html.light #settings-dialog-panel,
             box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08) !important;
         }
         html.light #btn-hierarchy,
+        html.light #btn-cluster,
         html.light #btn-physics,
         html.light #btn-zoom-in,
         html.light #btn-zoom-out,
@@ -563,11 +560,13 @@ html.light #settings-dialog-panel,
             background-color: transparent !important;
         }
         html.light #btn-hierarchy.active,
+        html.light #btn-cluster.active,
         html.light #btn-physics.active {
             background: #4f46e5 !important;
             color: #ffffff !important;
         }
         html.light #btn-hierarchy:not(.active):hover,
+        html.light #btn-cluster:not(.active):hover,
         html.light #btn-physics:not(.active):hover,
         html.light #btn-zoom-in:hover,
         html.light #btn-zoom-out:hover,
@@ -575,6 +574,42 @@ html.light #settings-dialog-panel,
             background-color: #f1f5f9 !important;
             color: #4f46e5 !important;
         }
+
+        /* ── Graph view bar (Files / Functions / Single file + filters) ── */
+        #view-bar .view-tab {
+            padding: 8px 14px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #94a3b8;
+            transition: background-color .15s, color .15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        #view-bar .view-tab:hover { background: rgba(148, 163, 184, 0.12); color: #e2e8f0; }
+        #view-bar .view-tab.active { background: rgba(56, 189, 248, 0.18); color: #38bdf8; }
+        #view-bar .view-select {
+            background: rgba(15, 23, 42, 0.85);
+            color: #e2e8f0;
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            border-radius: 12px;
+            padding: 7px 10px;
+            font-size: 12px;
+            max-width: 260px;
+            outline: none;
+        }
+        #view-bar .view-select:focus { border-color: #38bdf8; }
+        #view-bar .flt { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: #94a3b8; cursor: pointer; user-select: none; white-space: nowrap; }
+        #view-bar .flt.hidden { display: none; }
+        #view-bar .flt input { accent-color: #38bdf8; cursor: pointer; }
+        #view-bar .flt:hover { color: #e2e8f0; }
+        html.light #view-bar .glass-panel { background: #ffffff !important; border-color: #cbd5e1 !important; box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08) !important; }
+        html.light #view-bar .view-tab { color: #334155; }
+        html.light #view-bar .view-tab:hover { background: #f1f5f9; color: #4f46e5; }
+        html.light #view-bar .view-tab.active { background: #4f46e5; color: #ffffff; }
+        html.light #view-bar .view-select { background: #ffffff; color: #0f172a; border-color: #cbd5e1; }
+        html.light #view-bar .flt { color: #475569; }
+        html.light #view-bar .flt:hover { color: #4f46e5; }
 
 
 
@@ -724,6 +759,16 @@ html.light #settings-dialog-panel,
             white-space: nowrap;
             border: 0;
         }
+
+        /* Graph legend */
+        #legend-body { width: 280px; max-height: 60vh; overflow-y: auto; font-size: 11.5px; color: #cbd5e1; }
+        html.light #legend-body { color: #334155; }
+        #legend-body h4 { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; opacity: .65; margin: 10px 0 4px; font-weight: 700; }
+        #legend-body h4:first-child { margin-top: 0; }
+        #legend-body .lg-row { display: flex; align-items: center; gap: 10px; padding: 3px 0; line-height: 1.3; }
+        #legend-body .lg-row svg { flex: 0 0 34px; }
+        #legend-body .lg-note { opacity: .7; margin-top: 8px; font-size: 10.5px; line-height: 1.4; }
+        #legend-toggle.on { color: #38bdf8; }
 
         .material-symbols-outlined {
             font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
@@ -1047,6 +1092,20 @@ html.light #settings-dialog-panel,
             transform: translateY(-4px);
             transition-delay: 0s;
         }
+
+        .explorer-tool-btn { display:inline-flex; align-items:center; justify-content:center; width:1.6rem; height:1.6rem; border-radius:.4rem; color:#94a3b8; flex-shrink:0; transition: background .15s, color .15s; }
+        .explorer-tool-btn:hover { background: rgba(148,163,184,.15); color:#e2e8f0; }
+        html.light .explorer-tool-btn:hover { color:#0f172a; }
+        .ex-row { display:flex; align-items:center; gap:.375rem; padding:.3rem .5rem; border-radius:.35rem; cursor:pointer; transition: background .12s, color .12s; }
+        .ex-row:hover { background: rgba(148,163,184,.12); }
+        .ex-row.ex-active { background: rgba(56,189,248,.16); color:#38bdf8; }
+        .ex-row .ex-dot { width:6px; height:6px; border-radius:50%; flex:0 0 6px; opacity:0; }
+        .ex-row.ex-in-graph .ex-dot { opacity:1; }
+        .ex-row .ex-meta { font-size:10px; opacity:.55; flex-shrink:0; }
+        .ex-row .ex-src { display:none; opacity:.7; }
+        .ex-row:hover .ex-src { display:inline-flex; }
+        .ex-row .ex-src:hover { opacity:1; color:#38bdf8; }
+        .ex-row.ex-dim { opacity:.55; }
 
         #explorer-tree {
             overflow-x: hidden;
@@ -1905,6 +1964,12 @@ html.light #settings-dialog-panel,
                     </button>
                     <!-- Explorer Tree Container -->
                     <div id="explorer-content">
+                        <div id="explorer-tools" class="items-center gap-1 px-1" style="display:none">
+                            <input id="explorer-filter" type="text" placeholder="Filter files…" autocomplete="off" spellcheck="false"
+                                class="min-w-0 flex-1 bg-transparent border border-outline-variant/20 rounded-md px-2 py-1 text-xs text-on-surface placeholder:text-slate-500 focus:outline-none focus:border-sky-500/60" />
+                            <button type="button" id="explorer-collapse" class="explorer-tool-btn" title="Collapse all folders"><span class="material-symbols-outlined text-[16px]">unfold_less</span></button>
+                            <button type="button" id="explorer-refresh" class="explorer-tool-btn" title="Reload the file tree"><span class="material-symbols-outlined text-[16px]">refresh</span></button>
+                        </div>
                         <div id="explorer-tree"
                             class="text-on-surface-variant font-inter text-xs leading-relaxed select-none overflow-y-auto min-h-0 max-h-[46vh]">
                             <div
@@ -2054,6 +2119,37 @@ html.light #settings-dialog-panel,
                 <span class="text-slate-300 text-xs font-medium" id="status-text">Ready to analyze</span>
             </div>
 
+            <!-- Graph view bar: overview / functions / single-file + filters -->
+            <div id="view-bar" class="absolute top-[68px] left-6 right-6 z-30 hidden flex-wrap items-center gap-2 pointer-events-none">
+                <div class="flex glass-panel rounded-xl overflow-hidden border border-outline-variant/15 shadow-xl pointer-events-auto">
+                    <button type="button" id="view-files" class="view-tab active" title="One node per file; edges show imports and cross-file calls">
+                        <span class="material-symbols-outlined text-[16px]">account_tree</span>Files
+                    </button>
+                    <button type="button" id="view-functions" class="view-tab" title="Functions and classes across the whole project">
+                        <span class="material-symbols-outlined text-[16px]">function</span>Functions
+                    </button>
+                    <button type="button" id="view-file" class="view-tab" title="Graph of a single file (double-click any node to jump here)">
+                        <span class="material-symbols-outlined text-[16px]">description</span>Single file
+                    </button>
+                </div>
+                <select id="view-file-select" class="view-select hidden pointer-events-auto" aria-label="Choose file"></select>
+                <div id="view-filters" class="flex glass-panel rounded-xl border border-outline-variant/15 shadow-xl items-center gap-3 px-3 py-2 pointer-events-auto">
+                    <label class="flt" id="flt-classes-wrap"><input type="checkbox" id="flt-classes" checked>Classes</label>
+                    <label class="flt" id="flt-api-wrap"><input type="checkbox" id="flt-api" checked>API routes</label>
+                    <label class="flt" id="flt-structure-wrap" title="Show File nodes and containment links"><input type="checkbox" id="flt-structure">Structure</label>
+                    <label class="flt" id="flt-isolated-wrap" title="Show nodes that have no connections"><input type="checkbox" id="flt-isolated">Unlinked</label>
+                    <label class="flt" id="flt-external-wrap" title="In single-file view, show callers/callees that live in other files"><input type="checkbox" id="flt-external" checked>Other files</label>
+                </div>
+            </div>
+
+            <!-- Graph legend (content is built per view by renderLegend) -->
+            <div id="graph-legend" class="absolute bottom-6 right-6 z-30 hidden flex-col items-end gap-2 pointer-events-none">
+                <div id="legend-body" class="glass-panel rounded-xl border border-outline-variant/15 shadow-xl p-3 pointer-events-auto hidden"></div>
+                <button type="button" id="legend-toggle" class="glass-panel rounded-xl border border-outline-variant/15 shadow-xl px-3 py-2 flex items-center gap-2 text-xs font-semibold text-on-surface-variant hover:text-on-surface pointer-events-auto transition-colors" title="Show what the nodes, colours and lines mean">
+                    <span class="material-symbols-outlined text-[16px]">legend_toggle</span>Legend
+                </button>
+            </div>
+
             <!-- Graph Controls -->
             <div id="graph-toolbar" class="absolute bottom-6 left-6 z-30 flex gap-4">
                 <!-- Layout Toggles -->
@@ -2063,6 +2159,11 @@ html.light #settings-dialog-panel,
                         <span class="material-symbols-outlined text-[16px]"
                             data-icon="align_vertical_top">align_vertical_top</span>
                         Hierarchy
+                    </button>
+                    <button id="btn-cluster" title="Group nodes into per-file blocks"
+                        class="px-4 py-2 hover:bg-surface-variant text-on-surface-variant font-semibold text-xs border-r border-outline-variant/10 flex items-center gap-2 transition-colors">
+                        <span class="material-symbols-outlined text-[16px]" data-icon="grid_view">grid_view</span>
+                        Clusters
                     </button>
                     <button id="btn-physics"
                         class="px-4 py-2 hover:bg-surface-variant text-on-surface-variant font-semibold text-xs flex items-center gap-2 transition-colors">
@@ -2843,7 +2944,8 @@ html.light #settings-dialog-panel,
         // ── State ─────────────────────────────────────────────────────────────────
         let network = null;
         let traceNetwork = null;
-        let layoutMode = 'hierarchy'; // 'hierarchy' | 'physics'
+        let layoutMode = 'hierarchy'; // 'hierarchy' | 'cluster' | 'physics'
+        let layoutUserChosen = false; // once true, never auto-switch the layout
         let fileColorMap = {};
         let currentPanelRaw = null;
         let globalRawNodes = null;
@@ -2857,6 +2959,7 @@ html.light #settings-dialog-panel,
         const sidePanel = document.getElementById('side-panel');
         const btnHierarchy = document.getElementById('btn-hierarchy');
         const btnPhysics = document.getElementById('btn-physics');
+        const btnCluster = document.getElementById('btn-cluster');
         const btnFit = document.getElementById('btn-fit');
         const btnZoomIn = document.getElementById('btn-zoom-in');
         const btnZoomOut = document.getElementById('btn-zoom-out');
@@ -2870,6 +2973,11 @@ html.light #settings-dialog-panel,
             // Keep status-lens visible on the welcome screen so Analyze errors and
             // "no graph" messages are not hidden behind the overlay.
             if (bar) bar.classList.toggle('hidden', show);
+            const vbar = document.getElementById('view-bar');
+            if (vbar) {
+                vbar.classList.toggle('hidden', show);
+                vbar.classList.toggle('flex', !show);
+            }
             if (grid) grid.classList.toggle('opacity-0', show);
         }
 
@@ -3477,7 +3585,14 @@ html.light #settings-dialog-panel,
             }
             closeNotifyDropdown();
             setWelcomeVisible(false);
-            const ids = vulnNodes.map((n) => n.id);
+            if (!ensureNodeInView(vulnNodes[0].id)) {
+                setViewMode('functions');
+            }
+            const ids = vulnNodes.map((n) => n.id).filter((id) => network.body.data.nodes.get(id));
+            if (!ids.length) {
+                setStatus('Security findings are hidden by the current view filters.');
+                return;
+            }
             network.selectNodes(ids);
             network.focus(ids[0], {
                 scale: Math.max(network.getScale(), 1.1),
@@ -3570,6 +3685,7 @@ html.light #settings-dialog-panel,
             { id: 'fit-view', label: 'Fit graph to screen', category: 'Graph', defaultKeys: ['ctrl', '0'] },
             { id: 'layout-hierarchy', label: 'Hierarchy layout', category: 'Graph', defaultKeys: ['ctrl', '1'] },
             { id: 'layout-physics', label: 'Physics layout', category: 'Graph', defaultKeys: ['ctrl', '2'] },
+            { id: 'layout-cluster', label: 'Cluster layout', category: 'Graph', defaultKeys: ['ctrl', '3'] },
             { id: 'open-folder', label: 'Open folder', category: 'Project', defaultKeys: ['ctrl', 'o'] },
             { id: 'analyze', label: 'Analyze project', category: 'Project', defaultKeys: ['ctrl', 'enter'] },
             { id: 'focus-path', label: 'Focus path bar', category: 'Project', defaultKeys: ['ctrl', 'l'] },
@@ -3682,6 +3798,9 @@ html.light #settings-dialog-panel,
                 case 'fit-view': fitGraphView(); break;
                 case 'layout-hierarchy':
                     if (layoutMode !== 'hierarchy') btnHierarchy.click();
+                    break;
+                case 'layout-cluster':
+                    if (layoutMode !== 'cluster') btnCluster.click();
                     break;
                 case 'layout-physics':
                     if (layoutMode !== 'physics') btnPhysics.click();
@@ -4691,19 +4810,390 @@ html.light #settings-dialog-panel,
 
             globalRawNodes = data.nodes;
             globalRawEdges = data.edges;
-            renderGraph(data.nodes, data.edges);
-
-            setStatus(
-                `🔭 ${data.nodes.length} Functions · ${data.edges.length} Dependencies · ${Object.keys(fileColorMap).length} Files`
-            );
+            // Reset to the readable overview whenever a (new) graph is loaded.
+            viewMode = 'files';
+            if (!globalRawNodes.some(n => n.file === viewFile)) viewFile = '';
+            populateFileSelect();
             setWelcomeVisible(false);
+            renderCurrentView();
+        }
+
+        // ── Graph views (Files overview · Functions · Single file) ─────────────────
+        let viewMode = 'files';     // 'files' | 'functions' | 'file'
+        let viewFile = '';          // normalized path used by the single-file view
+        const viewFlags = { classes: true, api: true, structure: false, isolated: false, external: true };
+        let lastViewInfo = null;
+        // Leave room for the floating view bar (top) and zoom/layout toolbar (bottom).
+        const FIT_PADDING = { top: 130, bottom: 90, left: 50, right: 50 };
+
+        function shortLabel(s, max = 26) {
+            s = String(s || '');
+            return s.length > max ? s.slice(0, max - 1) + '…' : s;
+        }
+        function escLabel(s) {
+            return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        /** Distinguish files that share a basename (index.js, __init__.py) with their parent folder. */
+        function fileDisplayNames(fileNodes) {
+            const counts = {};
+            fileNodes.forEach(f => { const b = basename(f.file || f.label || ''); counts[b] = (counts[b] || 0) + 1; });
+            const out = {};
+            fileNodes.forEach(f => {
+                const parts = (f.file || '').replace(/\\/g, '/').split('/').filter(Boolean);
+                const b = parts[parts.length - 1] || f.label;
+                out[f.file] = counts[b] > 1 && parts.length > 1 ? `${parts[parts.length - 2]}/${b}` : b;
+            });
+            return out;
+        }
+
+        function buildFilesView() {
+            const byId = new Map(globalRawNodes.map(n => [n.id, n]));
+            const fileNodes = globalRawNodes.filter(n => n.type === 'File');
+            const pathToId = {};
+            fileNodes.forEach(f => { pathToId[f.file] = f.id; });
+            const names = fileDisplayNames(fileNodes);
+            const symCount = {};
+            globalRawNodes.forEach(n => {
+                if (n.type === 'Function' || n.type === 'Class') symCount[n.file] = (symCount[n.file] || 0) + 1;
+            });
+
+            const agg = new Map();
+            const rec = (a, b) => {
+                if (!a || !b || a === b) return null;
+                const key = a + '|' + b;
+                if (!agg.has(key)) agg.set(key, { from: a, to: b, imports: 0, calls: 0, api: 0 });
+                return agg.get(key);
+            };
+            const routeCallers = new Map(), routeExposers = new Map();
+            globalRawEdges.forEach(e => {
+                const a = byId.get(e.from), b = byId.get(e.to);
+                if (!a || !b) return;
+                if (e.label === 'IMPORTS') {
+                    const r = rec(pathToId[a.file], pathToId[b.file]); if (r) r.imports++;
+                } else if (e.label === 'CALLS' && a.file && b.file && a.file !== b.file) {
+                    const r = rec(pathToId[a.file], pathToId[b.file]); if (r) r.calls++;
+                } else if (e.label === 'CALLS_API' && a.file) {
+                    if (!routeCallers.has(b.id)) routeCallers.set(b.id, new Set());
+                    routeCallers.get(b.id).add(pathToId[a.file]);
+                } else if (e.label === 'EXPOSES_API' && a.file) {
+                    if (!routeExposers.has(b.id)) routeExposers.set(b.id, new Set());
+                    routeExposers.get(b.id).add(pathToId[a.file]);
+                }
+            });
+            routeCallers.forEach((callers, rid) => {
+                (routeExposers.get(rid) || []).forEach(srv => callers.forEach(cli => {
+                    const r = rec(cli, srv); if (r) r.api++;
+                }));
+            });
+
+            const edges = [];
+            const linked = new Set();
+            agg.forEach(r => {
+                const bits = [];
+                if (r.imports) bits.push('imports');
+                if (r.calls) bits.push(`${r.calls} call${r.calls === 1 ? '' : 's'}`);
+                if (r.api) bits.push(`${r.api} API link${r.api === 1 ? '' : 's'}`);
+                edges.push({
+                    from: r.from, to: r.to, label: r.calls > 1 ? String(r.calls) : '',
+                    weight: r.imports + r.calls + r.api, tip: bits.join(' · '),
+                    _kind: r.calls ? 'calls' : (r.api ? 'api' : 'imports'),
+                });
+                linked.add(r.from); linked.add(r.to);
+            });
+
+            const nodes = fileNodes
+                .filter(f => viewFlags.isolated || linked.has(f.id))
+                .map(f => ({
+                    ...f, label: names[f.file] || f.label, _overview: true,
+                    _count: symCount[f.file] || 0,
+                }));
+            return { nodes, edges, hasLinks: edges.length > 0 };
+        }
+
+        function buildFunctionsView() {
+            const allowed = new Set(['Function']);
+            if (viewFlags.classes) allowed.add('Class');
+            if (viewFlags.api) allowed.add('APIRoute');
+            if (viewFlags.structure) allowed.add('File');
+            const nodeSet = new Map();
+            globalRawNodes.forEach(n => { if (allowed.has(n.type)) nodeSet.set(n.id, n); });
+            const edges = globalRawEdges.filter(e => {
+                const a = nodeSet.get(e.from), b = nodeSet.get(e.to);
+                if (!a || !b) return false;
+                if (e.label === 'IMPORTS') return viewFlags.structure;
+                if (e.label === 'CONTAINS') return viewFlags.structure || a.type === 'Class';
+                return true;
+            }).map(e => {
+                const a = nodeSet.get(e.from), b = nodeSet.get(e.to);
+                return { ...e, _cross: e.label === 'CALLS' && a.file && b.file && a.file !== b.file };
+            });
+            const deg = new Map();
+            edges.forEach(e => { deg.set(e.from, (deg.get(e.from) || 0) + 1); deg.set(e.to, (deg.get(e.to) || 0) + 1); });
+            const nodes = [...nodeSet.values()].filter(n => viewFlags.isolated || deg.get(n.id));
+            return { nodes, edges };
+        }
+
+        function buildSingleFileView() {
+            const core = new Map();
+            globalRawNodes.forEach(n => {
+                if (n.file === viewFile && n.type !== 'File'
+                    && (n.type !== 'Class' || viewFlags.classes)
+                    && (n.type !== 'APIRoute' || viewFlags.api)) core.set(n.id, n);
+            });
+            const byId = new Map(globalRawNodes.map(n => [n.id, n]));
+            const extra = new Map();
+            const edges = [];
+            globalRawEdges.forEach(e => {
+                if (e.label === 'IMPORTS') return;
+                const a = byId.get(e.from), b = byId.get(e.to);
+                if (!a || !b || a.type === 'File' || b.type === 'File') return;
+                const aIn = core.has(a.id), bIn = core.has(b.id);
+                if (!aIn && !bIn) return;
+                if (e.label === 'CONTAINS' && !(aIn && bIn)) return;
+                if (!(aIn && bIn)) {
+                    if (!viewFlags.external) return;
+                    const other = aIn ? b : a;
+                    if (other.type === 'Class' && !viewFlags.classes) return;
+                    if (other.type === 'APIRoute' && !viewFlags.api) return;
+                    extra.set(other.id, other);
+                }
+                edges.push({ ...e, _cross: !(aIn && bIn) && e.label === 'CALLS' });
+            });
+            const nodes = [
+                ...core.values(),
+                ...[...extra.values()].map(n => ({
+                    ...n, _external: true,
+                    label: n.file ? `${n.label}\n(${basename(n.file)})` : n.label,
+                })),
+            ];
+            return { nodes, edges, coreCount: core.size, extCount: extra.size };
+        }
+
+        function buildCurrentView() {
+            if (viewMode === 'files') {
+                const v = buildFilesView();
+                if (!v.hasLinks) {
+                    // No cross-file links (single file or unrelated modules): the overview would be empty.
+                    viewMode = 'functions';
+                    return { ...buildFunctionsView(), fallback: 'No links between files — showing functions instead.' };
+                }
+                return v;
+            }
+            if (viewMode === 'file') return buildSingleFileView();
+            return buildFunctionsView();
+        }
+
+        function allFileNodesSorted() {
+            const files = (globalRawNodes || []).filter(n => n.type === 'File');
+            const names = fileDisplayNames(files);
+            return files.map(f => ({ path: f.file, name: names[f.file] || f.label }))
+                .sort((a, b) => a.name.localeCompare(b.name));
+        }
+
+        function populateFileSelect() {
+            const sel = document.getElementById('view-file-select');
+            if (!sel) return;
+            const files = allFileNodesSorted();
+            sel.innerHTML = files.map(f => `<option value="${escHtml(f.path)}">${escHtml(f.name)}</option>`).join('');
+            if (viewFile && files.some(f => f.path === viewFile)) sel.value = viewFile;
+        }
+
+        function syncViewBar() {
+            const tabs = { files: 'view-files', functions: 'view-functions', file: 'view-file' };
+            Object.entries(tabs).forEach(([m, id]) => document.getElementById(id)?.classList.toggle('active', viewMode === m));
+            const sel = document.getElementById('view-file-select');
+            if (sel) {
+                sel.classList.toggle('hidden', viewMode !== 'file');
+                if (viewFile) sel.value = viewFile;
+            }
+            const show = (id, on) => document.getElementById(id)?.classList.toggle('hidden', !on);
+            show('flt-classes-wrap', viewMode !== 'files');
+            show('flt-api-wrap', viewMode !== 'files');
+            show('flt-structure-wrap', viewMode === 'functions');
+            show('flt-isolated-wrap', viewMode !== 'file');
+            show('flt-external-wrap', viewMode === 'file');
+        }
+
+
+        // ── Legend ────────────────────────────────────────────────────────────────
+        function renderLegend() {
+            const wrap = document.getElementById('graph-legend');
+            const body = document.getElementById('legend-body');
+            if (!wrap || !body) return;
+            wrap.classList.toggle('hidden', !globalRawNodes);
+            wrap.classList.toggle('flex', !!globalRawNodes);
+            const L = document.documentElement.classList.contains('light');
+            const fill = L ? '#ffffff' : '#334155';
+            const sw = (inner) => `<svg width="34" height="22" viewBox="0 0 34 22">${inner}</svg>`;
+            const box = (stroke, extra = '') => sw(`<rect x="3" y="4" width="28" height="14" rx="4" fill="${fill}" stroke="${stroke}" stroke-width="2.2" ${extra}/>`);
+            const line = (color, dash, arrow = true, w = 2) => sw(
+                `<line x1="2" y1="11" x2="${arrow ? 26 : 32}" y2="11" stroke="${color}" stroke-width="${w}" ${dash ? `stroke-dasharray="${dash}"` : ''}/>` +
+                (arrow ? `<polygon points="25,6 33,11 25,16" fill="${color}"/>` : ''));
+            const row = (icon, text) => `<div class="lg-row">${icon}<span>${text}</span></div>`;
+            const cBlue = L ? '#0284c7' : '#38bdf8', cInd = L ? '#6366f1' : '#818cf8', cAmb = L ? '#d97706' : '#fbbf24';
+            const cGray = L ? '#94a3b8' : '#64748b';
+            const fileCol = '#34d399';
+            const hex = (f, s) => sw(`<polygon points="9,3 25,3 32,11 25,19 9,19 2,11" fill="${f}" stroke="${s}" stroke-width="2.2"/>`);
+
+            let h = '<h4>Nodes</h4>';
+            if (viewMode === 'files') {
+                h += row(box(fileCol), '<b>A source file.</b> Border colour is the file\'s identity colour; the number is how many functions/classes it defines.');
+            } else {
+                h += row(box(fileCol), '<b>Function / method.</b> Border colour = the file it lives in.');
+                if (viewFlags.classes)
+                    h += row(sw(`<polygon points="17,2 31,11 17,20 3,11" fill="${L ? '#e0f2fe' : '#1e3a5f'}" stroke="${cBlue}" stroke-width="2.2"/>`), '<b>Class</b>');
+                if (viewFlags.api)
+                    h += row(hex(L ? '#fef3c7' : '#422006', cAmb), '<b>API route</b> (e.g. a Flask or Express endpoint)');
+                if (viewMode === 'functions' && viewFlags.structure)
+                    h += row(hex(L ? '#f1f5f9' : '#e2e8f0', L ? '#475569' : '#64748b'), '<b>File</b> (added by "Structure")');
+                if (viewMode === 'file')
+                    h += row(box(fileCol, 'stroke-dasharray="4 3" opacity="0.8"'), '<b>Dashed = lives in another file.</b> Shown for context, file name in brackets.');
+            }
+            h += row(box('#ef4444', 'style="filter:drop-shadow(0 0 3px rgba(239,68,68,.8))"'), '<b>Red border</b> = security finding detected');
+            if (layoutMode === 'cluster' && viewMode !== 'files')
+                h += row(sw(`<rect x="2" y="2" width="30" height="18" rx="4" fill="${fileCol}" fill-opacity=".12" stroke="${fileCol}" stroke-opacity=".6"/>`), '<b>Shaded block</b> = one file; everything inside belongs to it.');
+
+            h += '<h4>Connections (arrow means "uses")</h4>';
+            if (viewMode === 'files') {
+                h += row(line(cBlue, '', true, 3), '<b>Calls across files.</b> Thicker = more links; the number is the call count.');
+                h += row(line(cInd, '6 4'), '<b>Imports</b> the other file');
+                h += row(line(cAmb, '2 4'), '<b>API link:</b> frontend code fetches a backend route');
+            } else {
+                h += row(line(cGray, ''), '<b>Calls</b> a function in the same file');
+                h += row(line(cBlue, '', true, 2.6), '<b>Calls a function in another file</b>');
+                if (viewMode === 'functions' && viewFlags.structure) h += row(line(cInd, '6 4'), '<b>Imports</b> (file to file)');
+                h += row(line(cAmb, '2 4'), '<b>API link:</b> caller, route, handler');
+                h += row(line(L ? '#cbd5e1' : '#475569', '3 4', false, 1.5), '<b>Contains:</b> class to its methods' + (viewMode === 'functions' && viewFlags.structure ? ', file to its functions' : ''));
+            }
+            h += '<div class="lg-note">Click a node for its code, callers and callees. Double-click to open that file as a single-file graph.</div>';
+            body.innerHTML = h;
+        }
+        (function initLegend() {
+            const btn = document.getElementById('legend-toggle');
+            const body = document.getElementById('legend-body');
+            if (!btn || !body) return;
+            let open = false;
+            try { open = localStorage.getItem('ll_legend_open') === '1'; } catch (e) {}
+            const sync = () => { body.classList.toggle('hidden', !open); btn.classList.toggle('on', open); };
+            btn.addEventListener('click', () => { open = !open; try { localStorage.setItem('ll_legend_open', open ? '1' : '0'); } catch (e) {} sync(); });
+            sync();
+        })();
+
+        function renderCurrentView(opts = {}) {
+            if (!globalRawNodes) return;
+            if (viewMode === 'file' && !viewFile) {
+                const first = allFileNodesSorted()[0];
+                viewFile = first ? first.path : '';
+            }
+            if (!opts.keepPanel && sidePanel.classList.contains('translate-x-0')) closePanel();
+            const v = buildCurrentView();
+            // A tree of 60+ call-graph nodes becomes one huge flat row: group by file instead.
+            if (!layoutUserChosen && v.nodes.length > 60 && layoutMode === 'hierarchy' && viewMode !== 'files') {
+                layoutMode = 'cluster';
+                syncLayoutButtons();
+            } else if (!layoutUserChosen && layoutMode === 'cluster' && (viewMode === 'files' || v.nodes.length <= 60)) {
+                layoutMode = 'hierarchy';
+                syncLayoutButtons();
+            }
+            lastViewInfo = v;
+            syncViewBar();
+            renderGraph(v.nodes, v.edges);
+            renderLegend();
+            if (explorerData) renderExplorer();
+            const nFiles = globalRawNodes.filter(n => n.type === 'File').length;
+            const nFns = globalRawNodes.filter(n => n.type === 'Function').length;
+            let msg;
+            if (viewMode === 'files') msg = `🗂 ${v.nodes.length} files · ${v.edges.length} file links`;
+            else if (viewMode === 'file') msg = `📄 ${basename(viewFile)} · ${v.coreCount} symbols · ${v.extCount} linked from other files`;
+            else msg = `🔭 ${v.nodes.length} nodes · ${v.edges.length} links (${nFns} functions in ${nFiles} files)`;
+            setStatus(v.fallback ? `${v.fallback} ${msg}` : msg);
+        }
+
+        function setViewMode(mode, file) {
+            if (!globalRawNodes) return;
+            viewMode = mode;
+            if (file) viewFile = file;
+            if (mode === 'file' && !viewFile) viewFile = (currentPanelRaw && currentPanelRaw.file) || '';
+            populateFileSelect();
+            renderCurrentView();
+        }
+
+        /** Make sure a node is on the canvas, switching views if needed (search, trace links, security jump). */
+        function ensureNodeInView(nid) {
+            if (!network) return false;
+            const has = () => !!network.body.data.nodes.get(nid);
+            if (has()) return true;
+            const raw = (globalRawNodes || []).find(n => n.id === nid);
+            if (!raw) return false;
+            viewMode = raw.file ? 'file' : 'functions';
+            if (raw.file) viewFile = raw.file;
+            populateFileSelect();
+            renderCurrentView({ keepPanel: true });
+            return has();
         }
 
         // ── vis.js render ─────────────────────────────────────────────────────────
+        function edgeStyleFor(e, isLight) {
+            const slate = isLight ? '#94a3b8' : '#64748b';
+            let color = slate, width = 1.4, dashes = false, arrow = true;
+            if (e.label === 'CONTAINS') { color = isLight ? '#cbd5e1' : '#475569'; width = 1; dashes = [3, 4]; arrow = false; }
+            else if (e.label === 'IMPORTS' || e._kind === 'imports') { color = isLight ? '#6366f1' : '#818cf8'; dashes = [6, 4]; }
+            else if (e.label === 'CALLS_API' || e.label === 'EXPOSES_API' || e._kind === 'api') { color = isLight ? '#d97706' : '#fbbf24'; dashes = [2, 4]; }
+            else if (e._cross || e._kind === 'calls') { color = isLight ? '#0284c7' : '#38bdf8'; width = 1.8; }
+            if (e.weight > 1) width = Math.min(1.4 + Math.log2(e.weight) * 1.1, 6);
+            return { color, width, dashes, arrow };
+        }
+
+        // ── Cluster layout: one labelled block per file, blocks shelf-packed ───────
+        let clusterBoxes = [];
+        function computeClusterLayout(nodes) {
+            const CELL_W = 210, CELL_H = 86, PAD = 26, GAP = 90, HEAD = 34;
+            const NOFILE = '\u0000api';
+            const groups = new Map();
+            nodes.forEach(n => {
+                const key = n.file || NOFILE;
+                if (!groups.has(key)) groups.set(key, []);
+                groups.get(key).push(n);
+            });
+            const rank = t => (t === 'File' ? 0 : t === 'Class' ? 1 : 2);
+            const blocks = [...groups.entries()].map(([key, list]) => {
+                list.sort((a, b) => rank(a.type) - rank(b.type) || (a.line || 0) - (b.line || 0));
+                const cols = Math.max(1, Math.ceil(Math.sqrt(list.length * 1.6)));
+                const rows = Math.ceil(list.length / cols);
+                const idx = fileColorMap[basename(key === NOFILE ? '' : key)] ?? 0;
+                return {
+                    key, list, cols, rows,
+                    w: cols * CELL_W + PAD * 2, h: rows * CELL_H + PAD * 2,
+                    name: key === NOFILE ? 'API routes' : basename(key),
+                    color: PALETTE[idx],
+                };
+            }).sort((a, b) => b.w * b.h - a.w * a.h);
+
+            const totalArea = blocks.reduce((sum, b) => sum + (b.w + GAP) * (b.h + GAP + HEAD), 0);
+            const rowLimit = Math.max(blocks[0] ? blocks[0].w : 0, Math.sqrt(totalArea) * 1.35);
+            const pos = new Map();
+            let x = 0, y = 0, rowH = 0;
+            blocks.forEach(b => {
+                if (x > 0 && x + b.w > rowLimit) { x = 0; y += rowH + GAP + HEAD; rowH = 0; }
+                clusterBoxes.push({ x, y, w: b.w, h: b.h, name: b.name, color: b.color });
+                b.list.forEach((n, i) => {
+                    const c = i % b.cols, r = Math.floor(i / b.cols);
+                    pos.set(n.id, { x: x + PAD + c * CELL_W + CELL_W / 2, y: y + PAD + r * CELL_H + CELL_H / 2 });
+                });
+                x += b.w + GAP;
+                rowH = Math.max(rowH, b.h);
+            });
+            return pos;
+        }
+
         function renderGraph(nodes, edges) {
             if (network) { network.destroy(); network = null; }
 
             const isLight = document.documentElement.classList.contains('light');
+            const bigGraph = nodes.length > 220;
+            clusterBoxes = [];
+            const clusterPos = layoutMode === 'cluster' ? computeClusterLayout(nodes) : null;
 
             const visNodes = new vis.DataSet(nodes.map(n => {
                 const fname = basename(n.file || '');
@@ -4718,10 +5208,21 @@ html.light #settings-dialog-panel,
                 let fontColor = isLight ? '#0f172a' : '#f8fafc';
                 let fontStroke = isLight ? '#ffffff' : 'rgba(15,23,42,0.92)';
                 let fontStrokeW = isLight ? 2 : 2.5;
+                let label = shortLabel(n.label.split('\n')[0], n._external ? 30 : 28) + (n.label.includes('\n') ? '\n' + n.label.split('\n')[1] : '');
+                let fontExtra = {};
 
-                if (n.type === 'File') {
+                if (n._overview) {
+                    baseColor = isLight ? '#ffffff' : '#1e293b';
+                    borderColor = PALETTE[idx];
+                    fontColor = isLight ? '#0f172a' : '#f1f5f9';
+                    fontStroke = 'transparent';
+                    fontStrokeW = 0;
+                    fontSize = 14 + Math.min(4, Math.floor(Math.sqrt(n._count || 0) / 2));
+                    label = `<b>${escLabel(shortLabel(n.label, 24))}</b>\n${n._count || 0} symbol${n._count === 1 ? '' : 's'}`;
+                    fontExtra = { multi: 'html', bold: { color: fontColor, size: fontSize + 1, face: 'Plus Jakarta Sans, Inter, sans-serif' } };
+                } else if (n.type === 'File') {
                     shape = 'hexagon';
-                    size = 38;
+                    size = 34;
                     fontSize = 13;
                     baseColor = isLight ? '#f1f5f9' : '#e2e8f0';
                     borderColor = isLight ? '#475569' : '#64748b';
@@ -4730,8 +5231,7 @@ html.light #settings-dialog-panel,
                     fontStrokeW = 0;
                 } else if (n.type === 'Class') {
                     shape = 'diamond';
-                    size = 28;
-                    fontSize = 15;
+                    size = 26;
                     baseColor = isLight ? '#e0f2fe' : '#1e3a5f';
                     borderColor = isLight ? '#0284c7' : '#38bdf8';
                     fontColor = isLight ? '#0369a1' : '#e0f2fe';
@@ -4739,8 +5239,8 @@ html.light #settings-dialog-panel,
                     fontStrokeW = 2.5;
                 } else if (n.type === 'APIRoute') {
                     shape = 'hexagon';
-                    size = 22;
-                    fontSize = 14;
+                    size = 20;
+                    fontSize = 13;
                     baseColor = isLight ? '#fef3c7' : '#422006';
                     borderColor = isLight ? '#d97706' : '#fbbf24';
                     fontColor = isLight ? '#78350f' : '#fef3c7';
@@ -4752,25 +5252,36 @@ html.light #settings-dialog-panel,
                     fontColor = isLight ? '#0f172a' : '#f1f5f9';
                     fontStroke = isLight ? '#ffffff' : 'rgba(15,23,42,0.92)';
                     fontStrokeW = 2;
+                    fontSize = 14;
                 }
 
-                let borderWidth = 2;
+                let borderWidth = n._overview ? 3 : 2;
                 let shadow = isLight
                     ? { enabled: true, color: 'rgba(15, 23, 42, 0.08)', size: 10, x: 0, y: 3 }
                     : { enabled: true, color: 'rgba(0,0,0,0.35)', size: 8, x: 0, y: 2 };
                 if (n.vulnerabilities && n.vulnerabilities.length > 0) {
-                    borderColor = '#ef4444'; // red-500
+                    borderColor = '#ef4444';
                     borderWidth = 3;
                     shadow = { enabled: true, color: 'rgba(239, 68, 68, 0.5)', size: 15, x: 0, y: 0 };
                 }
+                if (bigGraph) shadow = { enabled: false };
 
+                const tip = [n.label.replace(/\n/g, ' '), n.file ? basename(n.file) : '', n.line ? `line ${n.line}` : '']
+                    .filter(Boolean).join(' · ');
+
+                const cp = clusterPos && clusterPos.get(n.id);
                 return {
                     id: n.id,
-                    label: n.label,
-                    shape: shape,
-                    size: size,
-                    borderWidth: borderWidth,
-                    shadow: shadow,
+                    ...(cp ? { x: cp.x, y: cp.y } : {}),
+                    label,
+                    title: tip,
+                    shape,
+                    size,
+                    borderWidth,
+                    shadow,
+                    opacity: n._external ? 0.78 : 1,
+                    shapeProperties: n._external ? { borderDashes: [5, 4] } : {},
+                    widthConstraint: { maximum: 200 },
                     color: {
                         background: baseColor,
                         border: borderColor,
@@ -4781,36 +5292,71 @@ html.light #settings-dialog-panel,
                         color: fontColor,
                         size: fontSize,
                         face: 'Plus Jakarta Sans, Inter, sans-serif',
-                        bold: { color: fontColor, size: fontSize },
                         strokeWidth: fontStrokeW,
                         strokeColor: fontStroke,
-                        ...(n.type === 'File' ? { background: isLight ? 'rgba(255, 255, 255, 0.85)' : 'rgba(15, 23, 42, 0.78)' } : {}),
+                        ...fontExtra,
                     },
-                    borderWidth: 2,
                     borderWidthSelected: 3,
-                    shadow: shadow,
-                    margin: { top: 12, bottom: 12, left: 16, right: 16 },
+                    margin: { top: 10, bottom: 10, left: 14, right: 14 },
                     _raw: n,
                 };
             }));
 
-            const visEdges = new vis.DataSet(edges.map((e, i) => ({
-                id: i,
-                from: e.from,
-                to: e.to,
-                arrows: { to: { enabled: true, scaleFactor: 0.7, type: 'arrow' } },
-                color: { color: isLight ? '#94a3b8' : '#64748b', opacity: 0.85 },
-                width: 1.5,
+            const baseOpacity = edges.length > 150 ? 0.4 : 0.85;
+            const visEdges = new vis.DataSet(edges.map((e, i) => {
+                const st = edgeStyleFor(e, isLight);
+                return {
+                    id: i,
+                    from: e.from,
+                    to: e.to,
+                    title: e.tip || e.label || '',
+                    label: e.weight ? (e.label || '') : '',
+                    font: { size: 11, color: isLight ? '#334155' : '#cbd5e1', strokeWidth: 3, strokeColor: isLight ? '#ffffff' : '#0f172a', align: 'middle' },
+                    arrows: { to: { enabled: st.arrow, scaleFactor: 0.6, type: 'arrow' } },
+                    color: { color: st.color, opacity: baseOpacity },
+                    width: st.width,
+                    dashes: st.dashes,
+                    selectionWidth: 0,
+                    smooth: layoutMode === 'hierarchy'
+                        ? { enabled: true, type: 'cubicBezier', forceDirection: 'vertical', roundness: 0.4 }
+                        : layoutMode === 'cluster'
+                            ? { enabled: true, type: 'curvedCW', roundness: 0.12 }
+                            : { enabled: true, type: 'continuous', roundness: 0.25 },
+                    _baseColor: st.color,
+                    _baseWidth: st.width,
+                    _baseOpacity: baseOpacity,
+                };
+            }));
 
-                selectionWidth: 0,
-                smooth: layoutMode === 'hierarchy'
-                    ? { enabled: true, type: 'cubicBezier', forceDirection: 'vertical', roundness: 0.35 }
-                    : { enabled: true, type: 'dynamic' },
-            })));
-
-            const opts = buildOptions();
+            const opts = buildOptions(nodes.length);
             const container = document.getElementById('mynetwork');
             network = new vis.Network(container, { nodes: visNodes, edges: visEdges }, opts);
+
+            if (clusterBoxes.length) {
+                network.on('beforeDrawing', (ctx) => {
+                    clusterBoxes.forEach(b => {
+                        ctx.save();
+                        ctx.fillStyle = b.color + (isLight ? '22' : '14');
+                        ctx.strokeStyle = b.color + (isLight ? '99' : '66');
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        if (ctx.roundRect) ctx.roundRect(b.x, b.y, b.w, b.h, 18); else ctx.rect(b.x, b.y, b.w, b.h);
+                        ctx.fill();
+                        ctx.stroke();
+                        ctx.fillStyle = isLight ? '#334155' : '#e2e8f0';
+                        ctx.font = '600 20px "Plus Jakarta Sans", Inter, sans-serif';
+                        ctx.textBaseline = 'bottom';
+                        ctx.fillText(b.name, b.x + 14, b.y - 8);
+                        ctx.restore();
+                    });
+                });
+            }
+
+            const resetEdges = () => {
+                const upd = [];
+                visEdges.forEach(e => upd.push({ id: e.id, color: { color: e._baseColor, opacity: e._baseOpacity }, width: e._baseWidth }));
+                visEdges.update(upd);
+            };
 
             network.on('click', params => {
                 if (params.nodes.length) {
@@ -4818,90 +5364,90 @@ html.light #settings-dialog-panel,
                     const n = visNodes.get(selectedId);
                     openPanel(n._raw);
 
-                    // Custom directional edge highlighting
                     const edgeUpdates = [];
                     visEdges.forEach(e => {
                         if (e.from === selectedId && e.to === selectedId) {
-                            edgeUpdates.push({ id: e.id, color: { color: '#38bdf8', opacity: 1.0 }, width: 2.5 }); // self
+                            edgeUpdates.push({ id: e.id, color: { color: '#38bdf8', opacity: 1.0 }, width: 2.5 });
                         } else if (e.from === selectedId) {
-                            edgeUpdates.push({ id: e.id, color: { color: TRACE_EDGE_COLORS.outgoing, opacity: 1.0 }, width: 2.5 }); // Outgoing (Calls)
+                            edgeUpdates.push({ id: e.id, color: { color: TRACE_EDGE_COLORS.outgoing, opacity: 1.0 }, width: 2.5 });
                         } else if (e.to === selectedId) {
-                            edgeUpdates.push({ id: e.id, color: { color: TRACE_EDGE_COLORS.incoming, opacity: 1.0 }, width: 2.5 }); // Incoming (Called By)
+                            edgeUpdates.push({ id: e.id, color: { color: TRACE_EDGE_COLORS.incoming, opacity: 1.0 }, width: 2.5 });
                         } else {
-                            edgeUpdates.push({ id: e.id, color: { color: '#1e293b', opacity: 0.15 }, width: 1.0 }); // Dimmed
+                            edgeUpdates.push({ id: e.id, color: { color: isLight ? '#cbd5e1' : '#1e293b', opacity: 0.18 }, width: 1.0 });
                         }
                     });
                     visEdges.update(edgeUpdates);
-
-                } else {
+                } else if (!params.edges.length) {
                     closePanel();
-
-                    // Reset edges to default
-                    const edgeUpdates = [];
-                    visEdges.forEach(e => {
-                        edgeUpdates.push({ id: e.id, color: { color: '#64748b', opacity: 0.85 }, width: 1.5 });
-                    });
-                    visEdges.update(edgeUpdates);
+                    resetEdges();
                 }
             });
 
+            // Double-click any node to open the graph of the file it lives in.
+            network.on('doubleClick', params => {
+                if (!params.nodes.length) return;
+                const n = visNodes.get(params.nodes[0]);
+                const f = n && n._raw && n._raw.file;
+                if (f) setViewMode('file', f);
+            });
+
             if (layoutMode === 'physics') {
-                // Fit once after initial stabilization only — do not disable physics, so edges
-                // keep pulling related nodes into clusters. (Listening to every ``stabilized`` +
-                // fit was what broke pan/zoom when zoomed in.)
                 network.once('stabilizationIterationsDone', () => {
-                    network.fit({
-                        padding: 56,
-                        animation: { duration: 600, easingFunction: 'easeInOutQuad' },
-                    });
+                    if (!network) return;
+                    // Freeze the layout so the graph stops drifting; dragging a node still works.
+                    network.setOptions({ physics: { enabled: false } });
+                    setTimeout(() => fitGraphView(false), 30);
                 });
+            } else if (layoutMode === 'cluster') {
+                requestAnimationFrame(() => fitGraphView(false));
             } else {
-                const rawNodesForRoot = nodes;
-                const rawEdgesForRoot = edges;
-                const graphContainer = container;
                 network.once('stabilized', () => {
-                    network.fit({
-                        padding: { top: 56, bottom: 56, left: 44, right: 44 },
-                        animation: { duration: 600, easingFunction: 'easeInOutQuad' },
-                    });
+                    if (!network) return;
+                    fitGraphView(true);
                 });
             }
         }
 
         // ── Vis Options ─────────────────────────────────────────────────
-        function buildOptions() {
+        function buildOptions(nodeCount = 0) {
+            const big = nodeCount > 220;
             const base = {
                 interaction: {
-                    hover: true, tooltipDelay: 300,
+                    hover: true, tooltipDelay: 250,
                     zoomView: true, dragView: true, dragNodes: true,
                     navigationButtons: false,
                     keyboard: false,
-                    selectConnectedEdges: false
+                    selectConnectedEdges: false,
+                    hideEdgesOnDrag: big,
+                    hideEdgesOnZoom: big,
                 },
                 nodes: { chosen: true },
             };
 
+            if (layoutMode === 'cluster') {
+                return {
+                    ...base,
+                    layout: { hierarchical: { enabled: false }, improvedLayout: false },
+                    physics: { enabled: false },
+                };
+            }
+
             if (layoutMode === 'hierarchy') {
                 return {
                     ...base,
-                    // Narrower boxes → more nodes fit per row without a mile-wide canvas.
-                    nodes: {
-                        chosen: true,
-                        widthConstraint: { maximum: 220 },
-                    },
                     layout: {
-                        improvedLayout: true,
+                        improvedLayout: nodeCount < 400,
                         hierarchical: {
                             enabled: true,
                             direction: 'UD',
                             sortMethod: 'directed',
-                            shakeTowards: 'leaves',
-                            nodeSpacing: 140,
-                            levelSeparation: 220,
-                            treeSpacing: 200,
+                            shakeTowards: 'roots',
+                            nodeSpacing: 170,
+                            levelSeparation: 150,
+                            treeSpacing: 220,
                             blockShifting: true,
                             edgeMinimization: true,
-                            parentCentralization: false,
+                            parentCentralization: true,
                         },
                     },
                     physics: { enabled: false },
@@ -4910,53 +5456,62 @@ html.light #settings-dialog-panel,
 
             return {
                 ...base,
-                layout: { hierarchical: { enabled: false }, improvedLayout: true },
+                layout: { hierarchical: { enabled: false }, improvedLayout: nodeCount < 400 },
                 physics: {
                     enabled: true,
                     solver: 'forceAtlas2Based',
                     forceAtlas2Based: {
-                        gravitationalConstant: -70,
-                        centralGravity: 0.006,
-                        springLength: 190,
-                        springConstant: 0.06,
-                        damping: 0.62,
+                        gravitationalConstant: -130,
+                        centralGravity: 0.012,
+                        springLength: 170,
+                        springConstant: 0.05,
+                        damping: 0.7,
                         avoidOverlap: 1,
                     },
-                    // Keep warm-up iterations; fit is handled once in JS (not on every stabilized).
-                    stabilization: { iterations: 280, fit: false },
+                    stabilization: { iterations: big ? 140 : 300, fit: false },
                 },
             };
         }
 
         // ── Nav Controls ─────────────────────────────────────────────────────────
-        function applyBtnStyles(activeBtn, inactiveBtn) {
-            activeBtn.classList.add('text-on-surface', 'bg-surface-variant');
-            activeBtn.classList.remove('text-on-surface-variant');
-            inactiveBtn.classList.remove('text-on-surface', 'bg-surface-variant');
-            inactiveBtn.classList.add('text-on-surface-variant');
+        function syncLayoutButtons() {
+            const map = { hierarchy: btnHierarchy, cluster: btnCluster, physics: btnPhysics };
+            Object.entries(map).forEach(([mode, el]) => {
+                if (!el) return;
+                const on = layoutMode === mode;
+                el.classList.toggle('active', on);
+                el.classList.toggle('text-on-surface', on);
+                el.classList.toggle('bg-surface-variant', on);
+                el.classList.toggle('text-on-surface-variant', !on);
+            });
         }
 
-        btnHierarchy.addEventListener('click', () => {
-            if (layoutMode === 'hierarchy') return;
-            layoutMode = 'hierarchy';
-            applyBtnStyles(btnHierarchy, btnPhysics);
-            if (globalRawNodes) {
-                closePanel();
-                renderGraph(globalRawNodes, globalRawEdges);
-            }
-        });
+        function setLayout(mode) {
+            if (layoutMode === mode) return;
+            layoutMode = mode;
+            layoutUserChosen = true;
+            syncLayoutButtons();
+            renderCurrentView();
+        }
 
-        btnPhysics.addEventListener('click', () => {
-            if (layoutMode === 'physics') return;
-            layoutMode = 'physics';
-            applyBtnStyles(btnPhysics, btnHierarchy);
-            if (globalRawNodes) {
-                closePanel();
-                renderGraph(globalRawNodes, globalRawEdges);
-            }
-        });
+        btnHierarchy.addEventListener('click', () => setLayout('hierarchy'));
+        btnCluster?.addEventListener('click', () => setLayout('cluster'));
+        btnPhysics.addEventListener('click', () => setLayout('physics'));
 
-        btnFit.addEventListener('click', fitGraphView);
+        // View bar wiring
+        document.getElementById('view-files')?.addEventListener('click', () => setViewMode('files'));
+        document.getElementById('view-functions')?.addEventListener('click', () => setViewMode('functions'));
+        document.getElementById('view-file')?.addEventListener('click', () => setViewMode('file'));
+        document.getElementById('view-file-select')?.addEventListener('change', (ev) => setViewMode('file', ev.target.value));
+        [['flt-classes', 'classes'], ['flt-api', 'api'], ['flt-structure', 'structure'], ['flt-isolated', 'isolated'], ['flt-external', 'external']]
+            .forEach(([id, key]) => {
+                document.getElementById(id)?.addEventListener('change', (ev) => {
+                    viewFlags[key] = ev.target.checked;
+                    renderCurrentView();
+                });
+            });
+
+        btnFit.addEventListener('click', () => fitGraphView(true));
         function zoomGraphIn() {
             if (!network) return;
             network.moveTo({ scale: network.getScale() * 1.25, animation: { duration: 180, easingFunction: 'easeInOutQuad' } });
@@ -4965,9 +5520,41 @@ html.light #settings-dialog-panel,
             if (!network) return;
             network.moveTo({ scale: network.getScale() * 0.8, animation: { duration: 180, easingFunction: 'easeInOutQuad' } });
         }
-        function fitGraphView() {
+        /** vis-network's fit() ignores padding, so frame the graph ourselves, clear of the floating bars. */
+        function fitPadded(animate) {
             if (!network) return;
-            network.fit({ animation: { duration: 280, easingFunction: 'easeInOutQuad' }, padding: 56 });
+            const container = document.getElementById('mynetwork');
+            const ids = network.body.data.nodes.getIds();
+            if (!ids.length) return;
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            ids.forEach(id => {
+                const bb = network.getBoundingBox(id);
+                if (!bb) return;
+                minX = Math.min(minX, bb.left); maxX = Math.max(maxX, bb.right);
+                minY = Math.min(minY, bb.top); maxY = Math.max(maxY, bb.bottom);
+            });
+            (clusterBoxes || []).forEach(b => {
+                minX = Math.min(minX, b.x); maxX = Math.max(maxX, b.x + b.w);
+                minY = Math.min(minY, b.y - 32); maxY = Math.max(maxY, b.y + b.h);
+            });
+            if (!isFinite(minX)) return;
+            const cw = container.clientWidth || 800, ch = container.clientHeight || 600;
+            const P = FIT_PADDING;
+            const availW = Math.max(120, cw - P.left - P.right);
+            const availH = Math.max(120, ch - P.top - P.bottom);
+            const bw = Math.max(1, maxX - minX), bh = Math.max(1, maxY - minY);
+            const scale = Math.min(availW / bw, availH / bh, 1.3);
+            const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+            const screenCx = P.left + availW / 2, screenCy = P.top + availH / 2;
+            network.moveTo({
+                position: { x: cx - (screenCx - cw / 2) / scale, y: cy - (screenCy - ch / 2) / scale },
+                scale,
+                animation: animate ? { duration: 450, easingFunction: 'easeInOutQuad' } : false,
+            });
+        }
+        function fitGraphView(animate = true) {
+            if (!network) return;
+            fitPadded(animate !== false);
         }
         btnZoomIn.addEventListener('click', zoomGraphIn);
         btnZoomOut.addEventListener('click', zoomGraphOut);
@@ -5121,6 +5708,7 @@ html.light #settings-dialog-panel,
         }
 
         function focusNode(nid) {
+            if (!network || !ensureNodeInView(nid)) return;
             network.selectNodes([nid]);
             network.focus(nid, { scale: 1.2, animation: true });
         }
@@ -5135,7 +5723,7 @@ html.light #settings-dialog-panel,
         }
 
         function highlightGraphTrace(centerId, incoming, outgoing) {
-            if (!network) return;
+            if (!network || !network.body.data.nodes.get(centerId)) return;
             const incIds = new Set(incoming.map(n => n.id));
             const outIds = new Set(outgoing.map(n => n.id));
 
@@ -5196,9 +5784,9 @@ html.light #settings-dialog-panel,
             const updateEdges = [];
             allEdges.forEach(e => updateEdges.push({
                 id: e.id,
-                color: { opacity: 0.85, color: '#64748b' },
-                arrows: { to: { scaleFactor: 0.7 } },
-                width: 1.5
+                color: { opacity: e._baseOpacity || 0.85, color: e._baseColor || '#64748b' },
+                arrows: { to: { scaleFactor: 0.6 } },
+                width: e._baseWidth || 1.4
             }));
             allNodes.update(updateNodes);
             allEdges.update(updateEdges);
@@ -5208,8 +5796,10 @@ html.light #settings-dialog-panel,
             sidePanel.classList.remove('translate-x-0');
             sidePanel.classList.add('translate-x-full');
             currentPanelRaw = null;
-            unhighlightGraph();
-            network.unselectAll();
+            if (network) {
+                unhighlightGraph();
+                network.unselectAll();
+            }
         }
         closeBtn.addEventListener('click', closePanel);
 
@@ -5583,95 +6173,172 @@ html.light #settings-dialog-panel,
             }
         }
 
+        // ── Explorer (sidebar file tree) ─────────────────────────────────────────
+        let explorerData = null, explorerRootPath = '';
+        const explorerOpenDirs = new Set();
+        const exNorm = (p) => String(p || '').replace(/\\/g, '/').toLowerCase();
+
+        function explorerGraphFiles() {
+            const m = new Map();   // normalized path -> {file, symbols}
+            (globalRawNodes || []).forEach(n => {
+                if (n.type === 'File') m.set(exNorm(n.file), { file: n.file, symbols: 0 });
+            });
+            (globalRawNodes || []).forEach(n => {
+                if ((n.type === 'Function' || n.type === 'Class') && m.has(exNorm(n.file))) m.get(exNorm(n.file)).symbols++;
+            });
+            return m;
+        }
+
+        function exIcon(name) {
+            const e = (name.split('.').pop() || '').toLowerCase();
+            if (['py', 'js', 'jsx', 'ts', 'tsx', 'java', 'go', 'rs', 'rb', 'php', 'cs', 'cpp', 'c', 'h', 'hpp', 'kt', 'swift', 'vue', 'svelte'].includes(e)) return 'code';
+            if (['json', 'yml', 'yaml', 'toml', 'ini', 'env', 'cfg'].includes(e)) return 'data_object';
+            if (['md', 'txt', 'rst'].includes(e)) return 'article';
+            if (['db', 'sqlite'].includes(e)) return 'database';
+            if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'ico', 'webp'].includes(e)) return 'image';
+            return 'description';
+        }
+
         async function loadExplorerTree(path) {
             const container = document.getElementById('explorer-tree');
             container.innerHTML = '<div class="flex justify-center p-4"><div class="spinner !border-primary/30 !border-t-primary !block"></div></div>';
-
-            // Auto open accordion
+            explorerRootPath = path;
             const explorerContent = document.getElementById('explorer-content');
             if (explorerContent && !explorerContent.classList.contains('is-open')) {
                 document.getElementById('nav-explorer').click();
             }
-
             try {
                 const res = await fetch('/api/explorer?path=' + encodeURIComponent(path));
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error);
                 if (data.tree) {
-                    container.innerHTML = '';
-                    renderTree(data.tree, container, 0);
+                    explorerData = data.tree;
+                    explorerOpenDirs.clear();
+                    explorerOpenDirs.add(data.tree.path || data.tree.name);
+                    { const t = document.getElementById('explorer-tools'); if (t) t.style.display = 'flex'; }
+                    renderExplorer();
                 }
             } catch (e) {
                 container.innerHTML = `<p class="text-error px-2 py-1 italic text-center">Failed to load tree.</p>`;
             }
         }
 
-        function renderTree(node, parentEl, level) {
+        function renderExplorer() {
+            const container = document.getElementById('explorer-tree');
+            if (!container || !explorerData) return;
+            const q = (document.getElementById('explorer-filter')?.value || '').trim().toLowerCase();
+            const inGraph = explorerGraphFiles();
+            container.innerHTML = '';
+            const frag = document.createDocumentFragment();
+            const matchTree = (node) => {
+                if (!q) return node;
+                if (node.type === 'file') return node.name.toLowerCase().includes(q) ? node : null;
+                const kids = (node.children || []).map(matchTree).filter(Boolean);
+                return kids.length ? { ...node, children: kids } : null;
+            };
+            const root = matchTree(explorerData);
+            if (!root) {
+                container.innerHTML = '<p class="px-2 py-2 text-slate-400 italic">No files match.</p>';
+                return;
+            }
+            renderTree(root, frag, 0, inGraph, !!q);
+            container.appendChild(frag);
+            syncExplorerActive();
+        }
+
+        function renderTree(node, parentEl, level, inGraph, forceOpen) {
             const el = document.createElement('div');
             el.className = 'flex flex-col';
-
-            const header = document.createElement('div');
-            header.className = `flex items-center gap-1.5 py-1.5 px-2 hover:bg-surface-variant/50 rounded cursor-pointer transition-colors ${node.type === 'directory' ? 'text-on-surface' : 'text-on-surface-variant hover:text-primary/80'}`;
-            header.style.paddingLeft = (level * 14 + 8) + 'px';
+            const row = document.createElement('div');
+            row.className = 'ex-row ' + (node.type === 'directory' ? 'text-on-surface' : 'text-on-surface-variant');
+            row.style.paddingLeft = (level * 14 + 8) + 'px';
+            if (node.path) row.dataset.path = exNorm(node.path);
 
             const icon = document.createElement('span');
-            icon.className = 'material-symbols-outlined flex-shrink-0';
-            icon.style.fontVariationSettings = "'FILL' 0";
-
-            if (node.type === 'directory') {
-                icon.textContent = 'folder';
-                icon.classList.add('text-primary', 'text-[14px]');
-            } else {
-                icon.textContent = 'description';
-                icon.classList.add('text-[14px]', 'opacity-60');
-            }
-
+            icon.className = 'material-symbols-outlined flex-shrink-0 text-[15px]';
             const name = document.createElement('span');
             name.textContent = node.name;
             name.className = 'truncate tracking-tight flex-1';
+            name.title = node.path || node.name;
 
-            header.appendChild(icon);
-            header.appendChild(name);
-            el.appendChild(header);
-
-            if (node.type === 'directory' && node.children) {
-                const childrenContainer = document.createElement('div');
-
-                // Keep root open, close children by default
-                if (level === 0) {
-                    childrenContainer.className = 'flex flex-col';
-                    icon.style.fontVariationSettings = "'FILL' 1";
-                    icon.textContent = 'folder_open';
-                    icon.classList.add('text-primary-container');
-                } else {
-                    childrenContainer.className = 'hidden flex-col';
-                }
-
-                header.addEventListener('click', () => {
-                    const isHidden = childrenContainer.classList.contains('hidden');
-                    if (isHidden) {
-                        childrenContainer.classList.remove('hidden');
-                        childrenContainer.classList.add('flex');
-                        icon.style.fontVariationSettings = "'FILL' 1";
-                        icon.textContent = 'folder_open';
-                        icon.classList.add('text-primary-container');
-                        icon.classList.remove('text-primary');
-                    } else {
-                        childrenContainer.classList.add('hidden');
-                        childrenContainer.classList.remove('flex');
-                        icon.style.fontVariationSettings = "'FILL' 0";
-                        icon.textContent = 'folder';
-                        icon.classList.remove('text-primary-container');
-                        icon.classList.add('text-primary');
-                    }
+            if (node.type === 'directory') {
+                const key = node.path || node.name;
+                const open = forceOpen || explorerOpenDirs.has(key);
+                const setIcon = (o) => {
+                    icon.textContent = o ? 'folder_open' : 'folder';
+                    icon.style.fontVariationSettings = o ? "'FILL' 1" : "'FILL' 0";
+                    icon.classList.add('text-primary');
+                };
+                setIcon(open);
+                row.appendChild(icon); row.appendChild(name);
+                el.appendChild(row);
+                const kids = document.createElement('div');
+                kids.className = open ? 'flex flex-col' : 'hidden flex-col';
+                (node.children || []).forEach(c => renderTree(c, kids, level + 1, inGraph, forceOpen));
+                el.appendChild(kids);
+                row.addEventListener('click', () => {
+                    const nowOpen = kids.classList.contains('hidden');
+                    kids.classList.toggle('hidden', !nowOpen);
+                    kids.classList.toggle('flex', nowOpen);
+                    if (nowOpen) explorerOpenDirs.add(key); else explorerOpenDirs.delete(key);
+                    setIcon(nowOpen);
                 });
-
-                node.children.forEach(child => renderTree(child, childrenContainer, level + 1));
-                el.appendChild(childrenContainer);
+            } else {
+                icon.textContent = exIcon(node.name);
+                icon.classList.add('opacity-70');
+                const g = inGraph.get(exNorm(node.path));
+                const dot = document.createElement('span');
+                dot.className = 'ex-dot';
+                if (g) {
+                    row.classList.add('ex-in-graph');
+                    const ci = fileColorMap[basename(g.file)];
+                    dot.style.background = (ci !== undefined && PALETTE[ci]) || '#38bdf8';
+                } else {
+                    row.classList.add('ex-dim');
+                }
+                row.appendChild(icon); row.appendChild(name);
+                if (g && g.symbols) {
+                    const meta = document.createElement('span');
+                    meta.className = 'ex-meta'; meta.textContent = g.symbols;
+                    meta.title = `${g.symbols} function/class symbols`;
+                    row.appendChild(meta);
+                }
+                const src = document.createElement('span');
+                src.className = 'ex-src material-symbols-outlined text-[15px]';
+                src.textContent = 'visibility'; src.title = 'View source';
+                src.addEventListener('click', (ev) => { ev.stopPropagation(); openFileSource(node); });
+                row.appendChild(src);
+                row.appendChild(dot);
+                el.appendChild(row);
+                row.title = g ? `${node.path}\nClick: show this file's graph · eye icon: view source` : `${node.path}\nNot part of the analysis — click to view source`;
+                row.addEventListener('click', () => {
+                    if (g && globalRawNodes) { setViewMode('file', g.file); }
+                    else openFileSource(node);
+                });
             }
-
             parentEl.appendChild(el);
         }
+
+        function openFileSource(node) {
+            openSourceOverlay({ file: node.path, type: 'File', label: node.name });
+        }
+
+        /** Highlight the file shown in the Single-file graph. */
+        function syncExplorerActive() {
+            const cur = viewMode === 'file' && viewFile ? exNorm(viewFile) : null;
+            document.querySelectorAll('#explorer-tree .ex-row').forEach(r => {
+                r.classList.toggle('ex-active', !!cur && r.dataset.path === cur);
+            });
+        }
+
+        document.getElementById('explorer-filter')?.addEventListener('input', () => renderExplorer());
+        document.getElementById('explorer-refresh')?.addEventListener('click', () => { if (explorerRootPath) loadExplorerTree(explorerRootPath); });
+        document.getElementById('explorer-collapse')?.addEventListener('click', () => {
+            explorerOpenDirs.clear();
+            if (explorerData) explorerOpenDirs.add(explorerData.path || explorerData.name);
+            const f = document.getElementById('explorer-filter'); if (f) f.value = '';
+            renderExplorer();
+        });
 
         // ── Impact Analysis (What-If) Logic ──
         const impactPanel = document.getElementById('impact-panel');
@@ -6088,7 +6755,7 @@ html.light #settings-dialog-panel,
                 }
             });
             if (globalRawNodes && globalRawEdges) {
-                renderGraph(globalRawNodes, globalRawEdges);
+                renderCurrentView({ keepPanel: true });
             }
         }
 
