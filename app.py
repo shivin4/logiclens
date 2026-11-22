@@ -82,9 +82,15 @@ def serve_logo(filename: str):
     return send_from_directory("logo", filename)
 
 
+def _server_theme() -> str:
+    """Saved UI theme ('light' / 'dark' / '' if never chosen). Shared by every window."""
+    t = str(_read_user_prefs().get("theme", "")).strip().lower()
+    return t if t in ("light", "dark") else ""
+
+
 @app.route("/")
 def index():
-    return render_template("index.html")
+    return render_template("index.html", server_theme=_server_theme())
 
 
 @app.route("/setup", methods=["GET"])
@@ -98,12 +104,15 @@ def setup_page():
         ollama_host=ollama_host(),
         has_gemini_key=bool(gemini_api_key()),
         has_groq_key=bool(groq_api_key()),
+        server_theme=_server_theme(),
     )
 
 
 @app.route("/onboarding", methods=["GET"])
 def onboarding_page():
-    return render_template("onboarding.html", data_dir=str(get_data_dir()))
+    return render_template(
+        "onboarding.html", data_dir=str(get_data_dir()), server_theme=_server_theme()
+    )
 
 
 @app.route("/setup", methods=["POST"])
@@ -450,6 +459,20 @@ def api_user_prefs_tour_dismiss():
     prefs["tour_dismissed"] = True
     _write_user_prefs(prefs)
     return jsonify({"status": "ok", "tour_dismissed": True})
+
+
+@app.route("/api/user/prefs/theme", methods=["POST"])
+def api_user_prefs_theme():
+    """Remember light/dark so new windows and restarts open in the same theme."""
+    if not _is_localhost_request():
+        return jsonify({"error": "Local use only."}), 403
+    theme = str((request.get_json(silent=True) or {}).get("theme", "")).strip().lower()
+    if theme not in ("light", "dark"):
+        return jsonify({"error": 'theme must be "light" or "dark".'}), 400
+    prefs = _read_user_prefs()
+    prefs["theme"] = theme
+    _write_user_prefs(prefs)
+    return jsonify({"status": "ok", "theme": theme})
 
 
 _ANALYZE_HISTORY_FILE = "analyze_history.json"

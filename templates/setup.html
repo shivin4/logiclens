@@ -7,7 +7,9 @@
     <script src="{{ url_for('static', filename='vendor/tailwindcdn.js') }}"></script>
     <script>
         (function() {
-            const t = localStorage.getItem('logiclens_theme') || 'dark';
+            const st = '{{ server_theme|default("") }}';
+            if (st) { try { localStorage.setItem('logiclens_theme', st); } catch (e) {} }
+            const t = st || localStorage.getItem('logiclens_theme') || 'dark';
             if (t === 'light') {
                 document.documentElement.classList.remove('dark');
                 document.documentElement.classList.add('light');

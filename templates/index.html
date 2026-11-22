@@ -7,7 +7,9 @@
     <title>LogicLens - Graph View</title>
     <script>
         (function() {
-            const savedTheme = localStorage.getItem('logiclens_theme') || 'dark';
+            const serverTheme = '{{ server_theme|default("") }}';
+            if (serverTheme) { try { localStorage.setItem('logiclens_theme', serverTheme); } catch (e) {} }
+            const savedTheme = serverTheme || localStorage.getItem('logiclens_theme') || 'dark';
             if (savedTheme === 'light') {
                 document.documentElement.classList.remove('dark');
                 document.documentElement.classList.add('light');
@@ -257,44 +259,13 @@
             border: none !important;
         }
 
-        html.light #empty-state {
-            background: radial-gradient(ellipse 80% 60% at 50% 20%, rgba(99, 102, 241, 0.09), transparent 55%), #f8fafc !important;
-            color: #0f172a !important;
-        }
 
-        html.light #empty-state .welcome-hero-title {
-            color: #0f172a !important;
-        }
 
-        html.light #empty-state .welcome-subtitle {
-            color: #475569 !important;
-        }
 
-        html.light .welcome-tile {
-            background: #ffffff !important;
-            border-color: #cbd5e1 !important;
-            color: #0f172a !important;
-            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04) !important;
-        }
 
-        html.light .welcome-tile:hover {
-            background: #f8fafc !important;
-            border-color: #4f46e5 !important;
-            box-shadow: 0 6px 16px rgba(79, 70, 229, 0.12) !important;
-        }
 
-        html.light .welcome-tile .font-medium {
-            color: #0f172a !important;
-        }
 
-        html.light .welcome-tile .material-symbols-outlined.text-sky-400 {
-            color: #4f46e5 !important;
-        }
 
-        html.light #welcome-recent-list {
-            background: #ffffff !important;
-            border-color: #cbd5e1 !important;
-        }
 
         
 html.light #settings-dialog-panel,
@@ -1032,6 +1003,52 @@ html.light #settings-dialog-panel,
             margin: 0.25rem 0;
         }
 
+        /* ── Home screen (no project open) ── */
+        #empty-state { --h-fg:#e2e8f0; --h-dim:#94a3b8; --h-card:rgba(15,23,42,.72); --h-line:rgba(148,163,184,.2); --h-acc:#38bdf8; --h-acc2:#6366f1; overflow-x: hidden; }
+        html.light #empty-state { --h-fg:#0f172a; --h-dim:#64748b; --h-card:rgba(255,255,255,.88); --h-line:#dbe2ee; --h-acc:#4f46e5; --h-acc2:#0ea5e9;
+            background: radial-gradient(ellipse 80% 60% at 50% 12%, rgba(99,102,241,.10), transparent 60%),
+                radial-gradient(rgba(100,116,139,.16) 1px, transparent 1px) 0 0 / 24px 24px, #f6f8fc !important; }
+        .home-orb { position:absolute; border-radius:50%; filter:blur(80px); opacity:.30; pointer-events:none; animation: homeOrb 20s ease-in-out infinite; }
+        html.light .home-orb { opacity:.22; }
+        .home-orb-a { width:360px; height:360px; left:6%; top:4%; background:var(--h-acc); }
+        .home-orb-b { width:320px; height:320px; right:6%; bottom:6%; background:var(--h-acc2); animation-delay:-10s; }
+        @keyframes homeOrb { 0%,100% { transform: translate(0,0); } 50% { transform: translate(34px,-26px); } }
+        .home-wrap { position:relative; z-index:1; width:100%; max-width:46rem; margin:auto; padding:1.5rem; display:flex; flex-direction:column; align-items:center; gap:1.6rem; }
+        .home-wrap > * { animation: homeUp .6s cubic-bezier(.2,.7,.2,1) both; }
+        .home-wrap > *:nth-child(2) { animation-delay:.08s; } .home-wrap > *:nth-child(3) { animation-delay:.16s; } .home-wrap > *:nth-child(4) { animation-delay:.24s; }
+        @keyframes homeUp { from { opacity:0; transform: translateY(14px); } to { opacity:1; transform:none; } }
+        .home-hero { display:flex; flex-direction:column; align-items:center; gap:.55rem; text-align:center; }
+        .home-logo { width:64px; height:64px; border-radius:18px; display:grid; place-items:center; background:var(--h-card); border:1px solid var(--h-line); box-shadow:0 10px 30px rgba(79,70,229,.18); animation: homeBob 5s ease-in-out infinite; }
+        .home-logo img { width:38px; height:38px; object-fit:contain; }
+        @keyframes homeBob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+        .home-title { margin:0; font-size:2rem; font-weight:800; letter-spacing:-.03em; color:var(--h-fg); font-family:'Plus Jakarta Sans', sans-serif; line-height:1.1; }
+        .home-sub { margin:0; max-width:30rem; color:var(--h-dim); font-size:.95rem; line-height:1.6; }
+        .home-links { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:.35rem .75rem; font-size:.8rem; color:var(--h-dim); margin-top:.15rem; }
+        .home-links button, .home-links a { color:var(--h-dim); transition: color .15s; }
+        .home-links button:hover, .home-links a:hover, .home-links .accent { color:var(--h-acc); }
+        .home-links .accent { font-weight:600; }
+        .home-actions { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:.9rem; width:100%; }
+        @media (max-width: 640px) { .home-actions { grid-template-columns:1fr; } }
+        .home-card { display:flex; flex-direction:column; align-items:flex-start; gap:.3rem; text-align:left; padding:1rem; border-radius:14px; background:var(--h-card); border:1px solid var(--h-line); backdrop-filter: blur(8px); transition: transform .15s, border-color .15s, box-shadow .15s; }
+        .home-card:hover { transform: translateY(-3px); border-color:var(--h-acc); box-shadow:0 12px 28px rgba(79,70,229,.16); }
+        .home-card:active { transform:none; }
+        .home-chip { width:38px; height:38px; border-radius:11px; display:grid; place-items:center; background: color-mix(in srgb, var(--h-acc) 14%, transparent); color:var(--h-acc); margin-bottom:.35rem; }
+        .home-card b { color:var(--h-fg); font-size:.95rem; font-weight:700; }
+        .home-card .hint { color:var(--h-dim); font-size:.78rem; line-height:1.4; }
+        .home-recent { width:100%; }
+        .home-recent-head { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:.5rem; padding:0 .25rem; font-size:.68rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--h-dim); }
+        .home-recent-head #welcome-recent-meta { font-weight:500; letter-spacing:0; text-transform:none; font-size:.72rem; }
+        #welcome-recent-list { border:1px solid var(--h-line); border-radius:14px; background:var(--h-card); overflow-x:hidden; overflow-y:auto; max-height:13rem; backdrop-filter: blur(8px); }
+        .home-row { display:flex; align-items:center; gap:.75rem; width:100%; padding:.65rem .9rem; text-align:left; border-top:1px solid var(--h-line); transition: background .12s; }
+        .home-row:first-child { border-top:0; }
+        .home-row:hover { background: color-mix(in srgb, var(--h-acc) 9%, transparent); }
+        .home-row .material-symbols-outlined { color:var(--h-acc); font-size:18px; flex:0 0 auto; }
+        .home-row .nm { font-weight:600; color:var(--h-fg); font-size:.85rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+        .home-row .pth { margin-left:auto; font-family:'JetBrains Mono', monospace; font-size:.68rem; color:var(--h-dim); max-width:55%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:0 1 auto; }
+        .home-empty { padding:1.6rem 1rem; text-align:center; font-size:.82rem; color:var(--h-dim); }
+        .home-tip { font-size:.75rem; color:var(--h-dim); text-align:center; }
+        @media (prefers-reduced-motion: reduce) { .home-orb, .home-logo, .home-wrap > * { animation:none !important; } }
+
         /* Welcome (no project) — IDE-style home */
         .welcome-tile {
             display: flex;
@@ -1059,7 +1076,8 @@ html.light #settings-dialog-panel,
         }
 
         #empty-state {
-            background: radial-gradient(ellipse 80% 60% at 50% 20%, rgba(30, 58, 138, 0.12), transparent 55%),
+            background: radial-gradient(ellipse 80% 60% at 50% 15%, rgba(30, 58, 138, 0.18), transparent 60%),
+                radial-gradient(rgba(148, 163, 184, 0.10) 1px, transparent 1px) 0 0 / 24px 24px,
                 #09090b;
             display: flex;
             flex-direction: column;
@@ -2143,70 +2161,52 @@ html.light #settings-dialog-panel,
             <!-- Vis-Network Container -->
             <div id="mynetwork" class="absolute inset-0 z-10"></div>
 
-            <!-- Welcome / empty state (Cursor-style home) -->
+            <!-- Welcome / home screen -->
             <div id="empty-state"
                 class="absolute inset-0 z-20 flex flex-col items-center justify-center pointer-events-auto overflow-y-auto min-h-0">
-                <div
-                    class="welcome-inner flex flex-col items-center w-full max-w-3xl mx-auto px-3 sm:px-6 py-2 sm:py-4">
-                    <div class="welcome-hero flex flex-col items-center gap-1.5 sm:gap-2 mb-4 sm:mb-6">
-                        <img src="/logo/logo.svg" alt=""
-                            class="welcome-hero-logo h-8 sm:h-10 w-auto opacity-95 mix-blend-screen" />
-                        <span
-                            class="welcome-hero-title text-lg sm:text-xl font-semibold tracking-tight text-slate-100 font-headline">LogicLens</span>
-                        <p class="welcome-subtitle text-sm text-center max-w-md leading-relaxed px-1">
-                            Dependency graph and AI insights for your codebase. Open a project to get started.</p>
-                        <div class="flex flex-wrap items-center justify-center gap-2 sm:gap-3 text-xs text-slate-400 mt-0.5">
-                            <button type="button" id="welcome-start-tour"
-                                class="text-sky-400 hover:text-sky-300 font-medium transition-colors">New here? Take a quick tour</button>
-                            <span class="text-slate-600 hidden sm:inline">·</span>
-                            <button type="button" id="welcome-link-settings"
-                                class="hover:text-sky-400 transition-colors">Settings</button>
-                            <span class="text-slate-600">·</span>
-                            <a href="/setup" class="hover:text-sky-400 transition-colors">API setup</a>
+                <div class="home-orb home-orb-a" aria-hidden="true"></div>
+                <div class="home-orb home-orb-b" aria-hidden="true"></div>
+                <div class="home-wrap">
+                    <div class="home-hero">
+                        <div class="home-logo"><img src="/logo/logo.svg" alt="" /></div>
+                        <h1 class="home-title">LogicLens</h1>
+                        <p class="home-sub">See how your code connects. Open a project to build its dependency graph, then search it, trace calls and check what a change could break.</p>
+                        <div class="home-links">
+                            <button type="button" id="welcome-start-tour" class="accent">Take a quick tour</button>
+                            <span aria-hidden="true">·</span>
+                            <button type="button" id="welcome-link-settings">Settings</button>
+                            <span aria-hidden="true">·</span>
+                            <a href="/setup">API setup</a>
                         </div>
                     </div>
 
-                    <div class="welcome-tiles welcome-tiles-wrap mb-4 sm:mb-6">
-                        <button type="button" id="welcome-open-project" class="welcome-tile">
-                            <span class="material-symbols-outlined text-3xl text-sky-400 mb-1"
-                                data-icon="folder_open">folder_open</span>
-                            <span class="font-medium text-slate-100 text-sm">Open project</span>
-                            <span class="tile-hint text-xs mt-1.5 text-center leading-snug">Pick a folder in
-                                File Explorer</span>
+                    <div class="home-actions">
+                        <button type="button" id="welcome-open-project" class="home-card">
+                            <span class="home-chip"><span class="material-symbols-outlined" data-icon="folder_open">folder_open</span></span>
+                            <b>Open project</b>
+                            <span class="hint">Pick a folder from your computer</span>
                         </button>
-                        <button type="button" id="welcome-enter-path" class="welcome-tile">
-                            <span class="material-symbols-outlined text-3xl text-slate-400 mb-1"
-                                data-icon="keyboard_tab">keyboard_tab</span>
-                            <span class="font-medium text-slate-100 text-sm">Enter path</span>
-                            <span class="tile-hint text-xs mt-1.5 text-center leading-snug">Paste a path or GitHub URL above,
-                                then Analyze</span>
+                        <button type="button" id="welcome-enter-path" class="home-card">
+                            <span class="home-chip"><span class="material-symbols-outlined" data-icon="link">link</span></span>
+                            <b>Path or GitHub URL</b>
+                            <span class="hint">Paste it in the bar above, then press Analyze</span>
                         </button>
-                        <button type="button" id="welcome-new-window-tile" class="welcome-tile">
-                            <span class="material-symbols-outlined text-3xl text-slate-400 mb-1"
-                                data-icon="open_in_new">open_in_new</span>
-                            <span class="font-medium text-slate-100 text-sm">New window</span>
-                            <span class="tile-hint text-xs mt-1.5 text-center leading-snug">Side-by-side like
-                                an IDE</span>
+                        <button type="button" id="welcome-new-window-tile" class="home-card">
+                            <span class="home-chip"><span class="material-symbols-outlined" data-icon="splitscreen">splitscreen</span></span>
+                            <b>New window</b>
+                            <span class="hint">Compare two projects side by side</span>
                         </button>
                     </div>
 
-                    <div class="w-full max-w-2xl">
-                        <div class="flex justify-between items-baseline mb-2 px-1">
-                            <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Recent
-                                projects</span>
-                            <span class="text-[11px] text-slate-600" id="welcome-recent-meta"></span>
+                    <div class="home-recent">
+                        <div class="home-recent-head">
+                            <span>Recent projects</span>
+                            <span id="welcome-recent-meta"></span>
                         </div>
-                        <div id="welcome-recent-list"
-                            class="rounded-lg border border-slate-800/90 bg-slate-950/50 min-h-[2.5rem] max-h-[min(28vh,12rem)] overflow-x-hidden overflow-y-auto">
-                        </div>
+                        <div id="welcome-recent-list"></div>
                     </div>
 
-                    <button type="button" id="welcome-parallel-cta"
-                        class="welcome-parallel-cta mt-2 sm:mt-4 px-3 sm:px-5 py-1.5 sm:py-2 rounded-full border border-slate-700/80 bg-slate-900/80 text-slate-300 text-[11px] sm:text-sm hover:border-sky-500/40 hover:text-sky-300 hover:bg-slate-800/90 transition-colors flex items-center gap-1.5 max-w-full text-center">
-                        <span class="truncate">Open another window for side-by-side projects</span>
-                        <span class="material-symbols-outlined text-[18px] opacity-70"
-                            data-icon="north_east">north_east</span>
-                    </button>
+                    <p class="home-tip">Tip: after analyzing, double-click any node to jump straight to that file.</p>
                 </div>
             </div>
 
@@ -3244,19 +3244,24 @@ html.light #settings-dialog-panel,
             }
             host.innerHTML = '';
             if (!list.length) {
-                host.innerHTML = '<p class="px-4 py-8 text-center text-[13px] text-slate-600 italic">No recent projects yet</p>';
+                host.innerHTML = '<p class="home-empty">No recent projects yet. Open a folder to get started.</p>';
                 return;
             }
             list.forEach(p => {
                 const row = document.createElement('button');
                 row.type = 'button';
-                row.className = 'w-full flex justify-between items-center gap-4 px-4 py-2.5 text-left border-t border-slate-800/80 first:border-t-0 hover:bg-slate-800/55 transition-colors';
+                row.className = 'home-row';
+                row.title = p;
+                const ic = document.createElement('span');
+                ic.className = 'material-symbols-outlined';
+                ic.textContent = 'folder';
                 const left = document.createElement('span');
-                left.className = 'truncate text-[13px] text-slate-200 font-medium min-w-0 text-left';
+                left.className = 'nm';
                 left.textContent = basename(p) || p;
                 const right = document.createElement('span');
-                right.className = 'truncate text-[11px] text-slate-500 font-mono max-w-[55%] shrink-0 text-right';
+                right.className = 'pth';
                 right.textContent = p;
+                row.appendChild(ic);
                 row.appendChild(left);
                 row.appendChild(right);
                 row.addEventListener('click', async () => {
@@ -4579,7 +4584,6 @@ html.light #settings-dialog-panel,
             setStatus('Enter a folder path above, then click Analyze.');
         });
         document.getElementById('welcome-new-window-tile')?.addEventListener('click', launchNewLogicLensWindow);
-        document.getElementById('welcome-parallel-cta')?.addEventListener('click', launchNewLogicLensWindow);
         document.getElementById('welcome-link-settings')?.addEventListener('click', openSettingsModal);
 
         setWelcomeVisible(true);
@@ -7177,7 +7181,7 @@ html.light #settings-dialog-panel,
         const themeSelectDark = document.getElementById('theme-select-dark');
         const themeSelectLight = document.getElementById('theme-select-light');
 
-        function applyTheme(themeName) {
+        function applyTheme(themeName, persist = true) {
             const isDark = themeName === 'dark';
             if (isDark) {
                 document.documentElement.classList.add('dark');
@@ -7187,6 +7191,12 @@ html.light #settings-dialog-panel,
                 document.documentElement.classList.add('light');
             }
             localStorage.setItem('logiclens_theme', themeName);
+            if (persist) {
+                fetch('/api/user/prefs/theme', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ theme: themeName }),
+                }).catch(() => { });
+            }
 
             const iconEl = document.getElementById('theme-toggle-icon');
             if (iconEl) iconEl.textContent = isDark ? 'light_mode' : 'dark_mode';
@@ -7216,7 +7226,7 @@ html.light #settings-dialog-panel,
         }
 
         const initialTheme = localStorage.getItem('logiclens_theme') || 'dark';
-        applyTheme(initialTheme);
+        applyTheme(initialTheme, false);
 
         themeToggleBtn?.addEventListener('click', () => {
             const cur = localStorage.getItem('logiclens_theme') || 'dark';
