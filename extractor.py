@@ -18,6 +18,7 @@ from logiclens.config import (
     load_app_env,
     normalize_project_file_path,
 )
+from logiclens.crossfile import extract_imports, resolve_cross_file
 from logiclens.scan_ignore import (
     CANDIDATE_SOURCE_EXTENSIONS,
     extract_embedded_script,
@@ -188,7 +189,7 @@ def _graph_store() -> SqliteGraphStore:
     return SqliteGraphStore(graph_db_path())
 
 
-ANALYSIS_MANIFEST_VERSION = 2
+ANALYSIS_MANIFEST_VERSION = 4
 
 
 def _chroma_entity_id(norm_path: str, kind: str, name: str) -> str:
@@ -481,6 +482,7 @@ def extract_entities_from_file(file_path, chroma_collection):
             'name':   name,
             'line':   start_line,
             'calls':  list(set(calls)),
+            'member_calls': sorted(set(re.findall(r'\.(\w+)\s*\(', raw_code))),
             'author': author,
             'vulnerabilities': vulns,
             'parent_class': parent_class_name,
@@ -491,7 +493,8 @@ def extract_entities_from_file(file_path, chroma_collection):
     return {
         'file_path': file_path,
         'classes': classes,
-        'functions': functions
+        'functions': functions,
+        'imports': extract_imports(code, ext),
     }
 
 
@@ -680,6 +683,12 @@ def analyze_project(directory_path):
 
     if incremental:
         store.prune_orphan_api_routes()
+
+    try:
+        xf = resolve_cross_file(store)
+        print(f"[Graph] Cross-file links: {xf['imports']} import edge(s), {xf['calls']} call edge(s).")
+    except Exception as exc:
+        print(f"[Graph] Cross-file resolution failed (graph still usable): {exc}")
 
     for nk in file_keys:
         updated_manifest[nk] = _file_fingerprint(key_to_fp[nk])

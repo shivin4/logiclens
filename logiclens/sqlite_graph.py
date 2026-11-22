@@ -53,6 +53,11 @@ class SqliteGraphStore:
                 CREATE INDEX IF NOT EXISTS idx_edges_src ON edges(src);
                 CREATE INDEX IF NOT EXISTS idx_edges_dst ON edges(dst);
                 CREATE INDEX IF NOT EXISTS idx_nodes_label ON nodes(label);
+                CREATE TABLE IF NOT EXISTS file_meta (
+                    file TEXT PRIMARY KEY,
+                    imports TEXT,
+                    calls TEXT
+                );
                 """
             )
 
@@ -60,6 +65,54 @@ class SqliteGraphStore:
         with self._connect() as conn:
             conn.execute("DELETE FROM edges")
             conn.execute("DELETE FROM nodes")
+            conn.execute("DELETE FROM file_meta")
+
+    # --- cross-file metadata (imports + unresolved calls) ---
+
+    def save_file_meta(self, norm_path: str, imports: list, calls: dict, members: dict | None = None) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                "INSERT OR REPLACE INTO file_meta (file, imports, calls) VALUES (?, ?, ?)",
+                (norm_path, json.dumps(imports), json.dumps({"c": calls, "m": members or {}})),
+            )
+
+    def load_file_meta(self) -> dict[str, dict[str, Any]]:
+        out: dict[str, dict[str, Any]] = {}
+        with self._connect() as conn:
+            for r in conn.execute("SELECT file, imports, calls FROM file_meta"):
+                try:
+                    raw = json.loads(r["calls"] or "{}")
+                    out[r["file"]] = {
+                        "imports": json.loads(r["imports"] or "[]"),
+                        "calls": raw.get("c", {}),
+                        "members": raw.get("m", {}),
+                    }
+                except json.JSONDecodeError:
+                    out[r["file"]] = {"imports": [], "calls": {}}
+        return out
+
+    def iter_symbol_nodes(self) -> list[dict[str, Any]]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT id, name, file FROM nodes WHERE label IN ('Function','Class') "
+                "AND name IS NOT NULL AND file IS NOT NULL"
+            ).fetchall()
+        return [{"id": r["id"], "name": r["name"], "file": r["file"]} for r in rows]
+
+    def clear_derived_edges(self) -> None:
+        """Drop IMPORTS edges and CALLS edges that cross file boundaries (rebuilt each analysis)."""
+        with self._connect() as conn:
+            conn.execute("DELETE FROM edges WHERE rel_type = 'IMPORTS'")
+            conn.execute(
+                """
+                DELETE FROM edges WHERE rel_type = 'CALLS' AND id IN (
+                    SELECT e.id FROM edges e
+                    JOIN nodes a ON a.id = e.src
+                    JOIN nodes b ON b.id = e.dst
+                    WHERE a.file IS NOT b.file
+                )
+                """
+            )
 
     def delete_file_subgraph(self, norm_path: str) -> int:
         """
@@ -71,6 +124,7 @@ class SqliteGraphStore:
                 "SELECT id FROM nodes WHERE file = ?", (norm_path,)
             ).fetchall()
             ids = [r["id"] for r in rows]
+            conn.execute("DELETE FROM file_meta WHERE file = ?", (norm_path,))
             if not ids:
                 return 0
             placeholders = ",".join("?" * len(ids))
@@ -179,32 +233,13 @@ class SqliteGraphStore:
         nodes: dict[str, dict[str, Any]] = {}
         edges: list[dict[str, str]] = []
         with self._connect() as conn:
-            for row in conn.execute(
-                "SELECT src, dst, rel_type FROM edges"
-            ):
-                for nid in (row["src"], row["dst"]):
-                    if nid not in nodes:
-                        n = conn.execute(
-                            "SELECT * FROM nodes WHERE id = ?", (nid,)
-                        ).fetchone()
-                        if n:
-                            nodes[nid] = self.row_to_node(n)
-                edges.append(
-                    {
-                        "from": row["src"],
-                        "to": row["dst"],
-                        "label": row["rel_type"],
-                    }
-                )
-            for row in conn.execute(
-                """
-                SELECT n.* FROM nodes n
-                WHERE NOT EXISTS (SELECT 1 FROM edges e WHERE e.src = n.id OR e.dst = n.id)
-                """
-            ):
-                nid = row["id"]
-                if nid not in nodes:
-                    nodes[nid] = self.row_to_node(row)
+            for row in conn.execute("SELECT * FROM nodes"):
+                nodes[row["id"]] = self.row_to_node(row)
+            for row in conn.execute("SELECT src, dst, rel_type FROM edges"):
+                if row["src"] in nodes and row["dst"] in nodes:
+                    edges.append(
+                        {"from": row["src"], "to": row["dst"], "label": row["rel_type"]}
+                    )
         return nodes, edges
 
     def trace_calls(self, node_id: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
@@ -292,6 +327,7 @@ def apply_entities_to_store(store: SqliteGraphStore, entities: dict[str, Any], f
         store.add_edge(fid, cid, "CONTAINS")
 
     defined_names = {f["name"] for f in functions}
+    class_names = {c["name"] for c in classes} - defined_names
     for func in functions:
         fnid = store.function_id(norm_path, func["name"])
         store.upsert_node(
@@ -316,6 +352,16 @@ def apply_entities_to_store(store: SqliteGraphStore, entities: dict[str, Any], f
             if callee in defined_names:
                 callee_id = store.function_id(norm_path, callee)
                 store.add_edge(caller_id, callee_id, "CALLS")
+            elif callee in class_names:
+                # Constructor call / instantiation of a class defined in the same file.
+                store.add_edge(caller_id, store.class_id(norm_path, callee), "CALLS")
+
+    store.save_file_meta(
+        norm_path,
+        entities.get("imports", []),
+        {f["name"]: list(f.get("calls", [])) for f in functions},
+        {f["name"]: list(f.get("member_calls", [])) for f in functions},
+    )
 
     for func in functions:
         fnid = store.function_id(norm_path, func["name"])
