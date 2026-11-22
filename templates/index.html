@@ -760,6 +760,73 @@ html.light #settings-dialog-panel,
             border: 0;
         }
 
+        /* Impact analysis panel */
+        #impact-panel { --wi-fg:#e2e8f0; --wi-dim:#94a3b8; --wi-bg:#0b1326; --wi-card:#111a2e; --wi-line:rgba(148,163,184,.2); --wi-accent:#38bdf8; --wi-pop:#0f172a; }
+        html.light #impact-panel { --wi-fg:#0f172a; --wi-dim:#64748b; --wi-bg:#ffffff; --wi-card:#f8fafc; --wi-line:#cbd5e1; --wi-accent:#0284c7; --wi-pop:#ffffff; }
+        .wi-picker { padding: 16px; display:flex; flex-direction:column; gap:10px; border-bottom:1px solid var(--wi-line); background: var(--wi-bg); }
+        .wi-label { font-size:10px; letter-spacing:.1em; text-transform:uppercase; font-weight:700; color: var(--wi-dim); }
+        .wi-combo { position:relative; }
+        .wi-combo input { width:100%; background: var(--wi-card); color: var(--wi-fg); border:1px solid var(--wi-line); border-radius:10px; padding:10px 34px 10px 36px; font-size:13px; outline:none; font-family: Inter, sans-serif; transition: border-color .15s, box-shadow .15s; }
+        .wi-combo input::placeholder { color: var(--wi-dim); opacity:.8; }
+        .wi-combo input:focus { border-color: var(--wi-accent); box-shadow: 0 0 0 3px rgba(56,189,248,.15); }
+        .wi-combo-icon { position:absolute; left:10px; top:50%; transform:translateY(-50%); font-size:18px; color: var(--wi-dim); pointer-events:none; }
+        .wi-clear { position:absolute; right:6px; top:50%; transform:translateY(-50%); width:24px; height:24px; display:inline-flex; align-items:center; justify-content:center; border-radius:6px; color: var(--wi-dim); }
+        .wi-clear:hover { background: rgba(148,163,184,.18); color: var(--wi-fg); }
+        .wi-list { position:absolute; z-index:30; left:0; right:0; top:calc(100% + 6px); max-height:320px; overflow-y:auto; background: var(--wi-pop); border:1px solid var(--wi-line); border-radius:12px; box-shadow:0 18px 40px rgba(0,0,0,.35); padding:4px; }
+        .wi-sec { font-size:10px; letter-spacing:.08em; text-transform:uppercase; font-weight:700; color: var(--wi-dim); padding:8px 10px 4px; }
+        .wi-opt { display:flex; align-items:center; gap:10px; padding:7px 10px; border-radius:8px; cursor:pointer; color: var(--wi-fg); }
+        .wi-opt .material-symbols-outlined { font-size:17px; color: var(--wi-dim); flex:0 0 auto; }
+        .wi-opt.on, .wi-opt:hover { background: rgba(56,189,248,.13); }
+        .wi-opt-main { min-width:0; flex:1; }
+        .wi-opt-name { font-family:'JetBrains Mono', monospace; font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .wi-opt-name mark { background: rgba(250,204,21,.28); color: inherit; border-radius:3px; padding:0 1px; }
+        .wi-opt-sub { font-size:11px; color: var(--wi-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .wi-opt-meta { font-size:10.5px; color: var(--wi-dim); flex:0 0 auto; }
+        .wi-none, .wi-more { padding:10px; font-size:12px; color: var(--wi-dim); }
+        .wi-selected { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:10px; background: rgba(56,189,248,.08); border:1px solid rgba(56,189,248,.28); font-size:12px; color: var(--wi-fg); }
+        .wi-selected .wi-sel-main { min-width:0; flex:1; }
+        .wi-selected .wi-sel-name { font-family:'JetBrains Mono', monospace; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .wi-selected .wi-sel-sub { color: var(--wi-dim); font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .wi-selected button { font-size:11px; font-weight:600; color: var(--wi-accent); display:inline-flex; align-items:center; gap:3px; padding:4px 8px; border-radius:6px; }
+        .wi-selected button:hover { background: rgba(56,189,248,.15); }
+        .wi-run { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:10px 14px; border-radius:10px; font-size:13px; font-weight:700; color:#fff; background: linear-gradient(135deg,#0284c7,#38bdf8); box-shadow:0 6px 16px rgba(2,132,199,.28); transition: opacity .15s, transform .1s; }
+        .wi-run:hover:not(:disabled) { opacity:.92; }
+        .wi-run:active:not(:disabled) { transform: translateY(1px); }
+        .wi-run:disabled { opacity:.45; cursor:not-allowed; box-shadow:none; background: linear-gradient(135deg,#475569,#64748b); }
+        .wi-hint { font-size:11px; line-height:1.45; color: var(--wi-dim); margin:0; }
+        .wi-segbar { display:flex; gap:4px; padding:8px 12px; background: var(--wi-bg); border-bottom:1px solid var(--wi-line); }
+        .wi-seg { display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:600; color: var(--wi-dim); transition: background .15s, color .15s; }
+        .wi-seg:hover { background: rgba(148,163,184,.12); color: var(--wi-fg); }
+        .wi-seg.active { background: rgba(56,189,248,.15); color: var(--wi-accent); }
+        .wi-repbar { position:sticky; top:0; z-index:5; padding:14px 16px 12px; background: var(--wi-bg); border-bottom:1px solid var(--wi-line); display:flex; flex-direction:column; gap:10px; }
+        .wi-repbar-top { display:flex; align-items:flex-start; gap:10px; }
+        .wi-rep-kicker { font-size:10px; letter-spacing:.1em; text-transform:uppercase; font-weight:700; color: var(--wi-dim); }
+        .wi-rep-fn { font-family:'JetBrains Mono', monospace; font-size:16px; font-weight:700; color: var(--wi-fg); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .wi-rep-time { font-size:11px; color: var(--wi-dim); margin-top:1px; }
+        .wi-actions { display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+        .wi-act { display:inline-flex; align-items:center; gap:5px; padding:5px 10px; border-radius:8px; font-size:11.5px; font-weight:600; color: var(--wi-fg); background: var(--wi-card); border:1px solid var(--wi-line); transition: border-color .15s, color .15s; }
+        .wi-act:hover { border-color: var(--wi-accent); color: var(--wi-accent); }
+        .wi-flash { font-size:11px; color:#4ade80; margin-left:4px; }
+        .wi-risk { display:inline-flex; align-items:center; gap:5px; padding:3px 10px; border-radius:999px; font-size:11px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; white-space:nowrap; }
+        .wi-risk-critical { color:#fecaca; background:rgba(239,68,68,.22); border:1px solid rgba(239,68,68,.55); }
+        .wi-risk-high { color:#fed7aa; background:rgba(249,115,22,.2); border:1px solid rgba(249,115,22,.5); }
+        .wi-risk-medium { color:#fef08a; background:rgba(234,179,8,.18); border:1px solid rgba(234,179,8,.45); }
+        .wi-risk-low { color:#bbf7d0; background:rgba(34,197,94,.18); border:1px solid rgba(34,197,94,.45); }
+        html.light .wi-risk-critical { color:#b91c1c; } html.light .wi-risk-high { color:#c2410c; }
+        html.light .wi-risk-medium { color:#a16207; } html.light .wi-risk-low { color:#15803d; }
+        .wi-empty { margin:auto; padding:32px 28px; text-align:center; color: var(--wi-dim); font-size:12.5px; line-height:1.55; max-width:320px; }
+        .wi-empty .material-symbols-outlined { font-size:38px; opacity:.5; display:block; margin:0 auto 8px; }
+        .wi-doc { padding:6px 16px 28px; }
+        .wi-doc h1 { display:none; }
+        .wi-doc h2 { margin-top:1.4rem; }
+        .wi-doc code { word-break: break-word; }
+        .wi-doc .wi-tablewrap { overflow-x:auto; margin:.6rem 0; border:1px solid var(--wi-line); border-radius:10px; }
+        .wi-doc .wi-tablewrap table { margin:0; min-width:420px; }
+        .wi-doc .wi-tablewrap th:first-child, .wi-doc .wi-tablewrap td:first-child { border-left:0; }
+        .wi-doc .wi-tablewrap tr:last-child td { border-bottom:0; }
+        .wi-doc ul { padding-left:1.1rem; list-style:disc; }
+        .wi-doc li { margin:.2rem 0; }
+
         /* Right-hand panels: shared, user-resizable width */
         .rpanel { width: var(--rpanel-w, 420px) !important; max-width: 92vw; }
         html.rp-collapsed .rpanel { transform: translateX(100%) !important; }
@@ -2396,27 +2463,28 @@ html.light #settings-dialog-panel,
                     </button>
                 </div>
 
-                <div class="p-4 bg-surface-container-lowest border-b border-outline-variant/10 flex flex-col gap-3 shrink-0">
-                    <div class="flex flex-col gap-1.5 w-full">
-                        <label for="wi-func-filter" class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Search functions</label>
-                        <input type="search" id="wi-func-filter" autocomplete="off" placeholder="Type to filter the list…"
-                            class="w-full bg-[#1a2333] border border-slate-600/50 rounded-lg text-slate-200 text-sm font-mono focus:ring-0 px-3 py-2 outline-none placeholder:text-slate-600" />
+                <div id="wi-picker" class="wi-picker shrink-0">
+                    <label for="wi-func-filter" class="wi-label">Function to analyze</label>
+                    <div class="wi-combo" id="wi-combo">
+                        <span class="material-symbols-outlined wi-combo-icon">search</span>
+                        <input type="text" id="wi-func-filter" role="combobox" aria-expanded="false" aria-controls="wi-list" aria-autocomplete="list"
+                            autocomplete="off" spellcheck="false" placeholder="Search by function or file name" />
+                        <button type="button" id="wi-clear" class="wi-clear" title="Clear" style="display:none"><span class="material-symbols-outlined text-[16px]">close</span></button>
+                        <div id="wi-list" class="wi-list" role="listbox" style="display:none"></div>
                     </div>
-                    <div class="flex items-center gap-2 w-full">
-                        <select id="wi-func-select" class="flex-1 bg-[#1a2333] border border-slate-600/50 rounded-lg text-slate-200 text-sm font-mono focus:ring-0 px-3 py-2 outline-none min-w-0">
-                            <option value="">— pick a function —</option>
-                        </select>
-                        <button id="wi-run-btn" class="bg-gradient-to-r from-[#0284c7] to-[#38bdf8] text-white font-bold text-sm rounded-md px-4 py-2 shadow-lg hover:opacity-90 flex gap-2 items-center transition-all">
-                            <div class="spinner border-t-white hidden" id="wi-spinner" style="width:14px;height:14px;"></div>
-                            <span id="wi-btn-text">Analyze Impact</span>
-                        </button>
-                    </div>
+                    <div id="wi-selected" class="wi-selected" style="display:none"></div>
+                    <button id="wi-run-btn" class="wi-run" disabled>
+                        <div class="spinner border-t-white hidden" id="wi-spinner" style="width:14px;height:14px;"></div>
+                        <span class="material-symbols-outlined text-[18px]" id="wi-run-icon">crisis_alert</span>
+                        <span id="wi-btn-text">Analyze impact</span>
+                    </button>
+                    <p class="wi-hint">Finds what could break if this function changes: who calls it, which files are affected, and an overall risk rating.</p>
                 </div>
 
                 <!-- Tabs -->
-                <div class="flex gap-1 border-b border-outline-variant/15 px-4 pt-2 bg-surface-container-lowest shrink-0">
-                    <button class="wi-tab text-xs font-bold px-4 py-2 border-b-2 border-transparent text-on-surface-variant transition-colors" data-pane="steps">Agent Steps</button>
-                    <button class="wi-tab text-xs font-bold px-4 py-2 border-b-2 border-[#38bdf8] text-[#38bdf8] active transition-colors" data-pane="report">Blast Report</button>
+                <div class="wi-segbar shrink-0">
+                    <button class="wi-seg active" data-pane="report"><span class="material-symbols-outlined text-[16px]">summarize</span>Report</button>
+                    <button class="wi-seg" data-pane="steps"><span class="material-symbols-outlined text-[16px]">account_tree</span>Agent steps</button>
                 </div>
 
                 <div class="flex-1 overflow-hidden flex flex-col relative">
@@ -2428,10 +2496,25 @@ html.light #settings-dialog-panel,
                         </div>
                     </div>
                     <!-- Report Pane -->
-                    <div class="wi-pane flex-1 overflow-y-auto p-4 active flex flex-col" id="wi-report-pane">
-                        <div id="wi-report-content" class="text-sm text-on-surface-variant leading-relaxed prose prose-invert prose-sm max-w-none">
-                            The report will appear here.
+                    <div class="wi-pane flex-1 overflow-y-auto active flex flex-col" id="wi-report-pane">
+                        <div id="wi-rep-bar" class="wi-repbar" style="display:none">
+                            <div class="wi-repbar-top">
+                                <div class="min-w-0 flex-1">
+                                    <div class="wi-rep-kicker">Impact report</div>
+                                    <div id="wi-rep-fn" class="wi-rep-fn"></div>
+                                    <div id="wi-rep-time" class="wi-rep-time"></div>
+                                </div>
+                                <span id="wi-rep-risk"></span>
+                            </div>
+                            <div class="wi-actions">
+                                <button type="button" id="wi-copy" class="wi-act"><span class="material-symbols-outlined text-[16px]">content_copy</span>Copy</button>
+                                <button type="button" id="wi-save-md" class="wi-act"><span class="material-symbols-outlined text-[16px]">download</span>Save .md</button>
+                                <button type="button" id="wi-save-html" class="wi-act"><span class="material-symbols-outlined text-[16px]">html</span>Save .html</button>
+                                <span id="wi-flash" class="wi-flash"></span>
+                            </div>
                         </div>
+                        <div id="wi-empty" class="wi-empty"></div>
+                        <div id="wi-report-content" class="wi-doc" style="display:none"></div>
                     </div>
                 </div>
             </aside>
@@ -4726,7 +4809,7 @@ html.light #settings-dialog-panel,
         // ── Analyze Action ────────────────────────────────────────────────────────
         async function runAnalyze(opts = {}) {
             const path = (opts.path != null ? opts.path : pathInput.value).trim();
-            if (!path) { setStatus('⚠ Enter a folder path or GitHub URL.'); return; }
+            if (!path) { setStatus('Enter a folder path or GitHub URL.'); return; }
 
             setLoading(true);
             setStatus(isGithubUrl(path) ? 'Fetching repo from GitHub…' : 'Digging through logic layers…');
@@ -4759,7 +4842,7 @@ html.light #settings-dialog-panel,
 
                 if (data.skipped_unchanged) {
                     setStatus(
-                        `⚡ Reused cached graph — ${data.functions} functions · ${data.files} files unchanged`
+                        `Reused cached graph — ${data.functions} functions · ${data.files} files unchanged`
                     );
                 } else {
                     setStatus(`Loading logic graph for ${data.files} files…`);
@@ -4775,7 +4858,7 @@ html.light #settings-dialog-panel,
                 if (!isGithubUrl(path)) await addRecentFolder(path);
 
             } catch (e) {
-                setStatus(` ${e.message}`);
+                setStatus(e.message || 'Analysis failed.');
                 setWelcomeVisible(true);
                 await fetchRecentFoldersFromServer();
                 renderWelcomeRecents();
@@ -5200,9 +5283,9 @@ html.light #settings-dialog-panel,
             const nFiles = globalRawNodes.filter(n => n.type === 'File').length;
             const nFns = globalRawNodes.filter(n => n.type === 'Function').length;
             let msg;
-            if (viewMode === 'files') msg = `🗂 ${v.nodes.length} files · ${v.edges.length} file links`;
-            else if (viewMode === 'file') msg = `📄 ${basename(viewFile)} · ${v.coreCount} functions/classes · ${v.extCount} linked from other files`;
-            else msg = `🔭 ${v.nodes.length} nodes · ${v.edges.length} links (${nFns} functions in ${nFiles} files)`;
+            if (viewMode === 'files') msg = `${v.nodes.length} files · ${v.edges.length} file links`;
+            else if (viewMode === 'file') msg = `${basename(viewFile)} · ${v.coreCount} functions/classes · ${v.extCount} linked from other files`;
+            else msg = `${v.nodes.length} nodes · ${v.edges.length} links (${nFns} functions in ${nFiles} files)`;
             setStatus(v.fallback ? `${v.fallback} ${msg}` : msg);
         }
 
@@ -5780,6 +5863,7 @@ html.light #settings-dialog-panel,
 
             closeImpactPanel(false);
             closeGitPanel(false);
+            resetNavToExplorer();
             sidePanel.classList.remove('translate-x-full');
             sidePanel.classList.add('translate-x-0');
         }
@@ -6102,6 +6186,18 @@ html.light #settings-dialog-panel,
             openSidebarPanel(activeSidebarId);
         }
 
+        /** After an Impact / Source Control panel is dismissed, the sidebar goes back to Explorer. */
+        function resetNavToExplorer() {
+            if (activeSidebarId !== 'nav-impact' && activeSidebarId !== 'nav-source') return;
+            activeSidebarId = 'nav-explorer';
+            applyNavItemStyles('nav-explorer');
+            if (isSidebarExpanded) {
+                document.getElementById('explorer-content')?.classList.add('is-open');
+                const chev = document.getElementById('explorer-chevron');
+                if (chev) chev.style.transform = 'rotate(180deg)';
+            }
+        }
+
         function setActiveNav(activeId) {
             if (activeSidebarId === activeId) {
                 // Re-click never collapses the sidebar (that is what the dedicated button is for).
@@ -6199,15 +6295,8 @@ html.light #settings-dialog-panel,
             closeSourcePanel(false);
             impactPanel.classList.remove('hidden');
             setTimeout(() => impactPanel.classList.remove('translate-x-full'), 20);
-            if (pickedNode && pickedNode.label) {
-                const wiSelect = document.getElementById('wi-func-select');
-                for (let i = 0; i < wiSelect.options.length; i++) {
-                    if (wiSelect.options[i].value === pickedNode.label) {
-                        wiSelect.selectedIndex = i;
-                        break;
-                    }
-                }
-            }
+            if (pickedNode && pickedNode.label && typeof wiPickNode === 'function') wiPickNode(pickedNode);
+            else setTimeout(() => document.getElementById('wi-func-filter')?.focus(), 350);
         }
 
         function openGitPanel() {
@@ -6462,7 +6551,6 @@ html.light #settings-dialog-panel,
         // ── Impact Analysis (What-If) Logic ──
         const impactPanel = document.getElementById('impact-panel');
         const closeImpactBtn = document.getElementById('close-impact-panel');
-        const wiFuncSelect = document.getElementById('wi-func-select');
         const wiRunBtn = document.getElementById('wi-run-btn');
         const wiSpinner = document.getElementById('wi-spinner');
         const wiBtnText = document.getElementById('wi-btn-text');
@@ -6471,63 +6559,311 @@ html.light #settings-dialog-panel,
         const wiThinking = document.getElementById('wi-thinking');
         const wiReportContent = document.getElementById('wi-report-content');
         const wiFuncFilter = document.getElementById('wi-func-filter');
+        const wiList = document.getElementById('wi-list');
+        const wiClear = document.getElementById('wi-clear');
+        const wiSelectedBox = document.getElementById('wi-selected');
+        const wiEmpty = document.getElementById('wi-empty');
+        const wiRepBar = document.getElementById('wi-rep-bar');
         let wiAllFunctionNames = [];
+        let wiSelected = null, wiItems = [], wiActive = -1, wiCurrent = null;
+        const WI_HIST_KEY = 'll_wi_history_v1';
+        const wiProj = () => (document.getElementById('path-input')?.value || '').trim();
+        const wiEsc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-        function repopulateWiFunctionSelect() {
-            const q = (wiFuncFilter && wiFuncFilter.value) ? wiFuncFilter.value.trim().toLowerCase() : '';
-            const prev = wiFuncSelect.value;
-            wiFuncSelect.innerHTML = '<option value="">— pick a function —</option>';
-            wiAllFunctionNames
-                .filter((name) => !q || name.toLowerCase().includes(q))
-                .forEach((fn) => {
-                    const opt = document.createElement('option');
-                    opt.value = fn;
-                    opt.textContent = fn;
-                    wiFuncSelect.appendChild(opt);
-                });
-            if (prev && [...wiFuncSelect.options].some((o) => o.value === prev)) {
-                wiFuncSelect.value = prev;
-            }
+        function wiHistory() { try { return JSON.parse(localStorage.getItem(WI_HIST_KEY) || '[]'); } catch (e) { return []; } }
+        function wiSaveHistory(entry) {
+            try {
+                const h = wiHistory().filter(x => !(x.fn === entry.fn && x.proj === entry.proj));
+                h.unshift(entry);
+                localStorage.setItem(WI_HIST_KEY, JSON.stringify(h.slice(0, 15)));
+            } catch (e) { /* storage full or blocked: history is a convenience only */ }
         }
 
-        // Tab switching
-        document.querySelectorAll('.wi-tab').forEach(tab => {
-            tab.addEventListener('click', () => {
-                const isLight = document.documentElement.classList.contains('light');
-                document.querySelectorAll('.wi-tab').forEach(t => {
-                    t.classList.remove('border-[#38bdf8]', 'text-[#38bdf8]', 'border-[#0284c7]', 'text-[#0284c7]', 'active');
-                    t.classList.add('border-transparent');
+        function wiCandidates() {
+            const callers = new Map();
+            (globalRawEdges || []).forEach(e => { if (e.label === 'CALLS') callers.set(e.to, (callers.get(e.to) || 0) + 1); });
+            if (globalRawNodes && globalRawNodes.length) {
+                const seen = new Set(), out = [];
+                globalRawNodes.forEach(n => {
+                    if (n.type !== 'Function') return;
+                    const k = n.label + '|' + n.file;
+                    if (seen.has(k)) return;
+                    seen.add(k);
+                    out.push({ name: n.label, file: n.file ? basename(n.file) : '', path: n.file || '', line: n.line || 0, callers: callers.get(n.id) || 0, id: n.id });
                 });
-                const colorCls = isLight ? 'text-[#0284c7]' : 'text-[#38bdf8]';
-                const borderCls = isLight ? 'border-[#0284c7]' : 'border-[#38bdf8]';
-                tab.classList.add(colorCls, borderCls, 'active');
-                tab.classList.remove('border-transparent');
-                
+                return out;
+            }
+            return wiAllFunctionNames.map(nm => ({ name: nm, file: '', path: '', line: 0, callers: 0 }));
+        }
+
+        function wiScore(it, tokens) {
+            const name = it.name.toLowerCase(), file = it.file.toLowerCase();
+            let total = 0;
+            for (const t of tokens) {
+                let sc = 0;
+                if (name === t) sc = 100;
+                else if (name.startsWith(t)) sc = 80;
+                else if (new RegExp('(^|[_\\W])' + t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).test(name)) sc = 62;
+                else if (name.includes(t)) sc = 50;
+                else if (file.includes(t)) sc = 22;
+                else {
+                    let i = 0; for (const ch of name) { if (ch === t[i]) i++; if (i === t.length) break; }
+                    if (i === t.length && t.length > 2) sc = 8;
+                }
+                if (!sc) return 0;
+                total += sc;
+            }
+            return total / tokens.length;
+        }
+
+        function wiMark(name, q) {
+            const t = q.trim().split(/\s+/)[0];
+            if (!t) return wiEsc(name);
+            const i = name.toLowerCase().indexOf(t.toLowerCase());
+            if (i < 0) return wiEsc(name);
+            return wiEsc(name.slice(0, i)) + '<mark>' + wiEsc(name.slice(i, i + t.length)) + '</mark>' + wiEsc(name.slice(i + t.length));
+        }
+
+        function wiAgo(ts) {
+            const m = Math.round((Date.now() - ts) / 60000);
+            if (m < 1) return 'just now';
+            if (m < 60) return m + ' min ago';
+            const h = Math.round(m / 60);
+            if (h < 24) return h + ' h ago';
+            return Math.round(h / 24) + ' d ago';
+        }
+
+        function wiRender() {
+            const q = wiFuncFilter.value.trim();
+            const cands = wiCandidates();
+            wiItems = [];
+            let html = '';
+            const row = (it, meta) => {
+                const idx = wiItems.push(it) - 1;
+                const sub = it.file ? `${wiEsc(it.file)}${it.line ? ':' + it.line : ''}` : '';
+                return `<div class="wi-opt" role="option" data-i="${idx}"><span class="material-symbols-outlined">function</span>
+                    <div class="wi-opt-main"><div class="wi-opt-name">${wiMark(it.name, q)}</div>${sub ? `<div class="wi-opt-sub">${sub}</div>` : ''}</div>
+                    <span class="wi-opt-meta">${meta}</span></div>`;
+            };
+            if (!q) {
+                const hist = wiHistory().filter(h => h.proj === wiProj()).slice(0, 5);
+                if (hist.length) {
+                    html += '<div class="wi-sec">Recent analyses</div>';
+                    hist.forEach(h => {
+                        const base = cands.find(c => c.name === h.fn) || { name: h.fn, file: '', path: '', line: 0, callers: 0 };
+                        const risk = h.risk ? `<span class="wi-risk wi-risk-${h.risk}" style="padding:1px 7px;font-size:9.5px">${h.risk}</span> ` : '';
+                        html += row({ ...base, hist: h }, risk + wiAgo(h.ts));
+                    });
+                }
+                const shown = new Set(hist.map(h => h.fn));
+                const top = cands.filter(c => !shown.has(c.name) && c.callers > 0).sort((a, b) => b.callers - a.callers || a.name.localeCompare(b.name)).slice(0, 10);
+                if (top.length) {
+                    html += '<div class="wi-sec">Most called functions (largest blast radius)</div>';
+                    top.forEach(c => { html += row(c, `${c.callers} caller${c.callers === 1 ? '' : 's'}`); });
+                }
+                if (!html) html = '<div class="wi-none">Analyze a project first, then search its functions here.</div>';
+            } else {
+                const tokens = q.toLowerCase().split(/\s+/).filter(Boolean);
+                const ranked = cands.map(c => ({ c, s: wiScore(c, tokens) })).filter(x => x.s > 0)
+                    .sort((a, b) => b.s - a.s || b.c.callers - a.c.callers || a.c.name.localeCompare(b.c.name));
+                if (!ranked.length) html = `<div class="wi-none">No function matches “${wiEsc(q)}”.</div>`;
+                else {
+                    ranked.slice(0, 40).forEach(x => { html += row(x.c, `${x.c.callers} caller${x.c.callers === 1 ? '' : 's'}`); });
+                    if (ranked.length > 40) html += `<div class="wi-more">${ranked.length - 40} more — keep typing to narrow down</div>`;
+                }
+            }
+            wiList.innerHTML = html;
+            wiActive = wiItems.length ? 0 : -1;
+            wiPaintActive();
+        }
+
+        function wiPaintActive() {
+            wiList.querySelectorAll('.wi-opt').forEach((el, i) => el.classList.toggle('on', i === wiActive));
+            const el = wiList.querySelector('.wi-opt.on');
+            if (el) el.scrollIntoView({ block: 'nearest' });
+        }
+        function wiOpenList() { wiRender(); wiList.style.display = 'block'; wiFuncFilter.setAttribute('aria-expanded', 'true'); }
+        function wiCloseList() { wiList.style.display = 'none'; wiFuncFilter.setAttribute('aria-expanded', 'false'); }
+
+        function wiUpdateSelected() {
+            if (!wiSelected) { document.querySelector('#wi-picker .wi-hint').style.display = ''; wiSelectedBox.style.display = 'none'; wiRunBtn.disabled = true; wiClear.style.display = wiFuncFilter.value ? '' : 'none'; return; }
+            const it = wiSelected;
+            document.querySelector('#wi-picker .wi-hint').style.display = 'none';
+            const sub = [it.file ? `${it.file}${it.line ? ':' + it.line : ''}` : '', it.callers ? `${it.callers} caller${it.callers === 1 ? '' : 's'}` : ''].filter(Boolean).join(' · ');
+            wiSelectedBox.innerHTML = `<span class="material-symbols-outlined text-[18px]" style="color:var(--wi-accent)">check_circle</span>
+                <div class="wi-sel-main"><div class="wi-sel-name">${wiEsc(it.name)}</div>${sub ? `<div class="wi-sel-sub">${wiEsc(sub)}</div>` : ''}</div>
+                <button type="button" id="wi-locate"><span class="material-symbols-outlined text-[14px]">my_location</span>Locate</button>`;
+            wiSelectedBox.style.display = 'flex';
+            wiRunBtn.disabled = false;
+            wiClear.style.display = '';
+            document.getElementById('wi-locate').addEventListener('click', () => focusGraphOnFunctionName(it.name));
+        }
+
+        function wiPick(it) {
+            wiSelected = it;
+            wiFuncFilter.value = it.name;
+            wiCloseList();
+            wiUpdateSelected();
+            if (it.hist) {
+                renderWiReport(it.name, it.hist.md, { ts: it.hist.ts, cached: true });
+                document.querySelector('.wi-seg[data-pane="report"]').click();
+            }
+        }
+        function wiPickNode(raw) {
+            const match = wiCandidates().find(c => c.id === raw.id) || wiCandidates().find(c => c.name === raw.label);
+            wiPick(match || { name: raw.label, file: raw.file ? basename(raw.file) : '', path: raw.file || '', line: raw.line || 0, callers: 0 });
+        }
+
+        wiFuncFilter.addEventListener('focus', wiOpenList);
+        wiFuncFilter.addEventListener('input', () => {
+            if (wiSelected && wiFuncFilter.value !== wiSelected.name) { wiSelected = null; wiUpdateSelected(); }
+            wiClear.style.display = wiFuncFilter.value ? '' : 'none';
+            wiOpenList();
+        });
+        wiFuncFilter.addEventListener('keydown', (ev) => {
+            const open = wiList.style.display !== 'none';
+            if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
+                ev.preventDefault();
+                if (!open) { wiOpenList(); return; }
+                if (!wiItems.length) return;
+                wiActive = (wiActive + (ev.key === 'ArrowDown' ? 1 : -1) + wiItems.length) % wiItems.length;
+                wiPaintActive();
+            } else if (ev.key === 'Enter') {
+                if (open && wiItems[wiActive]) { ev.preventDefault(); wiPick(wiItems[wiActive]); }
+                else if (wiSelected && !wiRunBtn.disabled) wiRunBtn.click();
+            } else if (ev.key === 'Escape' && open) { ev.stopPropagation(); wiCloseList(); }
+        });
+        wiList.addEventListener('mousedown', (ev) => {
+            const el = ev.target.closest('.wi-opt');
+            if (!el) return;
+            ev.preventDefault();
+            wiPick(wiItems[Number(el.dataset.i)]);
+        });
+        wiClear.addEventListener('click', () => {
+            wiFuncFilter.value = ''; wiSelected = null; wiUpdateSelected(); wiFuncFilter.focus(); wiOpenList();
+        });
+        document.addEventListener('mousedown', (ev) => {
+            if (!document.getElementById('wi-combo').contains(ev.target)) wiCloseList();
+        });
+
+        // Tab switching
+        document.querySelectorAll('.wi-seg').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.wi-seg').forEach(t => t.classList.toggle('active', t === tab));
                 document.querySelectorAll('.wi-pane').forEach(p => p.classList.add('hidden'));
                 document.getElementById(`wi-${tab.dataset.pane}-pane`).classList.remove('hidden');
             });
         });
 
+        // Report states: empty / loading / report
+        function wiShowReportState(state, text) {
+            wiRepBar.style.display = state === 'report' ? '' : 'none';
+            wiReportContent.style.display = state === 'report' ? '' : 'none';
+            wiEmpty.style.display = state === 'report' ? 'none' : '';
+            if (state === 'empty') wiEmpty.innerHTML = '<span class="material-symbols-outlined">crisis_alert</span>Pick a function above and run the analysis. The report with affected files, callers and a risk rating appears here.';
+            if (state === 'loading') wiEmpty.innerHTML = '<div class="spinner !border-primary/30 !border-t-primary !block" style="margin:0 auto 12px"></div>Analysing. This can take a minute.<br>Switch to <b>Agent steps</b> to follow progress.';
+            if (state === 'error') wiEmpty.innerHTML = '<span class="material-symbols-outlined">error</span>' + wiEsc(text || 'The analysis failed.');
+        }
+        wiShowReportState('empty');
+
+        function wiRiskOf(md) {
+            const m = /risk\s*level[^A-Za-z]{0,14}(critical|high|medium|low)/i.exec(md || '');
+            return m ? m[1].toLowerCase() : '';
+        }
+
+        function renderWiReport(fn, md, opt = {}) {
+            if (!md) { wiShowReportState('error', 'No report text was returned.'); return; }
+            const risk = wiRiskOf(md);
+            const ts = opt.ts || Date.now();
+            wiCurrent = { fn, md, ts, risk };
+            wiReportContent.innerHTML = marked.parse(md);
+            wiReportContent.querySelectorAll('code').forEach(c => { c.textContent = c.textContent.replace(/^`+|`+$/g, ''); });
+            wiReportContent.querySelectorAll('td').forEach(td => {
+                const t = td.textContent.trim().toLowerCase();
+                if (['critical', 'high', 'medium', 'low'].includes(t)) td.innerHTML = `<span class="wi-risk wi-risk-${t}">${t}</span>`;
+            });
+            wiReportContent.querySelectorAll('table').forEach(tb => {
+                const w = document.createElement('div'); w.className = 'wi-tablewrap';
+                tb.parentNode.insertBefore(w, tb); w.appendChild(tb);
+            });
+            document.getElementById('wi-rep-fn').textContent = fn;
+            document.getElementById('wi-rep-fn').title = fn;
+            document.getElementById('wi-rep-time').textContent = (opt.cached ? 'Saved report · ' : '') + new Date(ts).toLocaleString();
+            document.getElementById('wi-rep-risk').innerHTML = risk ? `<span class="wi-risk wi-risk-${risk}">${risk} risk</span>` : '';
+            document.getElementById('wi-flash').textContent = '';
+            wiShowReportState('report');
+            wiReportPane.scrollTop = 0;
+            if (!opt.cached) wiSaveHistory({ fn, ts, md, risk, proj: wiProj() });
+        }
+
+        function wiFlash(msg) {
+            const el = document.getElementById('wi-flash');
+            el.textContent = msg;
+            clearTimeout(wiFlash._t);
+            wiFlash._t = setTimeout(() => { el.textContent = ''; }, 4000);
+        }
+        function wiStamp(ts) {
+            const d = new Date(ts), p = (n) => String(n).padStart(2, '0');
+            return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`;
+        }
+        async function wiSaveFile(name, text, mime) {
+            try {
+                if (window.pywebview?.api?.save_file) {
+                    const p = await window.pywebview.api.save_file(name, text);
+                    wiFlash(p ? 'Saved: ' + p : 'Save cancelled');
+                    return;
+                }
+                const url = URL.createObjectURL(new Blob([text], { type: mime + ';charset=utf-8' }));
+                const a = document.createElement('a');
+                a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 2000);
+                wiFlash('Saved ' + name);
+            } catch (e) { wiFlash('Could not save: ' + ((e && e.message) || e)); }
+        }
+        function wiExportHtml() {
+            const c = wiCurrent;
+            const css = 'body{font:15px/1.6 -apple-system,Segoe UI,Inter,sans-serif;color:#0f172a;max-width:860px;margin:32px auto;padding:0 20px}'
+                + 'h1,h2,h3{line-height:1.25}h2{border-bottom:1px solid #e2e8f0;padding-bottom:.25rem;margin-top:1.8rem}'
+                + 'code{background:#eef2ff;color:#3730a3;padding:.1rem .35rem;border-radius:4px;font-family:Consolas,monospace;font-size:.88em}'
+                + 'table{border-collapse:collapse;width:100%;margin:.8rem 0;font-size:.92em}th,td{border:1px solid #cbd5e1;padding:.45rem .7rem;text-align:left;vertical-align:top}th{background:#f1f5f9}'
+                + '.meta{color:#64748b;font-size:.9em}.risk{display:inline-block;padding:2px 10px;border-radius:999px;font-weight:700;font-size:.8em;text-transform:uppercase;background:#f1f5f9;border:1px solid #cbd5e1}';
+            const body = marked.parse(c.md).replace(/<code>`+([^<]*?)`+<\/code>/g, '<code>$1</code>');
+            return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Impact report: ${wiEsc(c.fn)}</title><style>${css}</style></head><body>`
+                + `<h1>Impact report: <code>${wiEsc(c.fn)}</code></h1><p class="meta">Generated by LogicLens on ${wiEsc(new Date(c.ts).toLocaleString())}`
+                + (c.risk ? ` &middot; <span class="risk">${c.risk} risk</span>` : '') + `</p>${body}</body></html>`;
+        }
+        document.getElementById('wi-copy').addEventListener('click', async () => {
+            if (!wiCurrent) return;
+            try { await navigator.clipboard.writeText(wiCurrent.md); wiFlash('Copied as Markdown'); }
+            catch (e) {
+                const ta = document.createElement('textarea'); ta.value = wiCurrent.md; document.body.appendChild(ta); ta.select();
+                try { document.execCommand('copy'); wiFlash('Copied as Markdown'); } catch (_) { wiFlash('Copy failed'); }
+                ta.remove();
+            }
+        });
+        document.getElementById('wi-save-md').addEventListener('click', () => {
+            if (!wiCurrent) return;
+            wiSaveFile(`impact-${wiCurrent.fn.replace(/[^\w.-]+/g, '_')}-${wiStamp(wiCurrent.ts)}.md`, `# Impact report: ${wiCurrent.fn}\n\n_Generated by LogicLens, ${new Date(wiCurrent.ts).toLocaleString()}_\n\n${wiCurrent.md}\n`, 'text/markdown');
+        });
+        document.getElementById('wi-save-html').addEventListener('click', () => {
+            if (!wiCurrent) return;
+            wiSaveFile(`impact-${wiCurrent.fn.replace(/[^\w.-]+/g, '_')}-${wiStamp(wiCurrent.ts)}.html`, wiExportHtml(), 'text/html');
+        });
 
         // Open/Close impact panel (sidebar uses setActiveNav)
-        closeImpactBtn.addEventListener('click', () => closeImpactPanel(true));
+        closeImpactBtn.addEventListener('click', () => { closeImpactPanel(true); resetNavToExplorer(); });
 
-        // Load functions for dropdown
+        // Fallback function list (used only when no graph is loaded in the page)
         async function loadFunctionsForWhatIf() {
             try {
                 const res = await fetch('/api/functions');
                 const data = await res.json();
                 if (data.functions) {
-                    wiAllFunctionNames = data.functions.slice().sort((a, b) =>
-                        a.localeCompare(b, undefined, { sensitivity: 'base' })
-                    );
-                    repopulateWiFunctionSelect();
+                    wiAllFunctionNames = data.functions.slice().sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
                 }
             } catch (e) {}
         }
         loadFunctionsForWhatIf();
-
-        wiFuncFilter?.addEventListener('input', () => repopulateWiFunctionSelect());
 
         // ── Git Source Control Panel Logic ───────────────────────────────────────
         const gitPanel = document.getElementById('git-panel');
@@ -6551,7 +6887,7 @@ html.light #settings-dialog-panel,
             });
         });
 
-        closeGitBtn.addEventListener('click', () => closeGitPanel(true));
+        closeGitBtn.addEventListener('click', () => { closeGitPanel(true); resetNavToExplorer(); });
 
         async function loadGitSummary() {
             gitLoading.classList.remove('hidden');
@@ -6717,9 +7053,9 @@ html.light #settings-dialog-panel,
         });
 
         const AGENT_MAP = {
-          'Senior Codebase Graph Analyst': {cls:'text-primary', label:'🔍 Investigator — Graph Analyst'},
-          'Source Code Logic Reviewer':    {cls:'text-[#4ade80]', label:'🧬 Semantic Architect — Logic Reviewer'},
-          'Principal Software Architect':  {cls:'text-[#facc15]', label:'📝 Explainer — Principal Architect'},
+          'Senior Codebase Graph Analyst': {cls:'text-primary', label:'Investigator — Graph Analyst'},
+          'Source Code Logic Reviewer':    {cls:'text-[#4ade80]', label:'Semantic Architect — Logic Reviewer'},
+          'Principal Software Architect':  {cls:'text-[#facc15]', label:'Explainer — Principal Architect'},
         };
 
         function escHtml(s) {
@@ -6743,22 +7079,22 @@ html.light #settings-dialog-panel,
         }
 
         wiRunBtn.addEventListener('click', async () => {
-            const fn = wiFuncSelect.value;
-            if (!fn) { alert('Please select a function.'); return; }
+            const fn = wiSelected ? wiSelected.name : '';
+            if (!fn) { wiFuncFilter.focus(); return; }
 
             focusGraphOnFunctionName(fn);
 
             wiRunBtn.disabled = true;
             wiSpinner.classList.remove('hidden');
-            wiBtnText.textContent = 'Running...';
+            wiBtnText.textContent = 'Analysing...';
             
             // Clear previous
             document.querySelectorAll('#wi-steps-pane > div:not(#wi-thinking)').forEach(e => e.remove());
             wiThinking.classList.remove('hidden');
-            wiReportContent.innerHTML = '<span class="text-on-surface-variant italic">Waiting for engine to finish...</span>';
+            wiShowReportState('loading');
             
             // Switch to steps tab
-            document.querySelector('.wi-tab[data-pane="steps"]').click();
+            document.querySelector('.wi-seg[data-pane="steps"]').click();
 
             try {
                 const response = await fetch('/api/whatif', {
@@ -6799,7 +7135,7 @@ html.light #settings-dialog-panel,
                             try {
                                 const msg = JSON.parse(line.substring(6));
                                 if (msg.type === 'start') {
-                                    addStepCard(`Starting What-If analysis for: <code>${fn}</code>`, null, 'text-on-surface-variant');
+                                    addStepCard(`Starting What-If analysis for: \`${fn}\``, null, 'text-on-surface-variant');
                                 } else if (msg.type === 'step') {
                                     const text = msg.text || '';
                                     let agentKey = Object.keys(AGENT_MAP).find(k => text.includes(k));
@@ -6809,14 +7145,14 @@ html.light #settings-dialog-panel,
                                     addStepCard(msg.text, null, 'text-on-surface-variant');
                                 } else if (msg.type === 'done') {
                                     wiThinking.classList.add('hidden');
-                                    addStepCard('Analysis complete — switch to the Blast Report tab.', null, 'text-[#4ade80]');
+                                    addStepCard('Analysis complete. The report is ready.', null, 'text-[#4ade80]');
                                     const md = msg.report || msg.content || '';
-                                    wiReportContent.innerHTML = md ? marked.parse(md) : '<span class="text-on-surface-variant italic">No report text returned.</span>';
-                                    // Switch to report tab
-                                    document.querySelector('.wi-tab[data-pane="report"]').click();
+                                    renderWiReport(fn, md);
+                                    document.querySelector('.wi-seg[data-pane="report"]').click();
                                 } else if (msg.type === 'error') {
                                     wiThinking.classList.add('hidden');
                                     addStepCard('Error: ' + (msg.text || 'Unknown error'), null, 'text-error');
+                                    wiShowReportState('error', msg.text || 'Unknown error');
                                 }
                             } catch(err) {
                                 console.error('JSON parse error on chunk:', err);
@@ -6828,10 +7164,11 @@ html.light #settings-dialog-panel,
                 wiThinking.classList.add('hidden');
                 const detail = (err && err.message) ? err.message : String(err);
                 addStepCard('Request failed: ' + detail, null, 'text-error');
+                wiShowReportState('error', detail);
             } finally {
                 wiRunBtn.disabled = false;
                 wiSpinner.classList.add('hidden');
-                wiBtnText.textContent = 'Analyze Impact';
+                wiBtnText.textContent = 'Analyze impact';
             }
         });
 

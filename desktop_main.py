@@ -82,6 +82,32 @@ class DesktopApi:
             return path
         return None
 
+    def save_file(self, filename: str, content: str) -> str | None:
+        """Native 'Save as' dialog, then write UTF-8 text. Returns the saved path or None if cancelled."""
+        win = webview.active_window()
+        if win is None and webview.windows:
+            win = webview.windows[0]
+        if win is None:
+            return None
+        safe = os.path.basename(str(filename or "report.txt")) or "report.txt"
+        ext = os.path.splitext(safe)[1].lstrip(".").lower()
+        types = (f"{ext.upper()} file (*.{ext})", "All files (*.*)") if ext else ()
+        try:
+            chosen = win.create_file_dialog(
+                webview.SAVE_DIALOG, directory="", save_filename=safe, file_types=types
+            )
+        except Exception:
+            return None
+        if not chosen:
+            return None
+        path = chosen if isinstance(chosen, str) else chosen[0]
+        try:
+            with open(path, "w", encoding="utf-8", newline="") as fh:
+                fh.write(content)
+        except OSError:
+            return None
+        return path
+
     def new_window(self) -> bool:
         _spawn_second_desktop_instance()
         return True
