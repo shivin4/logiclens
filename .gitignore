@@ -28,3 +28,11 @@ _tmp_chroma_smoke/
 # GitHub integration caches and auth tokens
 github_auth.json
 github_cache/
+
+# runtime files and local tooling
+blast_radius_report.md
+user_prefs.json
+analysis_manifest_*.json
+last_graph_project_root.txt
+analyze_history.json
+.claude/

@@ -56,7 +56,7 @@ See **[SIGNING.md](SIGNING.md)** — sign `dist\LogicLens\LogicLens.exe` before 
 ## 4. Ship the installer
 
 - Upload the `.exe` to **GitHub Releases** (or your CDN).
-- Set the download URL on your landing page (`docs/index.html` → `INSTALLER_URL` in the script block).
+- Name the release tag `v<version>`. The website in `docs/` reads the latest release from GitHub, so the download button updates by itself.
 
 ## Search in Windows
 
