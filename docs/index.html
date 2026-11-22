@@ -4,769 +4,539 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>LogicLens 1.1.0 - See your codebase as a graph</title>
+  <title>LogicLens - Know what breaks before you change it</title>
   <meta name="description"
-    content="LogicLens 1.1.0: local-first Windows desktop app for dependency graphs, semantic search, git context, and AI impact analysis. SQLite + ChromaDB - no separate database server." />
-  <meta name="theme-color" content="#05080f" />
+    content="LogicLens turns a project folder into an interactive map of files, functions and calls, then searches it, traces it and checks the impact of a change. Windows desktop app, runs locally." />
+  <meta name="theme-color" content="#fbfaf7" />
+  <meta name="color-scheme" content="light" />
   <link rel="canonical" href="https://shivin4.github.io/logiclens/" />
   <link rel="icon" href="logo.svg" type="image/svg+xml" />
-
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="LogicLens 1.1.0 - Code dependency analyzer" />
+  <meta property="og:title" content="LogicLens - Know what breaks before you change it" />
   <meta property="og:description"
-    content="Interactive dependency graphs, semantic search, and AI-assisted what-if analysis. Local-first on Windows." />
+    content="A local desktop app that maps your code, traces calls and checks the impact of a change." />
   <meta property="og:url" content="https://shivin4.github.io/logiclens/" />
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="LogicLens 1.1.0 - Code dependency analyzer" />
-  <meta name="twitter:description"
-    content="Interactive dependency graphs, semantic search, and AI-assisted what-if analysis. Local-first on Windows." />
-
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
-    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap"
     rel="stylesheet" />
   <style>
     :root {
-      --bg-deep: #05080f;
-      --bg-card: rgba(15, 23, 42, 0.72);
-      --border: rgba(148, 163, 184, 0.12);
-      --text: #e2e8f0;
-      --muted: #94a3b8;
-      --accent: #38bdf8;
-      --accent-dim: rgba(56, 189, 248, 0.15);
-      --glow: rgba(56, 189, 248, 0.35);
-      --radius: 14px;
+      --bg: #fbfaf7;
+      --paper: #ffffff;
+      --ink: #16181d;
+      --muted: #5d6472;
+      --line: #e7e3da;
+      --brand: #4338ca;
+      --brand-soft: #eceafd;
+      --sky: #0ea5e9;
+      --amber: #f59e0b;
+      --green: #16a34a;
+      --red: #dc2626;
+      --radius: 16px;
+      --shadow: 0 1px 2px rgba(22, 24, 29, .05), 0 12px 32px rgba(22, 24, 29, .07);
     }
 
-    * {
-      box-sizing: border-box;
-    }
-
-    html {
-      scroll-behavior: smooth;
-    }
-
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
     body {
-      margin: 0;
-      font-family: "Plus Jakarta Sans", system-ui, sans-serif;
-      background: var(--bg-deep);
-      color: var(--text);
-      line-height: 1.65;
-      overflow-x: hidden;
-    }
-
-    .mesh {
-      position: fixed;
-      inset: 0;
-      z-index: -2;
-      background:
-        radial-gradient(ellipse 90% 60% at 10% -10%, rgba(56, 189, 248, 0.18), transparent 50%),
-        radial-gradient(ellipse 70% 50% at 90% 20%, rgba(99, 102, 241, 0.12), transparent 45%),
-        radial-gradient(ellipse 60% 40% at 50% 100%, rgba(14, 165, 233, 0.08), transparent 50%),
-        var(--bg-deep);
-    }
-
-    .grid-noise {
-      position: fixed;
-      inset: 0;
-      z-index: -1;
-      opacity: 0.04;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-    }
-
-    .wrap {
-      max-width: 1120px;
-      margin: 0 auto;
-      padding: 0 1.5rem;
-    }
-
-    header.nav {
-      position: sticky;
-      top: 0;
-      z-index: 50;
-      border-bottom: 1px solid var(--border);
-      background: rgba(5, 8, 15, 0.75);
-      backdrop-filter: blur(16px);
-    }
-
-    .nav-inner {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      height: 4rem;
-      max-width: 1120px;
-      margin: 0 auto;
-      padding: 0 1.5rem;
-    }
-
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-      font-weight: 800;
-      font-size: 1.1rem;
-      letter-spacing: -0.03em;
-      color: var(--text);
-      text-decoration: none;
-    }
-
-    .brand-mark {
-      width: 2rem;
-      height: 2rem;
-      border-radius: 8px;
-      display: block;
-      object-fit: contain;
-      flex-shrink: 0;
-    }
-
-    .nav-links {
-      display: flex;
-      align-items: center;
-      gap: 1.75rem;
-    }
-
-    .nav-links a {
-      color: var(--muted);
-      text-decoration: none;
-      font-size: 0.9rem;
-      font-weight: 500;
-      transition: color 0.15s;
-    }
-
-    .nav-links a:hover {
-      color: var(--text);
-    }
-
-    @media (max-width: 768px) {
-      .nav-links {
-        display: none;
-      }
-    }
-
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.45rem;
-      padding: 0.65rem 1.25rem;
-      border-radius: 10px;
-      font-family: inherit;
-      font-size: 0.9rem;
-      font-weight: 600;
-      text-decoration: none;
-      border: none;
-      cursor: pointer;
-      transition: transform 0.12s, box-shadow 0.15s, background 0.15s;
-    }
-
-    .btn:active {
-      transform: scale(0.98);
-    }
-
-    .btn-primary {
-      background: linear-gradient(135deg, #0ea5e9, #38bdf8);
-      color: #0f172a;
-      box-shadow: 0 4px 24px var(--glow);
-    }
-
-    .btn-primary:hover {
-      box-shadow: 0 6px 32px var(--glow);
-    }
-
-    .btn-ghost {
-      background: transparent;
-      color: var(--muted);
-      border: 1px solid var(--border);
-    }
-
-    .btn-ghost:hover {
-      color: var(--text);
-      border-color: rgba(148, 163, 184, 0.25);
-    }
-
-    .hero {
-      padding: 4.5rem 0 5rem;
-      text-align: center;
-    }
-
-    .hero-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      padding: 0.35rem 0.85rem;
-      border-radius: 999px;
-      background: var(--accent-dim);
-      border: 1px solid rgba(56, 189, 248, 0.25);
-      color: var(--accent);
-      font-size: 0.75rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      margin-bottom: 1.5rem;
-    }
-
-    .hero h1 {
-      font-size: clamp(2.25rem, 5vw, 3.35rem);
-      font-weight: 800;
-      letter-spacing: -0.04em;
-      line-height: 1.1;
-      margin: 0 0 1.25rem;
-      max-width: 20ch;
-      margin-left: auto;
-      margin-right: auto;
-    }
-
-    .hero h1 span {
-      background: linear-gradient(90deg, #7dd3fc, #a5b4fc);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-    }
-
-    .hero-lead {
-      font-size: 1.125rem;
-      color: var(--muted);
-      max-width: 42rem;
-      margin: 0 auto 2rem;
-    }
-
-    .hero-cta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.75rem;
-      justify-content: center;
-      margin-bottom: 3rem;
-    }
-
-    .hero-meta {
-      font-family: "IBM Plex Mono", monospace;
-      font-size: 0.75rem;
-      color: var(--muted);
-      opacity: 0.85;
-    }
-
-    .preview {
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
-      background: var(--bg-card);
-      backdrop-filter: blur(12px);
-      overflow: hidden;
-      max-width: 900px;
-      margin: 0 auto;
-      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
-    }
-
-    .preview-bar {
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-      padding: 0.65rem 1rem;
-      background: rgba(0, 0, 0, 0.35);
-      border-bottom: 1px solid var(--border);
-    }
-
-    .dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: #475569;
-    }
-
-    .dot:nth-child(1) {
-      background: #f87171;
-    }
-
-    .dot:nth-child(2) {
-      background: #fbbf24;
-    }
-
-    .dot:nth-child(3) {
-      background: #4ade80;
-    }
-
-    .preview-body {
-      padding: 2rem 1.5rem 2.5rem;
-      min-height: 220px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 1rem;
-    }
-
-    .preview-graph {
-      width: 100%;
-      max-width: 420px;
-      height: 120px;
-      position: relative;
-    }
-
-    .preview-graph svg {
-      width: 100%;
-      height: 100%;
-    }
-
-    section.block {
-      padding: 4.5rem 0;
-      border-top: 1px solid var(--border);
-    }
-
-    .block h2 {
-      font-size: 1.75rem;
-      font-weight: 800;
-      letter-spacing: -0.03em;
-      margin: 0 0 0.5rem;
-    }
-
-    .block .sub {
-      color: var(--muted);
-      max-width: 40rem;
-      margin-bottom: 2.5rem;
-    }
-
-    .grid-3 {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 1.25rem;
-    }
-
-    .card {
-      padding: 1.5rem;
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
-      background: rgba(15, 23, 42, 0.5);
-      transition: border-color 0.15s, background 0.15s;
-    }
-
-    .card:hover {
-      border-color: rgba(56, 189, 248, 0.25);
-      background: rgba(15, 23, 42, 0.75);
-    }
-
-    .card h3 {
-      font-size: 1.05rem;
-      font-weight: 700;
-      margin: 0 0 0.5rem;
-    }
-
-    .card p {
-      margin: 0;
-      font-size: 0.9rem;
-      color: var(--muted);
-    }
-
-    .card .icon {
-      width: 2.5rem;
-      height: 2.5rem;
-      border-radius: 10px;
-      background: var(--accent-dim);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.25rem;
-      margin-bottom: 1rem;
-    }
-
-    .whatsnew {
-      border-radius: var(--radius);
-      border: 1px solid rgba(56, 189, 248, 0.2);
-      background: rgba(14, 165, 233, 0.06);
-      padding: 1.75rem 1.5rem;
-      max-width: 40rem;
-    }
-
-    .whatsnew h3 {
-      margin: 0 0 1rem;
-      font-size: 1rem;
-      font-weight: 700;
-      color: var(--accent);
-    }
-
-    .whatsnew ul {
-      margin: 0;
-      padding-left: 1.2rem;
-      color: var(--muted);
-      font-size: 0.9rem;
-    }
-
-    .whatsnew li {
-      margin-bottom: 0.5rem;
-    }
-
-    .whatsnew li:last-child {
-      margin-bottom: 0;
-    }
-
-    .why-list {
-      display: grid;
-      gap: 1rem;
-      max-width: 40rem;
-    }
-
-    .why-item {
-      display: flex;
-      gap: 1rem;
-      align-items: flex-start;
-    }
-
-    .why-item strong {
-      color: var(--accent);
-      font-family: "IBM Plex Mono", monospace;
-      font-size: 0.8rem;
-      flex-shrink: 0;
-      margin-top: 0.2rem;
-    }
-
-    details.doc {
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      margin-bottom: 0.65rem;
-      background: rgba(15, 23, 42, 0.4);
-      overflow: hidden;
-    }
-
-    details.doc summary {
-      padding: 1rem 1.15rem;
-      cursor: pointer;
-      font-weight: 600;
-      list-style: none;
-    }
-
-    details.doc summary::-webkit-details-marker {
-      display: none;
-    }
-
-    details.doc[open] summary {
-      border-bottom: 1px solid var(--border);
-    }
-
-    .doc-body {
-      padding: 1rem 1.15rem 1.25rem;
-      font-size: 0.9rem;
-      color: var(--muted);
-    }
-
-    .doc-body code {
-      font-family: "IBM Plex Mono", monospace;
-      font-size: 0.82rem;
-      background: rgba(0, 0, 0, 0.35);
-      padding: 0.15rem 0.4rem;
-      border-radius: 4px;
-      color: #7dd3fc;
-    }
-
-    .doc-body ul {
-      margin: 0.5rem 0 0;
-      padding-left: 1.2rem;
-    }
-
-    .download-strip {
-      border-radius: var(--radius);
-      border: 1px solid rgba(56, 189, 248, 0.3);
-      background: linear-gradient(135deg, rgba(14, 165, 233, 0.12), rgba(99, 102, 241, 0.08));
-      padding: 2.5rem 2rem;
-      text-align: center;
-    }
-
-    .download-strip h2 {
-      margin: 0 0 0.5rem;
-    }
-
-    .download-strip p {
-      color: var(--muted);
-      margin: 0 0 1.5rem;
-      max-width: 36rem;
-      margin-left: auto;
-      margin-right: auto;
-    }
-
-    .download-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.75rem;
-      justify-content: center;
-      align-items: center;
-    }
-
-    footer {
-      padding: 3rem 1.5rem;
-      text-align: center;
-      color: var(--muted);
-      font-size: 0.85rem;
-      border-top: 1px solid var(--border);
-    }
-
-    footer a {
-      color: var(--accent);
-      text-decoration: none;
-    }
-
-    footer a:hover {
-      text-decoration: underline;
+      margin: 0; background: var(--bg); color: var(--ink);
+      font-family: Inter, system-ui, sans-serif; line-height: 1.65; overflow-x: hidden;
+      background-image: radial-gradient(rgba(22, 24, 29, .07) 1px, transparent 1px);
+      background-size: 26px 26px;
+    }
+    h1, h2, h3 { font-family: "Plus Jakarta Sans", Inter, sans-serif; letter-spacing: -.03em; line-height: 1.12; margin: 0; }
+    a { color: inherit; }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 0 1.5rem; }
+    .mono { font-family: "JetBrains Mono", monospace; }
+
+    /* nav */
+    .nav { position: sticky; top: 0; z-index: 50; background: rgba(251, 250, 247, .86); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); }
+    .nav-in { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+    .brand { display: flex; align-items: center; gap: .6rem; font: 800 1.1rem "Plus Jakarta Sans", sans-serif; letter-spacing: -.03em; text-decoration: none; }
+    .brand img { width: 32px; height: 32px; object-fit: contain; }
+    .links { display: flex; gap: 1.6rem; }
+    .links a { text-decoration: none; font-size: .9rem; color: var(--muted); font-weight: 500; transition: color .15s; }
+    .links a:hover { color: var(--ink); }
+    @media (max-width: 760px) { .links { display: none; } }
+
+    .btn { display: inline-flex; align-items: center; gap: .5rem; padding: .7rem 1.2rem; border-radius: 12px; font: 600 .92rem Inter, sans-serif; text-decoration: none; border: 1px solid transparent; cursor: pointer; transition: transform .15s, box-shadow .15s, background .15s; }
+    .btn-primary { background: var(--brand); color: #fff; box-shadow: 0 6px 16px rgba(67, 56, 202, .28); }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(67, 56, 202, .34); }
+    .btn-ghost { background: var(--paper); border-color: var(--line); color: var(--ink); }
+    .btn-ghost:hover { border-color: var(--brand); color: var(--brand); transform: translateY(-2px); }
+    .btn svg { width: 18px; height: 18px; }
+
+    /* hero */
+    .hero { padding: 4.5rem 0 3rem; display: grid; grid-template-columns: 1fr; gap: 3rem; text-align: center; justify-items: center; }
+    .pill { display: inline-flex; align-items: center; gap: .5rem; padding: .35rem .8rem; border-radius: 999px; background: var(--paper); border: 1px solid var(--line); font-size: .8rem; font-weight: 500; color: var(--muted); box-shadow: 0 1px 2px rgba(0, 0, 0, .04); }
+    .pill i { width: 8px; height: 8px; border-radius: 50%; background: var(--green); position: relative; }
+    .pill i::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid var(--green); opacity: .6; animation: ping 2s ease-out infinite; }
+    @keyframes ping { from { transform: scale(.6); opacity: .7; } to { transform: scale(1.7); opacity: 0; } }
+    .hero h1 { font-size: clamp(2.4rem, 6vw, 4.2rem); font-weight: 800; max-width: 14ch; margin: 1.1rem auto 0; }
+    .hero h1 .u { position: relative; white-space: nowrap; }
+    .hero h1 .u svg { position: absolute; left: 0; bottom: -.18em; width: 100%; height: .35em; overflow: visible; }
+    .hero h1 .u path { stroke: var(--amber); stroke-width: 6; fill: none; stroke-linecap: round; stroke-dasharray: 320; stroke-dashoffset: 320; animation: draw 1s .6s ease-out forwards; }
+    @keyframes draw { to { stroke-dashoffset: 0; } }
+    .lead { max-width: 38rem; margin: 1.2rem auto 0; color: var(--muted); font-size: 1.1rem; }
+    .cta { display: flex; flex-wrap: wrap; gap: .8rem; justify-content: center; margin-top: 1.8rem; }
+    .meta { margin-top: 1rem; font-size: .8rem; color: var(--muted); }
+
+    /* app mock */
+    .stage { position: relative; width: 100%; max-width: 920px; perspective: 1400px; }
+    .win { background: var(--paper); border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 30px 70px rgba(22, 24, 29, .14), 0 2px 6px rgba(22, 24, 29, .06); overflow: hidden; text-align: left; transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform .2s ease-out; }
+    .bar { display: flex; align-items: center; gap: 6px; padding: .6rem .9rem; border-bottom: 1px solid var(--line); background: #f6f4ee; }
+    .bar b { width: 11px; height: 11px; border-radius: 50%; background: #e0dcd0; display: block; }
+    .bar b:nth-child(1) { background: #ff8f84; } .bar b:nth-child(2) { background: #ffd166; } .bar b:nth-child(3) { background: #7bd88f; }
+    .bar span { margin-left: .8rem; font: 500 .72rem "JetBrains Mono", monospace; color: var(--muted); }
+    .app { display: grid; grid-template-columns: 54px 1fr; height: 430px; position: relative; }
+    .rail { background: #f6f4ee; border-right: 1px solid var(--line); display: flex; flex-direction: column; align-items: center; gap: 14px; padding-top: 16px; }
+    .rail i { width: 22px; height: 22px; border-radius: 7px; background: #dcd8cc; display: block; }
+    .rail i:first-child { background: var(--brand); }
+    .canvas { position: relative; background: #fff; background-image: radial-gradient(rgba(22, 24, 29, .08) 1px, transparent 1px); background-size: 20px 20px; }
+    .canvas svg { width: 100%; height: 100%; display: block; }
+    .tabs { position: absolute; top: 12px; left: 12px; display: flex; gap: 4px; padding: 4px; background: rgba(255, 255, 255, .95); border: 1px solid var(--line); border-radius: 11px; box-shadow: var(--shadow); z-index: 3; }
+    .tabs button { font: 600 .74rem Inter, sans-serif; padding: .38rem .8rem; border: 0; border-radius: 8px; background: transparent; color: var(--muted); cursor: pointer; transition: background .15s, color .15s; }
+    .tabs button.on { background: var(--brand-soft); color: var(--brand); }
+    .panel { position: absolute; top: 0; right: 0; bottom: 0; width: 210px; background: rgba(255, 255, 255, .97); border-left: 1px solid var(--line); padding: 1rem; transform: translateX(100%); animation: slide 9s ease-in-out infinite; z-index: 2; font-size: .75rem; }
+    @keyframes slide { 0%, 28% { transform: translateX(100%); } 36%, 82% { transform: translateX(0); } 90%, 100% { transform: translateX(100%); } }
+    .panel .k { font: 500 .62rem "JetBrains Mono", monospace; letter-spacing: .1em; text-transform: uppercase; color: var(--brand); }
+    .panel h4 { margin: .25rem 0 .1rem; font: 700 .95rem "JetBrains Mono", monospace; }
+    .panel .f { color: var(--muted); margin-bottom: .8rem; }
+    .panel .row { display: flex; justify-content: space-between; padding: .45rem 0; border-top: 1px solid var(--line); }
+    .badge { display: inline-block; padding: .08rem .5rem; border-radius: 999px; font-weight: 700; font-size: .66rem; letter-spacing: .05em; text-transform: uppercase; background: #fee2e2; color: var(--red); }
+    .chip { position: absolute; padding: .4rem .75rem; border-radius: 12px; background: var(--paper); border: 1px solid var(--line); box-shadow: var(--shadow); font-size: .76rem; font-weight: 600; display: flex; gap: .45rem; align-items: center; animation: float 6s ease-in-out infinite; z-index: 4; }
+    .chip .d { width: 8px; height: 8px; border-radius: 50%; }
+    .chip.c1 { left: -22px; top: 120px; } .chip.c2 { right: -18px; bottom: 90px; animation-delay: -3s; }
+    @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
+    @media (max-width: 900px) { .chip { display: none; } .panel { display: none; } .app { height: 330px; } }
+
+    .gedge { fill: none; stroke: #9aa3b5; stroke-width: 1.4; opacity: .75; }
+    .gedge.x { stroke: var(--sky); stroke-width: 1.8; stroke-dasharray: 5 5; animation: flow 1.1s linear infinite; opacity: 1; }
+    .gedge.imp { stroke: #8b83e8; stroke-dasharray: 3 5; }
+    @keyframes flow { to { stroke-dashoffset: -20; } }
+    .gblock { fill: color-mix(in srgb, var(--c) 9%, white); stroke: color-mix(in srgb, var(--c) 45%, white); stroke-width: 1.2; }
+    .gname { font: 600 11px "JetBrains Mono", monospace; fill: #4a5160; }
+    .gnode { fill: #fff; stroke: var(--c); stroke-width: 1.6; }
+    .gnode.pop { transform-box: fill-box; transform-origin: center; animation: pop .5s cubic-bezier(.3, 1.5, .5, 1) both; }
+    @keyframes pop { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .gtxt { font: 500 8.5px "JetBrains Mono", monospace; fill: #3a4150; }
+    .gnode.hot { animation: hot 9s ease-in-out infinite; }
+    @keyframes hot { 0%, 28% { stroke-width: 1.6; fill: #fff; } 34%, 82% { stroke-width: 3; fill: #fef3c7; } 90%, 100% { stroke-width: 1.6; fill: #fff; } }
+    .svgfade { animation: fadein .45s ease both; }
+    @keyframes fadein { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+    /* sections */
+    section.block { padding: 5rem 0 0; }
+    .eyebrow { font: 600 .75rem "JetBrains Mono", monospace; letter-spacing: .12em; text-transform: uppercase; color: var(--brand); }
+    .block h2 { font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 800; margin-top: .5rem; max-width: 20ch; }
+    .block .sub { color: var(--muted); max-width: 38rem; margin-top: .9rem; }
+
+    .marquee { margin-top: 3.5rem; overflow: hidden; border-block: 1px solid var(--line); background: rgba(255, 255, 255, .6); mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
+    .track { display: flex; gap: 1rem; width: max-content; padding: 1rem 0; animation: scroll 38s linear infinite; }
+    .marquee:hover .track { animation-play-state: paused; }
+    .track span { padding: .35rem .9rem; border-radius: 999px; background: var(--paper); border: 1px solid var(--line); font: 500 .82rem "JetBrains Mono", monospace; color: var(--muted); white-space: nowrap; }
+    @keyframes scroll { to { transform: translateX(-50%); } }
+
+    .bento { display: grid; grid-template-columns: repeat(6, 1fr); gap: 1rem; margin-top: 2.5rem; }
+    .cell { background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); padding: 1.4rem; box-shadow: 0 1px 2px rgba(22, 24, 29, .04); transition: transform .2s, box-shadow .2s, border-color .2s; overflow: hidden; position: relative; }
+    .cell:hover { transform: translateY(-4px); box-shadow: var(--shadow); border-color: #d8d3c6; }
+    .cell.s2 { grid-column: span 2; } .cell.s3 { grid-column: span 3; } .cell.s4 { grid-column: span 4; }
+    @media (max-width: 860px) { .cell.s2, .cell.s3, .cell.s4 { grid-column: span 6; } }
+    .cell h3 { font-size: 1.1rem; font-weight: 700; margin: .9rem 0 .35rem; }
+    .cell p { margin: 0; color: var(--muted); font-size: .9rem; }
+    .ico { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; background: var(--brand-soft); color: var(--brand); }
+    .ico svg { width: 22px; height: 22px; }
+    .art { height: 90px; margin-top: 1rem; border-radius: 12px; background: #f6f4ee; position: relative; overflow: hidden; }
+
+    /* art: risk bar */
+    .risk { display: flex; gap: .4rem; padding: 1rem; align-items: center; height: 100%; }
+    .risk i { flex: 1; height: 10px; border-radius: 5px; background: #e5e1d6; position: relative; overflow: hidden; }
+    .risk i::after { content: ""; position: absolute; inset: 0; background: var(--c); transform: scaleX(0); transform-origin: left; transition: transform .8s cubic-bezier(.2, .8, .2, 1); }
+    .reveal.in .risk i::after { transform: scaleX(1); }
+    .risk i:nth-child(2)::after { transition-delay: .15s; } .risk i:nth-child(3)::after { transition-delay: .3s; } .risk i:nth-child(4)::after { transition-delay: .45s; }
+    .art-tags { display: flex; flex-wrap: wrap; gap: .4rem; padding: .9rem; }
+    .art-tags b { font: 500 .72rem "JetBrains Mono", monospace; padding: .2rem .55rem; border-radius: 6px; background: #fff; border: 1px solid var(--line); color: var(--muted); animation: tagfloat 4s ease-in-out infinite; }
+    .art-tags b:nth-child(2n) { animation-delay: -1.3s; } .art-tags b:nth-child(3n) { animation-delay: -2.6s; }
+    @keyframes tagfloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+    .art-lines { padding: .9rem; display: grid; gap: .45rem; }
+    .art-lines i { height: 9px; border-radius: 5px; background: linear-gradient(90deg, #d9d4c6 var(--w), transparent var(--w)); animation: grow 3s ease-in-out infinite alternate; }
+    @keyframes grow { from { opacity: .5; } to { opacity: 1; } }
+
+    /* steps */
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; margin-top: 2.5rem; position: relative; }
+    @media (max-width: 860px) { .steps { grid-template-columns: 1fr; } }
+    .step { padding: 1.4rem; border-radius: var(--radius); background: var(--paper); border: 1px solid var(--line); position: relative; }
+    .step .n { width: 34px; height: 34px; border-radius: 50%; background: var(--ink); color: #fff; display: grid; place-items: center; font: 700 .85rem "JetBrains Mono", monospace; }
+    .step h3 { margin: .9rem 0 .3rem; font-size: 1.05rem; }
+    .step p { margin: 0; color: var(--muted); font-size: .9rem; }
+
+    /* whats new */
+    .new { margin-top: 2.5rem; display: grid; grid-template-columns: repeat(2, 1fr); gap: .8rem 1.5rem; }
+    @media (max-width: 760px) { .new { grid-template-columns: 1fr; } }
+    .new li { list-style: none; display: flex; gap: .8rem; padding: .9rem 1rem; background: var(--paper); border: 1px solid var(--line); border-radius: 14px; font-size: .92rem; }
+    .new li svg { flex: 0 0 20px; width: 20px; height: 20px; color: var(--green); margin-top: 2px; }
+    .new b { display: block; font-weight: 600; }
+    .new span { color: var(--muted); font-size: .85rem; }
+    ul.new { padding: 0; margin-bottom: 0; }
+
+    /* download */
+    .dl { margin-top: 5rem; border-radius: 24px; background: var(--ink); color: #fff; padding: 3rem 2rem; text-align: center; position: relative; overflow: hidden; }
+    .dl::before, .dl::after { content: ""; position: absolute; width: 280px; height: 280px; border-radius: 50%; border: 1.5px dashed rgba(255, 255, 255, .15); animation: spin 40s linear infinite; }
+    .dl::before { left: -80px; top: -90px; } .dl::after { right: -90px; bottom: -110px; animation-direction: reverse; width: 340px; height: 340px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .dl h2 { font-size: clamp(1.8rem, 4vw, 2.4rem); font-weight: 800; position: relative; }
+    .dl p { color: #b8bec9; max-width: 34rem; margin: .8rem auto 0; position: relative; }
+    .dl .cta { position: relative; }
+    .dl .btn-primary { background: #fff; color: var(--ink); box-shadow: none; }
+    .dl .btn-ghost { background: transparent; color: #fff; border-color: rgba(255, 255, 255, .3); }
+    .dl .btn-ghost:hover { border-color: #fff; color: #fff; }
+    .dl small { display: block; margin-top: 1.1rem; color: #8f97a6; position: relative; }
+
+    details { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: .2rem 1.2rem; margin-top: .7rem; }
+    summary { cursor: pointer; padding: .9rem 0; font-weight: 600; list-style: none; display: flex; justify-content: space-between; }
+    summary::-webkit-details-marker { display: none; }
+    summary::after { content: "+"; font: 400 1.3rem "JetBrains Mono", monospace; color: var(--brand); transition: transform .2s; }
+    details[open] summary::after { transform: rotate(45deg); }
+    details div { padding: 0 0 1rem; color: var(--muted); font-size: .92rem; }
+    details code { font-family: "JetBrains Mono", monospace; font-size: .82rem; background: #f1eee6; padding: .1rem .4rem; border-radius: 5px; color: var(--ink); }
+    .faq { max-width: 760px; }
+
+    footer { margin-top: 5rem; padding: 2rem 0 3rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .85rem; }
+    footer .wrap { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; }
+    footer a { text-decoration: none; margin-left: 1.2rem; } footer a:hover { color: var(--brand); }
+
+    .reveal { opacity: 0; transform: translateY(22px); transition: opacity .7s ease, transform .7s cubic-bezier(.2, .7, .2, 1); }
+    .reveal.in { opacity: 1; transform: none; }
+    .reveal.d1 { transition-delay: .08s; } .reveal.d2 { transition-delay: .16s; } .reveal.d3 { transition-delay: .24s; }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+      .reveal { opacity: 1; transform: none; }
+      .hero h1 .u path { stroke-dashoffset: 0; }
     }
   </style>
-  <script>
-    const RELEASE_TAG = "v1.1.0";
-    const INSTALLER_NAME = "LogicLens-Setup-1.1.0.exe";
-    const INSTALLER_URL =
-      "https://github.com/shivin4/logiclens/releases/download/" + RELEASE_TAG + "/" + INSTALLER_NAME;
-    const RELEASE_NOTES_URL = "https://github.com/shivin4/logiclens/releases/tag/" + RELEASE_TAG;
-    const RELEASES_LATEST_URL = "https://github.com/shivin4/logiclens/releases/latest";
-    const SOURCE_URL = "https://github.com/shivin4/logiclens";
-  </script>
 </head>
 
 <body>
-  <div class="mesh" aria-hidden="true"></div>
-  <div class="grid-noise" aria-hidden="true"></div>
-
   <header class="nav">
-    <div class="nav-inner">
-      <a class="brand" href="#">
-        <img class="brand-mark" src="logo.svg" width="32" height="32" alt="" decoding="async" />
-        LogicLens
-      </a>
-      <nav class="nav-links" aria-label="Primary">
+    <div class="wrap nav-in">
+      <a class="brand" href="#top"><img src="logo.svg" alt="" />LogicLens</a>
+      <nav class="links" aria-label="Primary">
         <a href="#features">Features</a>
-        <a href="#whatsnew">What’s new</a>
-        <a href="#why">Why download</a>
-        <a href="#docs">Docs</a>
-        <a href="#download">Download</a>
+        <a href="#how">How it works</a>
+        <a href="#new">What's new</a>
+        <a href="#faq">FAQ</a>
       </nav>
-      <a class="btn btn-primary" id="nav-download" href="#download">Get LogicLens 1.1.0</a>
+      <a class="btn btn-primary dl-link" href="#download">Download</a>
     </div>
   </header>
 
-  <main>
-    <section class="hero wrap">
-      <div class="hero-badge">LogicLens 1.1.0 · Desktop · Local-first · Windows</div>
-      <h1>Your codebase, <span>as a graph</span></h1>
-      <p class="hero-lead">LogicLens parses your project, builds an interactive dependency map, and adds semantic search
-        and AI-assisted impact analysis - without running a separate graph database.</p>
-      <div class="hero-cta">
-        <a class="btn btn-primary" id="hero-download" href="#download">Download for Windows</a>
-        <a class="btn btn-ghost" id="hero-release-notes" href="#" rel="noopener">Release notes</a>
-        <a class="btn btn-ghost" href="#docs">Docs</a>
-      </div>
-      <p class="hero-meta">Installer: LogicLens-Setup-1.1.0.exe · 146MB</p>
-
-      <div class="preview" aria-hidden="true">
-        <div class="preview-bar">
-          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-          <span
-            style="margin-left:0.75rem;font-size:0.75rem;color:var(--muted);font-family:IBM Plex Mono,monospace">LogicLens</span>
+  <main id="top">
+    <section class="wrap hero">
+      <div>
+        <span class="pill"><i></i><span class="ver-label">Version 1.2.0</span> &middot; Windows desktop app</span>
+        <h1>Know what breaks <span class="u">before<svg viewBox="0 0 200 12" preserveAspectRatio="none" aria-hidden="true"><path d="M3 8 C 50 2, 120 2, 197 7" /></svg></span> you change it</h1>
+        <p class="lead">LogicLens turns a project folder into an interactive map of files, functions and calls. Then it
+          searches it, traces it and checks the impact of a change. Everything runs on your PC.</p>
+        <div class="cta">
+          <a class="btn btn-primary dl-link" href="#download">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 20h16" /></svg>
+            Download for Windows</a>
+          <a class="btn btn-ghost" href="https://github.com/shivin4/logiclens" rel="noopener">View on GitHub</a>
         </div>
-        <div class="preview-body">
-          <div class="preview-graph">
-            <svg viewBox="0 0 400 120" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <path d="M40 60 L120 30 L200 60 L280 25 L360 60" stroke="url(#g)" stroke-width="2"
-                stroke-linecap="round" />
-              <circle cx="40" cy="60" r="10" fill="#38bdf8" opacity="0.9" />
-              <circle cx="120" cy="30" r="8" fill="#6366f1" opacity="0.9" />
-              <circle cx="200" cy="60" r="9" fill="#22d3ee" opacity="0.9" />
-              <circle cx="280" cy="25" r="7" fill="#a78bfa" opacity="0.9" />
-              <circle cx="360" cy="60" r="10" fill="#38bdf8" opacity="0.9" />
-              <defs>
-                <linearGradient id="g" x1="0" y1="0" x2="400" y2="0">
-                  <stop stop-color="#38bdf8" />
-                  <stop offset="1" stop-color="#6366f1" />
-                </linearGradient>
-              </defs>
-            </svg>
+        <p class="meta dl-meta">Free &middot; Windows 10/11 &middot; no account, no server</p>
+      </div>
+
+      <div class="stage" id="stage">
+        <div class="chip c1"><span class="d" style="background:var(--green)"></span>3 callers found</div>
+        <div class="chip c2"><span class="d" style="background:var(--amber)"></span>Impact report ready</div>
+        <div class="win">
+          <div class="bar"><b></b><b></b><b></b><span>LogicLens &mdash; factlens</span></div>
+          <div class="app">
+            <div class="rail"><i></i><i></i><i></i><i></i></div>
+            <div class="canvas">
+              <div class="tabs" role="tablist" aria-label="Graph views">
+                <button class="on" data-scene="files" role="tab">Files</button>
+                <button data-scene="functions" role="tab">Functions</button>
+                <button data-scene="single" role="tab">Single file</button>
+              </div>
+              <svg id="scene" viewBox="0 0 700 430" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+              <div class="panel" aria-hidden="true">
+                <div class="k">Function insight</div>
+                <h4>run_ablation</h4>
+                <div class="f">runner.py &middot; line 110</div>
+                <div class="row"><span>Calls</span><b>5</b></div>
+                <div class="row"><span>Called by</span><b>1</b></div>
+                <div class="row"><span>Risk</span><span class="badge">high</span></div>
+              </div>
+            </div>
           </div>
-          <p style="margin:0;font-size:0.85rem;color:var(--muted)">Files · classes · functions · calls · API routes</p>
         </div>
       </div>
     </section>
+
+    <div class="marquee" aria-label="Supported languages">
+      <div class="track" id="langs"></div>
+    </div>
 
     <section class="block wrap" id="features">
-      <h2>What you get</h2>
-      <p class="sub">Everything runs on your machine. Point LogicLens at a repo folder and explore structure the way
-        architects do - visually.</p>
-      <div class="grid-3">
-        <article class="card">
-          <div class="icon">◇</div>
-          <h3>Interactive graph</h3>
-          <p>Hierarchical and physics layouts: pan, zoom, and inspect nodes for files, classes, functions, and API
-            routes. Trace callers and callees in one click.</p>
+      <div class="reveal">
+        <div class="eyebrow">What it does</div>
+        <h2>See the shape of the code, not just the text</h2>
+        <p class="sub">Search finds words. LogicLens shows how files, functions and API routes actually depend on each other.</p>
+      </div>
+      <div class="bento">
+        <article class="cell s4 reveal">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><path d="M10 6.5h4M17.5 10v4M10 17.5h4" /></svg></div>
+          <h3>Three views of the same project</h3>
+          <p>Start with one box per file and the links between them. Drop into functions grouped by file, or open a
+            single file and see what calls it from the rest of the project.</p>
+          <div class="art"><div class="art-tags"><b>app.py</b><b>scoring.py</b><b>runner.py</b><b>evaluation.py</b><b>config.py</b><b>retrieval.py</b><b>build_kb.py</b></div></div>
         </article>
-        <article class="card">
-          <div class="icon">◎</div>
-          <h3>Embedded graph store</h3>
-          <p>No Neo4j or Docker. A local SQLite database backs the graph so setup stays a single installer.</p>
+        <article class="cell s2 reveal d1">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007 0l3-3a5 5 0 00-7-7l-1 1M14 11a5 5 0 00-7 0l-3 3a5 5 0 007 7l1-1" /></svg></div>
+          <h3>Cross-file links</h3>
+          <p>Imports and calls that jump between files are found for 11 language families.</p>
         </article>
-        <article class="card">
-          <div class="icon">⌕</div>
-          <h3>Semantic search</h3>
-          <p>ChromaDB indexes code chunks so you can search by meaning, not just text.</p>
+        <article class="cell s3 reveal">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 16H3z" /><path d="M12 10v4M12 17h.01" /></svg></div>
+          <h3>Impact analysis with a report</h3>
+          <p>Pick a function and get who calls it, which files are affected and a risk rating. Save the report as
+            Markdown or HTML.</p>
+          <div class="art"><div class="risk"><i style="--c:#16a34a"></i><i style="--c:#eab308"></i><i style="--c:#f97316"></i><i style="--c:#dc2626"></i></div></div>
         </article>
-        <article class="card">
-          <div class="icon">⚡</div>
-          <h3>AI explanations &amp; what-if</h3>
-          <p>Optional Groq-powered summaries for selected functions, plus a CrewAI “what-if” blast-radius report
-            streamed
-            over SSE.</p>
+        <article class="cell s3 reveal d1">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7" /><path d="M20 20l-4-4" /></svg></div>
+          <h3>Search by meaning</h3>
+          <p>Describe what you are looking for in plain words and jump to the code that does it.</p>
+          <div class="art"><div class="art-lines"><i style="--w:82%"></i><i style="--w:56%"></i><i style="--w:70%"></i></div></div>
         </article>
-        <article class="card">
-          <div class="icon">⎇</div>
-          <h3>Git awareness</h3>
-          <p>Recent commits and churn hotspots help you see where the code has been moving.</p>
+        <article class="cell s2 reveal">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.5" /><circle cx="6" cy="18" r="2.5" /><circle cx="18" cy="9" r="2.5" /><path d="M6 8.5v7M18 11.5c0 3-6 2-12 4" /></svg></div>
+          <h3>Git context</h3>
+          <p>Recent commits and hotspots show where the code keeps changing.</p>
         </article>
-        <article class="card">
-          <div class="icon">▣</div>
-          <h3>IDE-style workflow</h3>
-          <p>Onboarding wizard, file menu, recent projects, in-app updates check, native folder picker, and optional
-            side-by-side windows.</p>
+        <article class="cell s2 reveal d1">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2" /><path d="M8 11V8a4 4 0 018 0v3" /></svg></div>
+          <h3>Local first</h3>
+          <p>Graph stored in SQLite on your PC. No database server, no upload.</p>
+        </article>
+        <article class="cell s2 reveal d2">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 100 18 9 9 0 000-18z" /><path d="M12 3v18M3 12h18" /></svg></div>
+          <h3>Light and dark</h3>
+          <p>Pick a theme once. Every window remembers it, and the app works offline.</p>
         </article>
       </div>
     </section>
 
-    <section class="block wrap" id="whatsnew">
-      <h2>What’s new in LogicLens 1.1.0</h2>
-      <p class="sub">This release tightens the desktop experience, incremental analysis, and AI plumbing for packaged
-        builds.</p>
-      <div class="whatsnew">
-        <h3>Highlights</h3>
-        <ul>
-          <li><strong style="color:var(--text)">First-run onboarding</strong> - configure Groq (and optional keys),
-            then pick a folder and analyze.</li>
-          <li><strong style="color:var(--text)">Incremental analyze</strong> - fingerprints and SQLite/Chroma sync skip
-            unchanged files when you re-run Analyze on the same project.</li>
-          <li><strong style="color:var(--text)">Graph UX</strong> - hierarchy and physics modes, clearer label contrast,
-            and smoother navigation on large graphs.</li>
-          <li><strong style="color:var(--text)">Updates</strong> - Settings checks GitHub Releases for a newer version.
-          </li>
-          <li><strong style="color:var(--text)">Accessibility &amp; packaging</strong> - focus-visible styles, settings
-            dialog semantics, PyInstaller bundle fixes for what-if and embeddings.</li>
-        </ul>
+    <section class="block wrap" id="how">
+      <div class="reveal">
+        <div class="eyebrow">How it works</div>
+        <h2>From folder to answers in three steps</h2>
+      </div>
+      <div class="steps">
+        <div class="step reveal"><div class="n">1</div><h3>Open a project</h3><p>Pick a folder or paste a GitHub link. LogicLens reads the code with Tree-sitter, no setup needed.</p></div>
+        <div class="step reveal d1"><div class="n">2</div><h3>Explore the map</h3><p>Click a node to read its code, see what it calls and who calls it. Double-click to open that file.</p></div>
+        <div class="step reveal d2"><div class="n">3</div><h3>Check a change</h3><p>Run an impact analysis before editing a function and keep the report with the rest of your notes.</p></div>
       </div>
     </section>
 
-    <section class="block wrap" id="why">
-      <h2>Why download LogicLens?</h2>
-      <p class="sub">If you onboard to unfamiliar codebases, review refactors, or want interview-worthy portfolio
-        software, LogicLens shortens the “where does this call go?” loop.</p>
-      <div class="why-list">
-        <div class="why-item">
-          <strong>01</strong>
-          <div><strong style="color:var(--text)">Faster orientation</strong><br />See cross-file relationships that text
-            search alone won’t surface.</div>
+    <section class="block wrap" id="new">
+      <div class="reveal">
+        <div class="eyebrow">Version 1.2.0</div>
+        <h2>What's new in this release</h2>
+      </div>
+      <ul class="new" id="newlist"></ul>
+    </section>
+
+    <section class="wrap" id="download">
+      <div class="dl reveal">
+        <h2>Get LogicLens for Windows</h2>
+        <p>One installer, no admin rights needed. The button below always points to the newest release on GitHub.</p>
+        <div class="cta">
+          <a class="btn btn-primary" id="dl-btn" href="https://github.com/shivin4/logiclens/releases/latest" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 20h16" /></svg>
+            <span id="dl-label">Download the installer</span></a>
+          <a class="btn btn-ghost" id="notes-btn" href="https://github.com/shivin4/logiclens/releases/latest" rel="noopener">Release notes</a>
         </div>
-        <div class="why-item">
-          <strong>02</strong>
-          <div><strong style="color:var(--text)">Safer refactors</strong><br />Impact analysis and call tracing reduce
-            guesswork before you change signatures.</div>
-        </div>
-        <div class="why-item">
-          <strong>03</strong>
-          <div><strong style="color:var(--text)">Real desktop app</strong><br />Windows installer, Start Menu entry, and
-            search-friendly registration - not just a zip of scripts.</div>
-        </div>
-        <div class="why-item">
-          <strong>04</strong>
-          <div><strong style="color:var(--text)">Your keys, your data</strong><br />API keys stay in local config; the
-            graph and index live on disk under your user profile.</div>
-        </div>
+        <small id="dl-info">Windows 10/11 &middot; 64-bit</small>
       </div>
     </section>
 
-    <section class="block wrap" id="docs">
-      <h2>Documentation</h2>
-      <p class="sub">Quick answers for installers and first-time users. Full developer docs are in the repository
-        README.</p>
-
-      <details class="doc" open>
-        <summary>Install (Windows)</summary>
-        <div class="doc-body">
-          <ol style="margin:0;padding-left:1.2rem">
-            <li>Download <code>LogicLens-Setup-1.1.0.exe</code> from the <a href="#" id="doc-release-link"
-                rel="noopener" style="color:var(--accent)">LogicLens 1.1.0 release</a> (or <a id="doc-releases-link"
-                href="#" rel="noopener" style="color:var(--accent)">all releases</a>).</li>
-            <li>Run the installer (per-user install, no admin required by default).</li>
-            <li>Launch <strong>LogicLens</strong> from the Start Menu or desktop shortcut.</li>
-            <li>Use <strong>File → Open project</strong> or the welcome screen to pick a repository folder, then
-              analyze.</li>
-          </ol>
-        </div>
-      </details>
-      <details class="doc">
-        <summary>API keys (Groq)</summary>
-        <div class="doc-body">
-          AI explanations and what-if reports need a <strong>Groq API key</strong>. After install, complete onboarding
-          or open <strong>Settings</strong> in the app, or create
-          <code>%LOCALAPPDATA%\LogicLens\.env</code> with <code>GROQ_API_KEY=...</code>. See <code>.env.example</code>
-          in
-          the repo for all options.
-        </div>
-      </details>
-      <details class="doc">
-        <summary>Supported languages</summary>
-        <div class="doc-body">
-          Tree-sitter parsers cover Python, JavaScript/TypeScript (incl. JSX/TSX), Java, Go, and C/C++ headers. Vendor
-          and build folders are skipped by default for sane graphs.
-        </div>
-      </details>
-      <details class="doc">
-        <summary>Build from source</summary>
-        <div class="doc-body">
-          Developers can run <code>python desktop_main.py</code> or build with PyInstaller and Inno Setup - see
-          <code>packaging/BUILD_INSTALLER.md</code> in the repo.
-        </div>
-      </details>
-    </section>
-
-    <section class="block wrap" id="download">
-      <div class="download-strip">
-        <h2>Download LogicLens 1.1.0 for Windows</h2>
-        <p>Grab the signed or unsigned <strong>setup.exe</strong> from GitHub Releases. After you publish the release,
-          this button downloads the <strong>LogicLens 1.1.0</strong> installer asset by filename.</p>
-        <div class="download-actions">
-          <a class="btn btn-primary" id="download-btn" href="#" rel="noopener">Download LogicLens-Setup-1.1.0.exe</a>
-          <a class="btn btn-ghost" id="download-all-releases" href="#" rel="noopener">All releases</a>
-        </div>
-        <p style="margin-top:1.25rem;font-size:0.8rem;color:var(--muted)">Windows 10/11 · x64 · ~300MB+ installed
-          (includes ML/embeddings dependencies)</p>
+    <section class="block wrap" id="faq">
+      <div class="reveal">
+        <div class="eyebrow">Questions</div>
+        <h2>Quick answers</h2>
+      </div>
+      <div class="faq reveal">
+        <details open><summary>Does my code leave my computer?</summary><div>The graph and search index are stored on your machine. Only the optional AI explanations and impact reports send the relevant code snippets to the AI provider you configure.</div></details>
+        <details><summary>Do I need an API key?</summary><div>The graph, views and search work without one. Explanations and impact reports need a key for Groq or Gemini, or a local Ollama model. Add it in the setup screen or in Settings.</div></details>
+        <details><summary>Which languages work?</summary><div>Python, JavaScript, TypeScript, Java, Kotlin, Go, Rust, C and C++, C#, Ruby, PHP, Swift, Dart, Scala, R, Julia, Vue, Svelte and Jupyter notebooks.</div></details>
+        <details><summary>Windows says the app is unrecognised</summary><div>The installer is not code signed yet, so SmartScreen may warn. Choose <code>More info</code> and then <code>Run anyway</code>.</div></details>
+        <details><summary>Can I build it myself?</summary><div>Yes. Clone the repo, install <code>requirements.txt</code> and run <code>python desktop_main.py</code>. Steps for the installer are in <code>packaging/BUILD_INSTALLER.md</code>.</div></details>
       </div>
     </section>
   </main>
 
   <footer>
-    <p>LogicLens - local-first code intelligence</p>
-    <p style="margin-top:0.75rem">
-      <a id="footer-source" href="#" rel="noopener">Source on GitHub</a>
-      ·
-      <a id="footer-releases" href="#" rel="noopener">Releases</a>
-    </p>
-    <p style="margin-top:1rem;opacity:0.8;font-size:0.8rem">If you use GitHub Pages, set the canonical and Open Graph
-      URL in <code>&lt;head&gt;</code> to match your live site.</p>
+    <div class="wrap">
+      <span>LogicLens &middot; <span class="ver-label">Version 1.2.0</span></span>
+      <span><a href="https://github.com/shivin4/logiclens" rel="noopener">Source</a><a href="https://github.com/shivin4/logiclens/releases" rel="noopener">Releases</a><a href="https://github.com/shivin4/logiclens/issues" rel="noopener">Report a bug</a></span>
+    </div>
   </footer>
 
   <script>
-    (function () {
-      const dl = document.getElementById("download-btn");
-      const hero = document.getElementById("hero-download");
-      const nav = document.getElementById("nav-download");
-      const heroNotes = document.getElementById("hero-release-notes");
-      const src = document.getElementById("footer-source");
-      const rel = document.getElementById("footer-releases");
-      const docRel = document.getElementById("doc-release-link");
-      const docAll = document.getElementById("doc-releases-link");
-      const dlAll = document.getElementById("download-all-releases");
-      if (typeof INSTALLER_URL !== "undefined") {
-        dl.href = INSTALLER_URL;
-        hero.href = INSTALLER_URL;
-        nav.href = INSTALLER_URL;
+    // ---- release info: fills itself from the newest GitHub release ----
+    const REPO = "shivin4/logiclens";
+    const FALLBACK_VERSION = "1.2.0";
+    const FALLBACK_URL = "https://github.com/" + REPO + "/releases/latest/download/LogicLens-Setup-" + FALLBACK_VERSION + ".exe";
+    const dlBtn = document.getElementById("dl-btn");
+    const dlInfo = document.getElementById("dl-info");
+    dlBtn.href = FALLBACK_URL;
+    document.querySelectorAll(".dl-link").forEach(a => a.setAttribute("href", "#download"));
+    fetch("https://api.github.com/repos/" + REPO + "/releases/latest")
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(rel => {
+        const asset = (rel.assets || []).find(a => /\.exe$/i.test(a.name));
+        const v = (rel.tag_name || "").replace(/^v/i, "") || FALLBACK_VERSION;
+        document.querySelectorAll(".ver-label").forEach(el => el.textContent = "Version " + v);
+        document.getElementById("notes-btn").href = rel.html_url;
+        if (asset) {
+          dlBtn.href = asset.browser_download_url;
+          document.getElementById("dl-label").textContent = "Download LogicLens " + v;
+          const mb = Math.round(asset.size / 1048576);
+          const when = new Date(rel.published_at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+          dlInfo.textContent = asset.name + " · " + mb + " MB · released " + when + " · Windows 10/11 64-bit";
+        }
+      })
+      .catch(() => { /* not released yet or offline: the fallback link stays */ });
+
+    // ---- language marquee ----
+    const langs = ["Python", "JavaScript", "TypeScript", "Java", "Kotlin", "Go", "Rust", "C / C++", "C#", "Ruby", "PHP", "Swift", "Dart", "Scala", "R", "Julia", "Vue", "Svelte", "Jupyter"];
+    document.getElementById("langs").innerHTML = langs.concat(langs).map(l => "<span>" + l + "</span>").join("");
+
+    // ---- what's new ----
+    const tick = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>';
+    const news = [
+      ["Files overview", "One box per file with import and call links. The calmest way to start."],
+      ["Single-file graph", "Open one file and see its callers and callees from other files."],
+      ["Cross-file connections", "Imports are matched to the exact file, and unclear calls are left out instead of guessed."],
+      ["Clusters layout and legend", "Functions are grouped by file, and a legend explains every colour and line."],
+      ["Resizable side panels", "Drag to resize, hide or widen the panel. Only one panel is open at a time."],
+      ["Better impact analysis", "Search-as-you-type picker, risk badge, recent reports, save as .md or .html."],
+      ["Light and dark that stick", "New windows open in the theme you picked. Fonts and icons work offline."],
+      ["Cleaner home screen", "A tidier start page with recent projects and quick actions."]
+    ];
+    document.getElementById("newlist").innerHTML = news.map((n, i) =>
+      '<li class="reveal d' + (i % 3) + '">' + tick + "<div><b>" + n[0] + "</b><span>" + n[1] + "</span></div></li>").join("");
+
+    // ---- animated graph scenes ----
+    const NS = "http://www.w3.org/2000/svg";
+    const C = { a: "#4338ca", b: "#0ea5e9", c: "#16a34a", d: "#f59e0b", e: "#db2777", f: "#7c3aed" };
+    const scenes = {
+      files: {
+        blocks: [
+          { id: "app", n: "app.py", x: 40, y: 70, w: 150, h: 62, c: C.a }, { id: "ext", n: "extractor.py", x: 275, y: 50, w: 150, h: 62, c: C.d },
+          { id: "cfg", n: "config.py", x: 275, y: 175, w: 150, h: 62, c: C.c }, { id: "sql", n: "sqlite_graph.py", x: 510, y: 90, w: 150, h: 62, c: C.b },
+          { id: "gh", n: "github.py", x: 40, y: 230, w: 150, h: 62, c: C.f }, { id: "wf", n: "whatif_crew.py", x: 510, y: 235, w: 150, h: 62, c: C.e },
+          { id: "xf", n: "crossfile.py", x: 275, y: 320, w: 150, h: 62, c: C.a }],
+        edges: [["app", "ext", 1], ["app", "cfg", 1], ["app", "sql", 1], ["app", "gh", 1], ["ext", "sql", 1], ["ext", "xf", 1], ["gh", "cfg", 0], ["wf", "cfg", 0], ["app", "wf", 1], ["sql", "cfg", 0]],
+        bigNodes: true
+      },
+      functions: {
+        blocks: [
+          { id: "r", n: "runner.py", x: 40, y: 60, w: 200, h: 120, c: C.a, nodes: ["run_pipeline", "run_ablation", "score_label", "to_dict"] },
+          { id: "s", n: "scoring.py", x: 280, y: 50, w: 200, h: 120, c: C.b, nodes: ["compute_scores", "composite", "tokenize", "accuracy"] },
+          { id: "e", n: "evaluation.py", x: 500, y: 200, w: 180, h: 120, c: C.e, nodes: ["evaluate_all", "check_consistency", "verdict"] },
+          { id: "t", n: "retrieval.py", x: 60, y: 230, w: 200, h: 120, c: C.c, nodes: ["retrieve", "load_index", "citation", "fetch_meta"] }],
+        edges: [["r.1", "s.0", 1], ["r.0", "e.0", 1], ["s.0", "e.2", 0], ["r.0", "t.0", 1], ["t.0", "s.2", 1], ["r.2", "s.1", 0], ["e.0", "s.3", 0]]
+      },
+      single: {
+        blocks: [
+          { id: "m", n: "scoring.py", x: 215, y: 110, w: 270, h: 150, c: C.b, nodes: ["compute_scores", "composite", "tokenize", "accuracy_100", "interpret_score", "_nli_accuracy"] },
+          { id: "o1", n: "runner.py", x: 20, y: 30, w: 150, h: 56, c: C.a, nodes: ["run_ablation"], ext: true },
+          { id: "o2", n: "tests", x: 20, y: 310, w: 150, h: 56, c: C.d, nodes: ["test_scores"], ext: true },
+          { id: "o3", n: "config.py", x: 530, y: 40, w: 150, h: 56, c: C.c, nodes: ["get_model"], ext: true },
+          { id: "o4", n: "evaluation.py", x: 530, y: 310, w: 150, h: 56, c: C.e, nodes: ["evaluate_all"], ext: true }],
+        edges: [["o1.0", "m.0", 1], ["o2.0", "m.1", 1], ["m.0", "o3.0", 1], ["o4.0", "m.4", 1], ["m.0", "m.1", 0], ["m.0", "m.2", 0], ["m.3", "m.5", 0]]
       }
-      if (typeof RELEASE_NOTES_URL !== "undefined") heroNotes.href = RELEASE_NOTES_URL;
-      if (typeof SOURCE_URL !== "undefined") src.href = SOURCE_URL;
-      if (typeof RELEASES_LATEST_URL !== "undefined") {
-        rel.href = RELEASES_LATEST_URL;
-        docAll.href = RELEASES_LATEST_URL;
-        dlAll.href = RELEASES_LATEST_URL;
-      }
-      if (typeof RELEASE_NOTES_URL !== "undefined") docRel.href = RELEASE_NOTES_URL;
-    })();
+    };
+
+    function el(tag, attrs, parent) { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
+
+    function drawScene(name) {
+      const svg = document.getElementById("scene");
+      svg.innerHTML = "";
+      const sc = scenes[name];
+      const pos = {};
+      const g = el("g", { class: "svgfade" }, svg);
+      const edgeLayer = el("g", {}, g), blockLayer = el("g", {}, g);
+      let delay = 0;
+      sc.blocks.forEach(b => {
+        if (!sc.bigNodes) {
+          const r = el("rect", { x: b.x, y: b.y, width: b.w, height: b.h, rx: 12, class: "gblock", style: "--c:" + b.c + (b.ext ? ";stroke-dasharray:5 4" : "") }, blockLayer);
+          el("text", { x: b.x + 10, y: b.y - 7, class: "gname" }, blockLayer).textContent = b.n;
+        }
+        if (sc.bigNodes) {
+          el("rect", { x: b.x, y: b.y, width: b.w, height: b.h, rx: 14, class: "gnode pop", style: "--c:" + b.c + ";stroke-width:2.4;animation-delay:" + (delay += 70) + "ms" }, blockLayer);
+          el("text", { x: b.x + b.w / 2, y: b.y + 28, "text-anchor": "middle", class: "gname", style: "font-size:12px;fill:#16181d" }, blockLayer).textContent = b.n;
+          el("text", { x: b.x + b.w / 2, y: b.y + 46, "text-anchor": "middle", class: "gtxt" }, blockLayer).textContent = (6 + (b.n.length % 9)) + " functions";
+          pos[b.id] = { x: b.x + b.w / 2, y: b.y + b.h / 2, hw: b.w / 2, hh: b.h / 2 };
+        } else {
+          const nodes = b.nodes, cols = Math.min(2, nodes.length);
+          nodes.forEach((label, i) => {
+            const col = i % cols, row = Math.floor(i / cols);
+            const nw = Math.min(88, (b.w - 20) / cols - 8), nh = 22;
+            const nx = b.x + 12 + col * (nw + 8), ny = b.y + 16 + row * 34;
+            const hot = name === "functions" && label === "run_ablation" ? " hot" : "";
+            el("rect", { x: nx, y: ny, width: nw, height: nh, rx: 6, class: "gnode pop" + hot, style: "--c:" + b.c + ";animation-delay:" + (delay += 45) + "ms" }, blockLayer);
+            el("text", { x: nx + nw / 2, y: ny + 14.5, "text-anchor": "middle", class: "gtxt" }, blockLayer).textContent = label.length > 13 ? label.slice(0, 12) + "…" : label;
+            pos[b.id + "." + i] = { x: nx + nw / 2, y: ny + nh / 2, hw: nw / 2, hh: nh / 2 };
+          });
+        }
+      });
+      sc.edges.forEach(([a, b, cross]) => {
+        const p = pos[a], q = pos[b]; if (!p || !q) return;
+        const mx = (p.x + q.x) / 2, my = (p.y + q.y) / 2 - 24;
+        el("path", { d: "M" + p.x + " " + p.y + " Q" + mx + " " + my + " " + q.x + " " + q.y, class: "gedge" + (cross ? " x" : "") }, edgeLayer);
+      });
+      // keep nodes above edges visually
+      g.appendChild(blockLayer);
+    }
+
+    drawScene("files");
+    document.querySelectorAll(".tabs button").forEach(btn => btn.addEventListener("click", () => {
+      document.querySelectorAll(".tabs button").forEach(b => b.classList.toggle("on", b === btn));
+      drawScene(btn.dataset.scene);
+      auto = false;
+    }));
+    let auto = true, idx = 0;
+    const order = ["files", "functions", "single"];
+    setInterval(() => {
+      if (!auto || document.hidden) return;
+      idx = (idx + 1) % order.length;
+      document.querySelectorAll(".tabs button").forEach(b => b.classList.toggle("on", b.dataset.scene === order[idx]));
+      drawScene(order[idx]);
+    }, 7000);
+
+    // ---- gentle tilt on the app window ----
+    const stage = document.getElementById("stage");
+    if (matchMedia("(hover:hover)").matches && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      stage.addEventListener("mousemove", e => {
+        const r = stage.getBoundingClientRect();
+        const x = (e.clientX - r.left) / r.width - .5, y = (e.clientY - r.top) / r.height - .5;
+        stage.firstElementChild.nextElementSibling.nextElementSibling.style.setProperty("--ry", (x * 5) + "deg");
+        stage.firstElementChild.nextElementSibling.nextElementSibling.style.setProperty("--rx", (-y * 4) + "deg");
+      });
+      stage.addEventListener("mouseleave", () => {
+        const w = stage.querySelector(".win"); w.style.setProperty("--rx", "0deg"); w.style.setProperty("--ry", "0deg");
+      });
+    }
+
+    // ---- reveal on scroll ----
+    const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), { threshold: .15 });
+    document.querySelectorAll(".reveal").forEach(n => io.observe(n));
   </script>
 </body>
 
